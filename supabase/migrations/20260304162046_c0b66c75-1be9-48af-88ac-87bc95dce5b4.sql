@@ -1,0 +1,1 @@
+ALTER TABLE public.watchlist ADD COLUMN IF NOT EXISTS notes text;
