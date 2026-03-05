@@ -19,23 +19,25 @@ export function LogoMark({ size = 28, className = "" }: LogoMarkProps) {
           <stop offset="50%" stopColor="#c4b5fd" />
           <stop offset="100%" stopColor="#818cf8" />
         </linearGradient>
-        <filter id="infGlow">
-          <feGaussianBlur stdDeviation="4" result="blur" />
+        <filter id="infGlow" x="-50%" y="-50%" width="200%" height="200%">
+          <feGaussianBlur stdDeviation="3" result="blur" />
           <feMerge>
-            <feMergeNode in="blur" />
             <feMergeNode in="blur" />
             <feMergeNode in="SourceGraphic" />
           </feMerge>
         </filter>
+        <filter id="infSoftGlow" x="-50%" y="-50%" width="200%" height="200%">
+          <feGaussianBlur stdDeviation="6" />
+        </filter>
       </defs>
-      {/* Bright outer glow */}
+      {/* Soft background glow */}
       <path
         d="M30 60 C30 42, 50 42, 60 60 C70 78, 90 78, 90 60 C90 42, 70 42, 60 60 C50 78, 30 78, 30 60 Z"
-        stroke="#c4b5fd"
-        strokeWidth="6"
+        stroke="#a5b4fc"
+        strokeWidth="8"
         fill="none"
-        opacity="0.3"
-        filter="url(#infGlow)"
+        opacity="0.15"
+        filter="url(#infSoftGlow)"
       />
       {/* Main infinity path */}
       <path
