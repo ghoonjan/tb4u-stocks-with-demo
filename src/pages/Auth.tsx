@@ -170,7 +170,7 @@ const Auth = () => {
             Continue with Apple
           </button>
 
-            <button
+          <div className="mt-4 text-center">
               onClick={() => { setIsLogin(!isLogin); setError(null); setMessage(null); }}
               className="text-xs text-muted-foreground hover:text-foreground transition-colors"
             >
