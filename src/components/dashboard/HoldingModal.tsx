@@ -97,6 +97,8 @@ export function HoldingModal({ open, onClose, onSubmit, initial }: HoldingModalP
     if (ok) {
       toast.success(initial ? `${ticker} updated` : `${ticker} added to portfolio`);
       onClose();
+    } else {
+      toast.error(`Failed to ${initial ? "update" : "add"} ${ticker}`);
     }
   };
 
