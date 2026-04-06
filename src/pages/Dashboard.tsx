@@ -183,16 +183,18 @@ const Dashboard = () => {
         />
       </div>
 
-      {/* Floating Journal Button */}
-      <button
-        onClick={() => setJournalPanelOpen(true)}
-        className="fixed bottom-4 left-4 sm:bottom-6 sm:left-6 z-40 flex items-center gap-2 rounded-full bg-primary px-3 py-2 sm:px-4 sm:py-2.5 text-primary-foreground text-xs sm:text-sm font-medium shadow-lg hover:bg-primary/90 transition-all hover:scale-105"
-        title="Open Trade Journal"
-        aria-label="Open Trade Journal"
-      >
-        <BookOpen size={14} className="sm:w-4 sm:h-4" />
-        <span className="hidden sm:inline">Journal</span>
-      </button>
+      {/* Journal Button - above copyright footer */}
+      <div className="px-2 sm:px-4 pb-2 max-w-[1600px] mx-auto w-full">
+        <button
+          onClick={() => setJournalPanelOpen(true)}
+          className="flex items-center gap-2 rounded-full bg-primary px-4 py-2.5 text-primary-foreground text-sm font-medium shadow-lg hover:bg-primary/90 transition-all hover:scale-105"
+          title="Open Trade Journal"
+          aria-label="Open Trade Journal"
+        >
+          <BookOpen size={16} />
+          Journal
+        </button>
+      </div>
 
       {/* Add/Edit Holding Modal */}
       <HoldingModal
