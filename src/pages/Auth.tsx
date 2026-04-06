@@ -5,6 +5,7 @@ import { useNavigate } from "react-router-dom";
 import { useEffect } from "react";
 import { LogoMark } from "@/components/LogoMark";
 import { GradientMeshBackground } from "@/components/GradientMeshBackground";
+import CopyrightFooter from "@/components/CopyrightFooter";
 
 const Auth = () => {
   const [isLogin, setIsLogin] = useState(true);
@@ -180,8 +181,8 @@ const Auth = () => {
           </div>
         </div>
       </div>
+      <CopyrightFooter />
     </div>
   );
-};
 
 export default Auth;
