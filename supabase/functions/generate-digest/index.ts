@@ -58,7 +58,7 @@ function generateEmailHtml(
   const totalPL = totalValue - totalCost;
   const totalPLPct = totalCost > 0 ? (totalPL / totalCost) * 100 : 0;
   const direction = totalPL >= 0 ? "Up" : "Down";
-  const subject = `War Room Weekly: Your Portfolio ${direction} ${Math.abs(totalPLPct).toFixed(1)}% This Week`;
+  const subject = `TB4U Weekly: Your Portfolio ${direction} ${Math.abs(totalPLPct).toFixed(1)}% This Week`;
 
   // Sort for movers
   const sorted = [...holdingData].sort((a, b) => b.pctChange - a.pctChange);
@@ -104,7 +104,7 @@ function generateEmailHtml(
 
   <!-- Header -->
   <div style="background:linear-gradient(135deg,#0a0a14,#141428);padding:32px 24px;text-align:center;border-bottom:1px solid #1e1e3a;">
-    <p style="margin:0;font-size:11px;letter-spacing:3px;color:#3b82f6;font-weight:700;">WAR ROOM</p>
+    <p style="margin:0;font-size:11px;letter-spacing:3px;color:#3b82f6;font-weight:700;">TB4U</p>
     <h1 style="margin:12px 0 4px;font-size:28px;font-weight:700;color:#d4d8e8;font-family:monospace;">
       ${fmtDollar(totalValue)}
     </h1>
@@ -178,7 +178,7 @@ function generateEmailHtml(
   <!-- CTA -->
   <div style="padding:32px 24px;text-align:center;">
     <a href="${appUrl}" style="display:inline-block;background:#3b82f6;color:#ffffff;padding:12px 32px;border-radius:8px;text-decoration:none;font-weight:600;font-size:14px;">
-      Open your War Room →
+      Open TB4U →
     </a>
   </div>
 
@@ -296,7 +296,7 @@ Deno.serve(async (req) => {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          from: "War Room <digest@resend.dev>",
+          from: "TB4U <digest@resend.dev>",
           to: [user.email],
           subject,
           html,

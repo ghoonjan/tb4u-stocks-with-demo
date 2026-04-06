@@ -8,7 +8,7 @@ export function EmptyHoldings({ onAdd }: { onAdd: () => void }) {
       <div className="rounded-2xl bg-primary/10 p-5 mb-5">
         <Target size={36} className="text-primary" />
       </div>
-      <h3 className="text-lg font-bold text-foreground mb-2">Welcome to the War Room 🎯</h3>
+      <h3 className="text-lg font-bold text-foreground mb-2">Welcome to TB4U 🎯</h3>
       <p className="text-sm text-muted-foreground mb-6 max-w-xs">
         Add your first holding to start tracking your portfolio performance, get AI insights, and monitor the market.
       </p>

@@ -106,7 +106,7 @@ export function ShareModal({ open, onClose, holdings, simpleReturn, twr, twrAvai
       <div className="relative w-full max-w-2xl max-h-[90vh] overflow-y-auto layer-modal shadow-xl animate-in fade-in zoom-in-95 duration-200">
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-border">
-          <h2 className="text-base font-semibold text-foreground">Share My War Room</h2>
+          <h2 className="text-base font-semibold text-foreground">Share My TB4U</h2>
           <button onClick={onClose} className="text-muted-foreground hover:text-foreground transition-colors"><X size={18} /></button>
         </div>
 
@@ -161,7 +161,7 @@ export function ShareModal({ open, onClose, holdings, simpleReturn, twr, twrAvai
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 20, position: "relative" }}>
                     <div>
                       <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.2em", color: "hsl(217, 91%, 60%)", textTransform: "uppercase" as const, marginBottom: 2 }}>
-                        WAR ROOM
+                        TB4U
                       </div>
                       <div style={{ fontSize: 10, color: "#64748b" }}>Portfolio Snapshot</div>
                     </div>
@@ -276,8 +276,8 @@ export function ShareModal({ open, onClose, holdings, simpleReturn, twr, twrAvai
                     position: "absolute", bottom: 12, left: 32, right: 32,
                     display: "flex", justifyContent: "space-between", alignItems: "center",
                   }}>
-                    <span style={{ fontSize: 9, color: "#475569", fontWeight: 500 }}>Built with War Room</span>
-                    <span style={{ fontSize: 9, color: "#475569" }}>yourwarroom.app</span>
+                    <span style={{ fontSize: 9, color: "#475569", fontWeight: 500 }}>Built with TB4U</span>
+                    <span style={{ fontSize: 9, color: "#475569" }}>tb4u.app</span>
                   </div>
                 </div>
               </div>

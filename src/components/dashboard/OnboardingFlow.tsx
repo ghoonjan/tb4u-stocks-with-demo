@@ -30,7 +30,7 @@ function WelcomeStep({ onNext, onSkip }: { onNext: () => void; onSkip: () => voi
       <div className="rounded-2xl bg-primary/10 p-5 mb-5">
         <Target size={40} className="text-primary" />
       </div>
-      <h2 className="text-2xl font-bold text-foreground mb-2">Welcome to the War Room 🎯</h2>
+      <h2 className="text-2xl font-bold text-foreground mb-2">Welcome to TB4U 🎯</h2>
       <p className="text-sm text-muted-foreground mb-8 max-w-md">
         Your portfolio command center. Let's set it up in 2 minutes.
       </p>
