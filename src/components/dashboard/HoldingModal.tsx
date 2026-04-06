@@ -2,6 +2,7 @@ import { useState, useCallback, useRef, useEffect } from "react";
 import { Star, X, Loader2 } from "lucide-react";
 import type { HoldingDisplay } from "@/hooks/usePortfolioData";
 import { getCompanyProfile } from "@/services/marketData";
+import { toast } from "sonner";
 
 interface HoldingModalProps {
   open: boolean;
