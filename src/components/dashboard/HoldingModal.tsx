@@ -2,6 +2,7 @@ import { useState, useCallback, useRef, useEffect } from "react";
 import { Star, X, Loader2 } from "lucide-react";
 import type { HoldingDisplay } from "@/hooks/usePortfolioData";
 import { getCompanyProfile } from "@/services/marketData";
+import { toast } from "sonner";
 
 interface HoldingModalProps {
   open: boolean;
@@ -93,7 +94,10 @@ export function HoldingModal({ open, onClose, onSubmit, initial }: HoldingModalP
       target_allocation_pct: targetPct ? parseFloat(targetPct) : undefined,
     });
     setSaving(false);
-    if (ok) onClose();
+    if (ok) {
+      toast.success(initial ? `${ticker} updated` : `${ticker} added to portfolio`);
+      onClose();
+    }
   };
 
   const inputClass = "w-full rounded-md border border-border bg-secondary px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary";
