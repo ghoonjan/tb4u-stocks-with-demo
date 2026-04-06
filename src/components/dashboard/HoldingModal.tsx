@@ -61,9 +61,22 @@ export function HoldingModal({ open, onClose, onSubmit, initial }: HoldingModalP
     }
   }, [lookupTicker]);
 
+  // Reset form when modal opens
   useEffect(() => {
+    if (open) {
+      setTicker(initial?.ticker ?? "");
+      setCompanyName(initial?.companyName ?? "");
+      setShares(initial?.shares?.toString() ?? "");
+      setAvgCost(initial?.avgCostBasis?.toString() ?? "");
+      setConviction(initial?.convictionRating ?? 3);
+      setThesis(initial?.thesis ?? "");
+      setTargetPct(initial?.targetAllocationPct?.toString() ?? "");
+      setLogo(null);
+      setTickerError(null);
+      setSaving(false);
+    }
     return () => clearTimeout(debounceRef.current);
-  }, []);
+  }, [open, initial]);
 
   if (!open) return null;
 
