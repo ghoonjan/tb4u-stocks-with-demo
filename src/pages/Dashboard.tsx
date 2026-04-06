@@ -17,6 +17,7 @@ import { useDailyBriefing } from "@/hooks/useDailyBriefing";
 import { DigestSettings } from "@/components/dashboard/DigestSettings";
 import { usePortfolioData, type HoldingDisplay } from "@/hooks/usePortfolioData";
 import { useMacroData } from "@/hooks/useMacroData";
+import CopyrightFooter from "@/components/CopyrightFooter";
 import { usePerformanceMetrics } from "@/hooks/usePerformanceMetrics";
 import { useAnalyticsData } from "@/hooks/useAnalyticsData";
 import { toast } from "@/hooks/use-toast";
@@ -288,6 +289,7 @@ const Dashboard = () => {
 
       {/* Digest Settings */}
       <DigestSettings open={digestOpen} onClose={() => setDigestOpen(false)} />
+      <CopyrightFooter />
     </div>
   );
 };
