@@ -184,5 +184,6 @@ const Auth = () => {
       <CopyrightFooter />
     </div>
   );
+};
 
 export default Auth;
