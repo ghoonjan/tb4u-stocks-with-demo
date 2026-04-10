@@ -253,7 +253,7 @@ export function HoldingsTable({ holdings, loading, onAddHolding, onEditHolding, 
       ) : (
         /* Desktop table */
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[1200px]" role="table">
+          <table className="w-full min-w-[1200px] table-fixed" role="table">
             <thead>
               <tr className="border-b border-border bg-card sticky top-0 z-10">
                 <th className="py-3 px-4 text-left w-[150px]"><SortHeader label="Ticker" sortKey="ticker" currentSort={sortKey} currentDir={sortDir} onSort={handleSort} /></th>
