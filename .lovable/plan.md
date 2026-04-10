@@ -1,36 +1,31 @@
 
 
-## Config Files Review — Results
+## Fix Table Column Alignment
 
-### Summary
+### Problem
+The `<th>` headers have explicit width classes but the `<td>` cells do not, allowing the browser's table layout algorithm to calculate different widths for header vs. body columns. This causes data to visually shift relative to its header.
 
-| File | Status | Notes |
-|------|--------|-------|
-| `tsconfig.json` | ✅ Clean | Standard project references setup |
-| `tsconfig.app.json` | ✅ Clean | Proper path aliases, vitest types |
-| `tsconfig.node.json` | ✅ Clean | Node-specific config |
-| `vite.config.ts` | ✅ Clean | Correct aliases, HMR overlay disabled, lovable-tagger in dev only |
-| `postcss.config.js` | ✅ Clean | Standard Tailwind setup |
-| `components.json` | ✅ Clean | shadcn/ui config |
-| **`tailwind.config.ts`** | **⚠️ Minor cleanup needed** | See below |
+### Solution
+Add matching width classes to each `<td>` in the `HoldingRow` component so they lock to the same column widths as the headers.
 
-### Tailwind Config Issues
+### File: `src/components/dashboard/HoldingsTable.tsx`
 
-1. **Stale content paths**: The config scans `./pages/**`, `./components/**`, and `./app/**` at the project root — but no such directories exist. All source files are under `./src/**`. These extra globs are harmless (no false matches) but are misleading dead config. They should be removed, keeping only `./src/**/*.{ts,tsx}` and `./index.html`.
+Update the 11 `<td>` elements in `HoldingRow` (lines 135–168) to include the same `w-[...]` classes used on their corresponding `<th>`:
 
-2. **Unused theme tokens**: `surface` and `elevated` color tokens are defined but never used anywhere in the codebase. `overlay` is used in exactly one place. These are fine to keep as part of the design system, but worth noting — no action needed unless you want a leaner config.
+| Column | Width | Header line | Cell line |
+|--------|-------|-------------|-----------|
+| Ticker | `w-[150px]` | 259 | 135 |
+| Shares | `w-[60px]` | 260 | 141 |
+| Avg Cost | `w-[80px]` | 261 | 142 |
+| Price | `w-[80px]` | 262 | 143 |
+| Day Chg | `w-[100px]` | 263 | 144 |
+| Total P&L | `w-[110px]` | 264 | 150 |
+| Value | `w-[90px]` | 265 | 154 |
+| Wt% | `w-[55px]` | 266 | 155 |
+| Conv. | `w-[75px]` | 267 | 156 |
+| Div | `w-[70px]` | 268 | 157 |
+| Menu | `w-[35px]` | 269 | 166 |
 
-### Plan
-
-**File: `tailwind.config.ts`** — Remove the three unused content globs:
-
-```
-// Before
-content: ["./pages/**/*.{ts,tsx}", "./components/**/*.{ts,tsx}", "./app/**/*.{ts,tsx}", "./src/**/*.{ts,tsx}"]
-
-// After
-content: ["./index.html", "./src/**/*.{ts,tsx}"]
-```
-
-That is the only change needed. Everything else in the config files is clean and correct.
+### R2 Upload Error
+The `dist upload failed` error is a transient Cloudflare infrastructure issue (HTTP 500). No code fix needed — just retry the publish/deploy.
 
