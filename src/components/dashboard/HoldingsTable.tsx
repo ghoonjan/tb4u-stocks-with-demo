@@ -138,9 +138,9 @@ const HoldingRow = memo(function HoldingRow({
             <p className="text-[11px] text-muted-foreground truncate max-w-[120px]">{h.companyName}</p>
           </div>
         </td>
-        <td className="py-3 px-3 text-right font-mono text-sm text-foreground">{fmt(h.shares, h.shares % 1 !== 0 ? 4 : 0)}</td>
-        <td className="py-3 px-3 text-right font-mono text-sm text-muted-foreground">{fmtDollar(h.avgCostBasis)}</td>
-        <td className="py-3 px-3 text-right font-mono text-sm text-foreground">{fmtDollar(h.currentPrice)}</td>
+        <td className="py-3 px-3 text-right font-mono text-sm text-foreground w-[60px]">{fmt(h.shares, h.shares % 1 !== 0 ? 4 : 0)}</td>
+        <td className="py-3 px-3 text-right font-mono text-sm text-muted-foreground w-[80px]">{fmtDollar(h.avgCostBasis)}</td>
+        <td className="py-3 px-3 text-right font-mono text-sm text-foreground w-[80px]">{fmtDollar(h.currentPrice)}</td>
         <td className="py-3 px-3 text-right">
           <span className={`font-mono text-sm ${plColor(h.dayChangeDollar)} ${Math.abs(h.dayChangePct) > 5 ? (h.dayChangePct > 0 ? "gain-shimmer" : "loss-pulse") : ""}`}>
             {plArrow(h.dayChangeDollar)} {fmtPL(h.dayChangeDollar)}
