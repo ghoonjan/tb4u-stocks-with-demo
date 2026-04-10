@@ -26,7 +26,7 @@ const makeQuote = (overrides: Partial<StockQuote> = {}): StockQuote => ({
   l: 168,
   o: 168,
   pc: 168,
-  t: 0,
+  
   ...overrides,
 });
 
