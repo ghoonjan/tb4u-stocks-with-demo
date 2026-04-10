@@ -132,7 +132,7 @@ const HoldingRow = memo(function HoldingRow({
     <Fragment>
       <tr onClick={onToggle} className="group border-b border-border/50 cursor-pointer transition-colors hover:bg-overlay/50 row-accent-border" tabIndex={0} role="row"
         onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onToggle(); } }}>
-        <td className="py-3 px-4">
+        <td className="py-3 px-4 w-[150px]">
           <div>
             <span className="text-sm font-bold text-foreground group-hover:text-primary transition-colors">{h.ticker}</span>
             <p className="text-[11px] text-muted-foreground truncate max-w-[120px]">{h.companyName}</p>
