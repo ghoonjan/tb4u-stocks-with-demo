@@ -141,20 +141,20 @@ const HoldingRow = memo(function HoldingRow({
         <td className="py-3 px-3 text-right font-mono text-sm text-foreground w-[60px]">{fmt(h.shares, h.shares % 1 !== 0 ? 4 : 0)}</td>
         <td className="py-3 px-3 text-right font-mono text-sm text-muted-foreground w-[80px]">{fmtDollar(h.avgCostBasis)}</td>
         <td className="py-3 px-3 text-right font-mono text-sm text-foreground w-[80px]">{fmtDollar(h.currentPrice)}</td>
-        <td className="py-3 px-3 text-right">
+        <td className="py-3 px-3 text-right w-[100px]">
           <span className={`font-mono text-sm ${plColor(h.dayChangeDollar)} ${Math.abs(h.dayChangePct) > 5 ? (h.dayChangePct > 0 ? "gain-shimmer" : "loss-pulse") : ""}`}>
             {plArrow(h.dayChangeDollar)} {fmtPL(h.dayChangeDollar)}
           </span>
           <span className={`font-mono text-[11px] ml-1 ${plColor(h.dayChangePct)}`}>{fmtPct(h.dayChangePct)}</span>
         </td>
-        <td className="py-3 px-3 text-right">
+        <td className="py-3 px-3 text-right w-[110px]">
           <span className={`font-mono text-sm ${plColor(h.totalPLDollar)}`}>{plArrow(h.totalPLDollar)} {fmtPL(h.totalPLDollar)}</span>
           <span className={`font-mono text-[11px] ml-1 ${plColor(h.totalPLPct)}`}>{fmtPct(h.totalPLPct)}</span>
         </td>
-        <td className="py-3 px-3 text-right font-mono text-sm text-foreground">{fmtDollar(h.positionValue)}</td>
-        <td className="py-3 px-3 text-right font-mono text-sm text-foreground">{fmt(h.weight, 1)}%</td>
-        <td className="py-3 px-3"><div className="flex justify-center"><ConvictionStars rating={h.convictionRating} /></div></td>
-        <td className="py-3 px-3">
+        <td className="py-3 px-3 text-right font-mono text-sm text-foreground w-[90px]">{fmtDollar(h.positionValue)}</td>
+        <td className="py-3 px-3 text-right font-mono text-sm text-foreground w-[55px]">{fmt(h.weight, 1)}%</td>
+        <td className="py-3 px-3 w-[75px]"><div className="flex justify-center"><ConvictionStars rating={h.convictionRating} /></div></td>
+        <td className="py-3 px-3 w-[70px]">
           <div className="flex justify-center">
             {(() => {
               if (!analytics || analytics.divYield <= 0) return <span className="text-[10px] text-muted-foreground/40">—</span>;
@@ -163,7 +163,7 @@ const HoldingRow = memo(function HoldingRow({
             })()}
           </div>
         </td>
-        <td className="py-3 px-3">
+        <td className="py-3 px-3 w-[35px]">
           <RowMenu onEdit={onEdit} onDelete={onDelete} onLogTrade={onLogTrade} onAddToWatchlist={onAddToWatchlist} />
         </td>
       </tr>
