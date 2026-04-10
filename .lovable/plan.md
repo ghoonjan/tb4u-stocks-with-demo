@@ -1,47 +1,36 @@
 
 
-## SEO & Performance Audit Results
+## Config Files Review — Results
 
-### Current State
+### Summary
 
-| Check | Status | Details |
-|-------|--------|---------|
-| **Title tag** | ✅ Good | `TB4U — Portfolio Dashboard` |
-| **Meta description** | ✅ Good | `TB4U — Stock Portfolio Command Center` |
-| **Open Graph tags** | ⚠️ Needs cleanup | OG title/description present, but there's a stale `TODO` comment and the OG image URL uses a time-limited signed URL that will expire |
-| **Twitter cards** | ⚠️ Needs update | `twitter:site` still says `@Lovable` instead of your brand |
-| **Favicon** | ✅ Good | `/favicon.png` is set |
-| **Image alt texts** | ⚠️ Minor | 2 `<img>` tags in modals have empty `alt=""` — should use descriptive alt like `${ticker} logo` |
-| **Lazy loading** | ✅ N/A | Only 2 small logo images in the app — lazy loading not needed |
-| **Responsive design** | ✅ Good | Mobile components exist (`MobileHoldingCard`, `useIsMobile` hook) |
-| **Accessibility** | ✅ Mostly good | Using shadcn/ui which has built-in a11y; minor alt text fix needed |
-| **`lang` attribute** | ✅ Good | `<html lang="en">` is set |
-| **Author meta** | ⚠️ | Still says `Lovable` — should be `TechBargains4You` |
+| File | Status | Notes |
+|------|--------|-------|
+| `tsconfig.json` | ✅ Clean | Standard project references setup |
+| `tsconfig.app.json` | ✅ Clean | Proper path aliases, vitest types |
+| `tsconfig.node.json` | ✅ Clean | Node-specific config |
+| `vite.config.ts` | ✅ Clean | Correct aliases, HMR overlay disabled, lovable-tagger in dev only |
+| `postcss.config.js` | ✅ Clean | Standard Tailwind setup |
+| `components.json` | ✅ Clean | shadcn/ui config |
+| **`tailwind.config.ts`** | **⚠️ Minor cleanup needed** | See below |
 
-### Plan — Fix SEO Issues
+### Tailwind Config Issues
 
-1. **Clean up `index.html`**:
-   - Remove the `TODO` comment and duplicate blank lines
-   - Update `meta author` from `Lovable` to `TechBargains4You`
-   - Update `twitter:site` from `@Lovable` to your Twitter handle (or remove if none)
-   - Add `og:url` meta tag pointing to `https://dawnlight-folio.lovable.app`
-   - Note: The OG image uses a signed URL with an expiration date — consider hosting a permanent OG image in `public/`
+1. **Stale content paths**: The config scans `./pages/**`, `./components/**`, and `./app/**` at the project root — but no such directories exist. All source files are under `./src/**`. These extra globs are harmless (no false matches) but are misleading dead config. They should be removed, keeping only `./src/**/*.{ts,tsx}` and `./index.html`.
 
-2. **Fix image alt texts** in `HoldingModal.tsx` and `WatchlistModal.tsx`:
-   - Change `alt=""` to `alt={`${ticker} logo`}` for the ticker logo images
+2. **Unused theme tokens**: `surface` and `elevated` color tokens are defined but never used anywhere in the codebase. `overlay` is used in exactly one place. These are fine to keep as part of the design system, but worth noting — no action needed unless you want a leaner config.
 
-3. **Add `theme-color` meta tag** for mobile browser chrome styling
+### Plan
 
-### Technical Details
+**File: `tailwind.config.ts`** — Remove the three unused content globs:
 
-| File | Change |
-|------|--------|
-| `index.html` | Clean up meta tags, update author/twitter, add og:url and theme-color |
-| `src/components/dashboard/HoldingModal.tsx` | Fix img alt text |
-| `src/components/dashboard/WatchlistModal.tsx` | Fix img alt text |
+```
+// Before
+content: ["./pages/**/*.{ts,tsx}", "./components/**/*.{ts,tsx}", "./app/**/*.{ts,tsx}", "./src/**/*.{ts,tsx}"]
 
-### Out of Scope (Manual Steps)
+// After
+content: ["./index.html", "./src/**/*.{ts,tsx}"]
+```
 
-- **Lighthouse audit**: Run after deployment via Chrome DevTools → Lighthouse tab
-- **OG image**: Consider uploading a permanent branded OG image to `public/og-image.png` to replace the expiring signed URL — you would need to provide the image
+That is the only change needed. Everything else in the config files is clean and correct.
 
