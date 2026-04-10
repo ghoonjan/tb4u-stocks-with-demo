@@ -120,7 +120,7 @@ export function HoldingModal({ open, onClose, onSubmit, initial }: HoldingModalP
             <div>
               <label className="mb-1 block text-xs font-medium text-muted-foreground">Ticker Symbol</label>
               <div className="relative">
-                {logo && <img src={logo} alt="" className="absolute left-2.5 top-1/2 -translate-y-1/2 h-5 w-5 rounded-sm object-contain" />}
+                {logo && <img src={logo} alt={`${ticker} logo`} className="absolute left-2.5 top-1/2 -translate-y-1/2 h-5 w-5 rounded-sm object-contain" />}
                 <input
                   value={ticker}
                   onChange={(e) => handleTickerChange(e.target.value)}
