@@ -1,34 +1,47 @@
 
 
-## Add Test Suite for Critical Paths
+## SEO & Performance Audit Results
 
-Currently the project has only a placeholder `example.test.ts`. The testing infrastructure (vitest, jsdom, testing-library) is already configured. We need to add real tests.
+### Current State
 
-### Tests to create
+| Check | Status | Details |
+|-------|--------|---------|
+| **Title tag** | ✅ Good | `TB4U — Portfolio Dashboard` |
+| **Meta description** | ✅ Good | `TB4U — Stock Portfolio Command Center` |
+| **Open Graph tags** | ⚠️ Needs cleanup | OG title/description present, but there's a stale `TODO` comment and the OG image URL uses a time-limited signed URL that will expire |
+| **Twitter cards** | ⚠️ Needs update | `twitter:site` still says `@Lovable` instead of your brand |
+| **Favicon** | ✅ Good | `/favicon.png` is set |
+| **Image alt texts** | ⚠️ Minor | 2 `<img>` tags in modals have empty `alt=""` — should use descriptive alt like `${ticker} logo` |
+| **Lazy loading** | ✅ N/A | Only 2 small logo images in the app — lazy loading not needed |
+| **Responsive design** | ✅ Good | Mobile components exist (`MobileHoldingCard`, `useIsMobile` hook) |
+| **Accessibility** | ✅ Mostly good | Using shadcn/ui which has built-in a11y; minor alt text fix needed |
+| **`lang` attribute** | ✅ Good | `<html lang="en">` is set |
+| **Author meta** | ⚠️ | Still says `Lovable` — should be `TechBargains4You` |
 
-1. **`src/constants/index.test.ts`** — Unit tests for formatter functions (`fmt`, `fmtDollar`, `fmtPct`, `fmtPL`, `plColor`, `plArrow`). These are pure functions with clear expected outputs — ideal for unit testing.
+### Plan — Fix SEO Issues
 
-2. **`src/lib/utils.test.ts`** — Unit tests for the `cn()` utility (class merging, conflict resolution, conditional classes).
+1. **Clean up `index.html`**:
+   - Remove the `TODO` comment and duplicate blank lines
+   - Update `meta author` from `Lovable` to `TechBargains4You`
+   - Update `twitter:site` from `@Lovable` to your Twitter handle (or remove if none)
+   - Add `og:url` meta tag pointing to `https://dawnlight-folio.lovable.app`
+   - Note: The OG image uses a signed URL with an expiration date — consider hosting a permanent OG image in `public/`
 
-3. **`src/components/AnimatedNumber.test.tsx`** — Component test verifying it renders, displays formatted output, and accepts custom format functions.
+2. **Fix image alt texts** in `HoldingModal.tsx` and `WatchlistModal.tsx`:
+   - Change `alt=""` to `alt={`${ticker} logo`}` for the ticker logo images
 
-4. **`src/hooks/usePortfolioData.test.ts`** — Unit test for the `toDisplay` helper logic. We'll extract and test the pure transformation (holding + quote → display object) to verify P&L calculations, weight percentages, and edge cases (zero shares, missing quote).
+3. **Add `theme-color` meta tag** for mobile browser chrome styling
 
-### Technical details
+### Technical Details
 
-- All tests use `vitest` + `@testing-library/react` (already installed)
-- No mocking of Supabase needed for the pure-function tests
-- The `toDisplay` function is not currently exported; we'll either export it or extract the calculation logic into a testable utility
-- Tests will run via the existing vitest config with no changes needed
-
-### Files changed
-
-| File | Action |
+| File | Change |
 |------|--------|
-| `src/constants/index.test.ts` | Create — ~15 test cases for formatters |
-| `src/lib/utils.test.ts` | Create — ~5 test cases for `cn()` |
-| `src/components/AnimatedNumber.test.tsx` | Create — ~3 render tests |
-| `src/hooks/portfolioUtils.ts` | Create — extract `toDisplay` as a pure exported function |
-| `src/hooks/usePortfolioData.ts` | Update — import `toDisplay` from new file |
-| `src/hooks/portfolioUtils.test.ts` | Create — ~8 test cases for P&L math |
+| `index.html` | Clean up meta tags, update author/twitter, add og:url and theme-color |
+| `src/components/dashboard/HoldingModal.tsx` | Fix img alt text |
+| `src/components/dashboard/WatchlistModal.tsx` | Fix img alt text |
+
+### Out of Scope (Manual Steps)
+
+- **Lighthouse audit**: Run after deployment via Chrome DevTools → Lighthouse tab
+- **OG image**: Consider uploading a permanent branded OG image to `public/og-image.png` to replace the expiring signed URL — you would need to provide the image
 
