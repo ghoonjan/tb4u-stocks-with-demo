@@ -1,4 +1,4 @@
-import { useState, useMemo, useRef, useEffect, Fragment, memo, lazy, Suspense } from "react";
+import { useState, useMemo, useRef, useEffect, useCallback, Fragment, memo, lazy, Suspense, type ReactNode } from "react";
 import { ChevronDown, ChevronUp, Star, Plus, ChevronsUpDown, MoreHorizontal, Pencil, Trash2, BookOpen, Eye, Loader2 } from "lucide-react";
 import type { HoldingDisplay } from "@/hooks/usePortfolioData";
 import type { HoldingAnalytics } from "@/hooks/useAnalyticsData";
