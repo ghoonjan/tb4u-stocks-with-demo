@@ -132,29 +132,29 @@ const HoldingRow = memo(function HoldingRow({
     <Fragment>
       <tr onClick={onToggle} className="group border-b border-border/50 cursor-pointer transition-colors hover:bg-overlay/50 row-accent-border" tabIndex={0} role="row"
         onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onToggle(); } }}>
-        <td className="py-3 px-4 w-[200px]">
+        <td className="py-3 px-4">
           <div>
             <span className="text-sm font-bold text-foreground group-hover:text-primary transition-colors">{h.ticker}</span>
             <p className="text-[11px] text-muted-foreground truncate max-w-[170px]">{h.companyName}</p>
           </div>
         </td>
-        <td className="py-3 px-3 text-right font-mono text-sm text-foreground w-[80px]">{fmt(h.shares, h.shares % 1 !== 0 ? 4 : 0)}</td>
-        <td className="py-3 px-3 text-right font-mono text-sm text-muted-foreground w-[100px]">{fmtDollar(h.avgCostBasis)}</td>
-        <td className="py-3 px-3 text-right font-mono text-sm text-foreground w-[100px]">{fmtDollar(h.currentPrice)}</td>
-        <td className="py-3 px-3 text-right w-[140px]">
+        <td className="py-3 px-3 text-right font-mono text-sm text-foreground">{fmt(h.shares, h.shares % 1 !== 0 ? 4 : 0)}</td>
+        <td className="py-3 px-3 text-right font-mono text-sm text-muted-foreground">{fmtDollar(h.avgCostBasis)}</td>
+        <td className="py-3 px-3 text-right font-mono text-sm text-foreground">{fmtDollar(h.currentPrice)}</td>
+        <td className="py-3 px-3 text-right">
           <span className={`font-mono text-sm ${plColor(h.dayChangeDollar)} ${Math.abs(h.dayChangePct) > 5 ? (h.dayChangePct > 0 ? "gain-shimmer" : "loss-pulse") : ""}`}>
             {plArrow(h.dayChangeDollar)} {fmtPL(h.dayChangeDollar)}
           </span>
           <span className={`font-mono text-[11px] ml-1 ${plColor(h.dayChangePct)}`}>{fmtPct(h.dayChangePct)}</span>
         </td>
-        <td className="py-3 px-3 text-right w-[150px]">
+        <td className="py-3 px-3 text-right">
           <span className={`font-mono text-sm ${plColor(h.totalPLDollar)}`}>{plArrow(h.totalPLDollar)} {fmtPL(h.totalPLDollar)}</span>
           <span className={`font-mono text-[11px] ml-1 ${plColor(h.totalPLPct)}`}>{fmtPct(h.totalPLPct)}</span>
         </td>
-        <td className="py-3 px-3 text-right font-mono text-sm text-foreground w-[120px]">{fmtDollar(h.positionValue)}</td>
-        <td className="py-3 px-3 text-right font-mono text-sm text-foreground w-[65px]">{fmt(h.weight, 1)}%</td>
-        <td className="py-3 px-3 w-[85px]"><div className="flex justify-center"><ConvictionStars rating={h.convictionRating} /></div></td>
-        <td className="py-3 px-3 w-[80px]">
+        <td className="py-3 px-3 text-right font-mono text-sm text-foreground">{fmtDollar(h.positionValue)}</td>
+        <td className="py-3 px-3 text-right font-mono text-sm text-foreground">{fmt(h.weight, 1)}%</td>
+        <td className="py-3 px-3"><div className="flex justify-center"><ConvictionStars rating={h.convictionRating} /></div></td>
+        <td className="py-3 px-3">
           <div className="flex justify-center">
             {(() => {
               if (!analytics || analytics.divYield <= 0) return <span className="text-[10px] text-muted-foreground/40">—</span>;
@@ -163,7 +163,7 @@ const HoldingRow = memo(function HoldingRow({
             })()}
           </div>
         </td>
-        <td className="py-3 px-3 w-[80px]">
+        <td className="py-3 px-3">
           <RowMenu onEdit={onEdit} onDelete={onDelete} onLogTrade={onLogTrade} onAddToWatchlist={onAddToWatchlist} />
         </td>
       </tr>
@@ -253,20 +253,33 @@ export function HoldingsTable({ holdings, loading, onAddHolding, onEditHolding, 
       ) : (
         /* Desktop table */
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[1200px] table-fixed" role="table">
+          <table className="w-full min-w-[1200px]" role="table">
+            <colgroup>
+              <col style={{ width: 200 }} />
+              <col style={{ width: 80 }} />
+              <col style={{ width: 100 }} />
+              <col style={{ width: 100 }} />
+              <col style={{ width: 140 }} />
+              <col style={{ width: 150 }} />
+              <col style={{ width: 120 }} />
+              <col style={{ width: 65 }} />
+              <col style={{ width: 85 }} />
+              <col style={{ width: 80 }} />
+              <col style={{ width: 80 }} />
+            </colgroup>
             <thead>
               <tr className="border-b border-border bg-card sticky top-0 z-10">
-                <th className="py-3 px-4 text-left w-[200px]"><SortHeader label="Ticker" sortKey="ticker" currentSort={sortKey} currentDir={sortDir} onSort={handleSort} /></th>
-                <th className="py-3 px-3 text-right w-[80px]"><SortHeader label="Shares" sortKey="shares" currentSort={sortKey} currentDir={sortDir} onSort={handleSort} className="justify-end" /></th>
-                <th className="py-3 px-3 text-right w-[100px]"><SortHeader label="Avg Cost" sortKey="avgCostBasis" currentSort={sortKey} currentDir={sortDir} onSort={handleSort} className="justify-end" /></th>
-                <th className="py-3 px-3 text-right w-[100px]"><SortHeader label="Price" sortKey="currentPrice" currentSort={sortKey} currentDir={sortDir} onSort={handleSort} className="justify-end" /></th>
-                <th className="py-3 px-3 text-right w-[140px]"><SortHeader label="Day Chg" sortKey="dayChangeDollar" currentSort={sortKey} currentDir={sortDir} onSort={handleSort} className="justify-end" /></th>
-                <th className="py-3 px-3 text-right w-[150px]"><SortHeader label="Total P&L" sortKey="totalPLDollar" currentSort={sortKey} currentDir={sortDir} onSort={handleSort} className="justify-end" /></th>
-                <th className="py-3 px-3 text-right w-[120px]"><SortHeader label="Value" sortKey="positionValue" currentSort={sortKey} currentDir={sortDir} onSort={handleSort} className="justify-end" /></th>
-                <th className="py-3 px-3 text-right w-[65px]"><SortHeader label="Wt%" sortKey="weight" currentSort={sortKey} currentDir={sortDir} onSort={handleSort} className="justify-end" /></th>
-                <th className="py-3 px-3 text-center w-[85px]"><span className="text-[11px] font-semibold uppercase tracking-[0.05em] text-muted-foreground">Conv.</span></th>
-                <th className="py-3 px-3 text-center w-[80px]"><span className="text-[11px] font-semibold uppercase tracking-[0.05em] text-muted-foreground">Div</span></th>
-                <th className="py-3 px-3 w-[80px]" />
+                <th className="py-3 px-4 text-left"><SortHeader label="Ticker" sortKey="ticker" currentSort={sortKey} currentDir={sortDir} onSort={handleSort} /></th>
+                <th className="py-3 px-3 text-right"><SortHeader label="Shares" sortKey="shares" currentSort={sortKey} currentDir={sortDir} onSort={handleSort} className="justify-end" /></th>
+                <th className="py-3 px-3 text-right"><SortHeader label="Avg Cost" sortKey="avgCostBasis" currentSort={sortKey} currentDir={sortDir} onSort={handleSort} className="justify-end" /></th>
+                <th className="py-3 px-3 text-right"><SortHeader label="Price" sortKey="currentPrice" currentSort={sortKey} currentDir={sortDir} onSort={handleSort} className="justify-end" /></th>
+                <th className="py-3 px-3 text-right"><SortHeader label="Day Chg" sortKey="dayChangeDollar" currentSort={sortKey} currentDir={sortDir} onSort={handleSort} className="justify-end" /></th>
+                <th className="py-3 px-3 text-right"><SortHeader label="Total P&L" sortKey="totalPLDollar" currentSort={sortKey} currentDir={sortDir} onSort={handleSort} className="justify-end" /></th>
+                <th className="py-3 px-3 text-right"><SortHeader label="Value" sortKey="positionValue" currentSort={sortKey} currentDir={sortDir} onSort={handleSort} className="justify-end" /></th>
+                <th className="py-3 px-3 text-right"><SortHeader label="Wt%" sortKey="weight" currentSort={sortKey} currentDir={sortDir} onSort={handleSort} className="justify-end" /></th>
+                <th className="py-3 px-3 text-center"><span className="text-[11px] font-semibold uppercase tracking-[0.05em] text-muted-foreground">Conv.</span></th>
+                <th className="py-3 px-3 text-center"><span className="text-[11px] font-semibold uppercase tracking-[0.05em] text-muted-foreground">Div</span></th>
+                <th className="py-3 px-3" />
               </tr>
             </thead>
             <tbody>
