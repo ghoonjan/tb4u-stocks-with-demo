@@ -1,31 +1,38 @@
 
 
-## Fix Table Alignment — Corrected Approach
+## Fix Table Column Alignment — Root Cause and New Approach
 
-### Problem
-`table-fixed` + `min-w-[1200px]` conflict: the column widths sum to only 905px, so the browser redistributes 295px of extra space unpredictably, breaking alignment. The ticker column's strict width also truncates company names to ~3 characters.
+### Problem Analysis
+The code has 11 `<th>` and 11 `<td>` elements with matching widths, yet data visually shifts one column right. The `table-fixed` + `w-full` combination is the culprit: when the table container is wider than 1200px, the `w-full` class stretches the table beyond the sum of column widths, and `table-fixed` redistributes space unpredictably — sometimes collapsing the first column's visible content area.
 
 ### Solution
-Increase column widths so they sum to exactly 1200px, and widen the ticker's `max-w` for the company name. This makes `table-fixed` work as intended — every pixel is accounted for.
+Replace the per-cell width approach with a `<colgroup>` block that defines column widths at the table level. This is the standard HTML mechanism for fixed column sizing and works reliably with or without `table-fixed`. Also remove the redundant `w-[...]` classes from all `<th>` and `<td>` elements to avoid conflicts.
 
 ### File: `src/components/dashboard/HoldingsTable.tsx`
 
-**New column widths** (905px → 1200px):
+**1. Change the `<table>` element** (line 256) — remove `table-fixed`:
+```tsx
+<table className="w-full min-w-[1200px]" role="table">
+```
 
-| Column | Old | New |
-|--------|-----|-----|
-| Ticker | 150 | 200 |
-| Shares | 60 | 80 |
-| Avg Cost | 80 | 100 |
-| Price | 80 | 100 |
-| Day Chg | 100 | 140 |
-| Total P&L | 110 | 150 |
-| Value | 90 | 120 |
-| Wt% | 55 | 65 |
-| Conv. | 75 | 85 |
-| Div | 70 | 80 |
-| Menu | 35 | 80 |
-| **Total** | **905** | **1200** |
+**2. Add `<colgroup>` immediately after the opening `<table>` tag** (after line 256):
+```tsx
+<colgroup>
+  <col style={{ width: 200 }} />
+  <col style={{ width: 80 }} />
+  <col style={{ width: 100 }} />
+  <col style={{ width: 100 }} />
+  <col style={{ width: 140 }} />
+  <col style={{ width: 150 }} />
+  <col style={{ width: 120 }} />
+  <col style={{ width: 65 }} />
+  <col style={{ width: 85 }} />
+  <col style={{ width: 80 }} />
+  <col style={{ width: 80 }} />
+</colgroup>
+```
 
-Update all `w-[...]` classes on both `<th>` (lines 259–269) and `<td>` (lines 135–166) to the new values. Also update the ticker company name `max-w-[120px]` → `max-w-[170px]` on line 138.
+**3. Remove all `w-[...]` classes** from every `<th>` (lines 259–269) and `<td>` (lines 135–166) to prevent conflicts with the colgroup definitions.
+
+This ensures the table columns are sized at the structural level, independent of cell content or layout algorithm quirks.
 
