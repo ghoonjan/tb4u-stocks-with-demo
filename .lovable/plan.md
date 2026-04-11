@@ -1,53 +1,46 @@
 
 
-## Add Server-Side Caching to Finnhub Edge Function
+## Persistent Database Cache for Finnhub API Responses
 
-### Why
-Currently, all caching lives client-side in `marketData.ts`. Every browser tab, every user, every page load hits the Finnhub API independently. Server-side caching in the edge function means repeated requests for the same ticker across all users return cached data, dramatically reducing Finnhub API calls and rate-limit hits.
+### Overview
+Add a database table as a second-level cache behind the existing in-memory `Map`. The edge function checks memory first, then the database, and only calls Finnhub as a last resort. This ensures cache survives across cold starts and instance restarts.
 
-### Approach
-Use a **Deno in-memory `Map`** inside the edge function with endpoint-specific TTLs. Edge function instances persist across requests (until shutdown), so the cache survives multiple calls within the same instance lifecycle.
+### Database Changes
 
-### Changes
+**New table: `finnhub_cache`**
+
+| Column | Type | Notes |
+|--------|------|-------|
+| `id` | uuid (PK) | Default `gen_random_uuid()` |
+| `cache_key` | text (unique) | `endpoint:sorted_params` |
+| `endpoint` | text | For cleanup queries |
+| `response_data` | jsonb | The cached API response |
+| `cached_at` | timestamptz | `now()` |
+| `ttl_seconds` | integer | TTL for this entry |
+
+No RLS needed — this table is only accessed from the edge function using the service role key, not from the client.
+
+**Database function for cleanup:**
+A `cleanup_stale_finnhub_cache()` function that deletes rows where `cached_at + ttl_seconds < now()`. Called periodically from the edge function (e.g., 1 in 20 requests) to avoid unbounded growth.
+
+### Edge Function Changes
 
 **File: `supabase/functions/finnhub/index.ts`**
 
-1. Add a `Map<string, { data: unknown; ts: number }>` cache at module scope
-2. Define TTLs per endpoint:
-   - `/quote` — 60 seconds (prices change frequently)
-   - `/stock/profile2` — 1 hour (rarely changes)
-   - `/stock/metric` — 1 hour
-   - `/stock/candle` — 5 minutes
-   - `/company-news` — 10 minutes
-   - `/calendar/earnings`, `/stock/earnings` — 1 hour
-3. Build a cache key from `endpoint + sorted params` (excluding the API token)
-4. Before calling Finnhub, check the cache. If a valid entry exists, return it immediately
-5. After a successful Finnhub response, store in cache
-6. Add a `Cache-Control` response header so CDN/browser layers can also benefit
-7. Cap cache size (evict oldest entries beyond 500) to prevent memory growth
+Update the request flow to a two-tier cache:
 
-### Technical Detail
-
-```typescript
-const cache = new Map<string, { data: unknown; ts: number }>();
-const TTL: Record<string, number> = {
-  '/quote': 60_000,
-  '/stock/profile2': 3600_000,
-  '/stock/metric': 3600_000,
-  '/stock/candle': 300_000,
-  '/company-news': 600_000,
-  '/calendar/earnings': 3600_000,
-  '/stock/earnings': 3600_000,
-};
-
-// Cache key = endpoint + sorted param string (no token)
-const cacheKey = `${endpoint}:${new URLSearchParams(params).toString()}`;
-const cached = cache.get(cacheKey);
-const ttl = TTL[endpoint] ?? 60_000;
-if (cached && Date.now() - cached.ts < ttl) {
-  return new Response(JSON.stringify(cached.data), { headers: ... });
-}
+```text
+Request → In-memory Map (L1) → Database table (L2) → Finnhub API
 ```
 
-No database tables or client-side changes needed. The existing client-side cache remains as a second layer.
+1. Import `createClient` from `@supabase/supabase-js` and initialize with the service role key
+2. On cache miss from the in-memory `Map`, query `finnhub_cache` for a row matching the cache key where `cached_at + ttl_seconds > now()`
+3. If found, populate the in-memory cache and return the response
+4. If not found, call Finnhub, then upsert into both the in-memory cache and the database table
+5. On ~5% of requests, run the cleanup function to prune expired rows
+
+### What Changes
+- **Migration**: One new table `finnhub_cache` + one cleanup function
+- **Edge function**: `supabase/functions/finnhub/index.ts` — add database reads/writes as L2 cache
+- **No client-side changes** — the existing client code and in-memory L1 cache remain untouched
 
