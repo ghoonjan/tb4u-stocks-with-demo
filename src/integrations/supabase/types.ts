@@ -87,6 +87,33 @@ export type Database = {
           },
         ]
       }
+      finnhub_cache: {
+        Row: {
+          cache_key: string
+          cached_at: string
+          endpoint: string
+          id: string
+          response_data: Json
+          ttl_seconds: number
+        }
+        Insert: {
+          cache_key: string
+          cached_at?: string
+          endpoint: string
+          id?: string
+          response_data: Json
+          ttl_seconds?: number
+        }
+        Update: {
+          cache_key?: string
+          cached_at?: string
+          endpoint?: string
+          id?: string
+          response_data?: Json
+          ttl_seconds?: number
+        }
+        Relationships: []
+      }
       holdings: {
         Row: {
           avg_cost_basis: number
@@ -289,7 +316,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      cleanup_stale_finnhub_cache: { Args: never; Returns: undefined }
     }
     Enums: {
       [_ in never]: never
