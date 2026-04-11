@@ -27,6 +27,44 @@ function ConvictionStars({ rating }: { rating: number }) {
   );
 }
 
+function ScrollShadowWrapper({ children }: { children: ReactNode }) {
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(false);
+
+  const check = useCallback(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    setCanScrollLeft(el.scrollLeft > 2);
+    setCanScrollRight(el.scrollLeft + el.clientWidth < el.scrollWidth - 2);
+  }, []);
+
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    check();
+    const ro = new ResizeObserver(check);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [check]);
+
+  return (
+    <div className="relative">
+      <div ref={scrollRef} onScroll={check} className="overflow-x-auto">
+        {children}
+      </div>
+      <div
+        className="pointer-events-none absolute inset-y-0 left-0 w-8 bg-gradient-to-r from-background/80 to-transparent transition-opacity duration-200"
+        style={{ opacity: canScrollLeft ? 1 : 0 }}
+      />
+      <div
+        className="pointer-events-none absolute inset-y-0 right-0 w-8 bg-gradient-to-l from-background/80 to-transparent transition-opacity duration-200"
+        style={{ opacity: canScrollRight ? 1 : 0 }}
+      />
+    </div>
+  );
+}
+
 function SortHeader({ label, sortKey, currentSort, currentDir, onSort, className = "" }: {
   label: string; sortKey: SortKey; currentSort: SortKey; currentDir: SortDir; onSort: (k: SortKey) => void; className?: string;
 }) {
