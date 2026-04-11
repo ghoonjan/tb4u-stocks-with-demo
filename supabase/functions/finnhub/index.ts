@@ -30,13 +30,22 @@ Deno.serve(async (req) => {
     const url = `${FINNHUB_BASE}${endpoint}?${queryParams.toString()}`;
 
     const response = await fetch(url);
-    const data = await response.json();
 
     if (response.status === 429) {
-      return new Response(JSON.stringify({ error: 'rate_limit', message: 'Finnhub rate limit reached' }), {
-        status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      return new Response(JSON.stringify({ error: 'rate_limit', message: 'Finnhub rate limit reached', fallback: true }), {
+        status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('Finnhub API error:', response.status, errorText);
+      return new Response(JSON.stringify({ error: `API error: ${response.status}`, fallback: response.status >= 500 }), {
+        status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    const data = await response.json();
 
     return new Response(JSON.stringify(data), {
       status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
