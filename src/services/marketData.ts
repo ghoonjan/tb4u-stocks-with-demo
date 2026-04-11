@@ -57,14 +57,32 @@ const QUOTE_TTL = 55_000;   // ~55s (we refresh every 60s)
 const PROFILE_TTL = 3600_000; // 1 hour
 const METRICS_TTL = 3600_000;
 
-async function callFinnhub(endpoint: string, params: Record<string, string>) {
-  const { data, error } = await supabase.functions.invoke("finnhub", {
-    body: { endpoint, params },
+// Global throttle queue: ensures minimum 350ms gap between Finnhub API calls
+let lastCallTs = 0;
+let callQueue: Promise<void> = Promise.resolve();
+
+function throttled<T>(fn: () => Promise<T>): Promise<T> {
+  return new Promise((resolve, reject) => {
+    callQueue = callQueue.then(async () => {
+      const wait = Math.max(0, lastCallTs + 350 - Date.now());
+      if (wait > 0) await new Promise((r) => setTimeout(r, wait));
+      lastCallTs = Date.now();
+      try { resolve(await fn()); }
+      catch (e) { reject(e); }
+    });
   });
-  if (error) throw new Error(error.message || "Edge function error");
-  if (data?.error === "rate_limit") throw new Error("RATE_LIMIT");
-  if (data?.error) throw new Error(data.error);
-  return data;
+}
+
+async function callFinnhub(endpoint: string, params: Record<string, string>) {
+  return throttled(async () => {
+    const { data, error } = await supabase.functions.invoke("finnhub", {
+      body: { endpoint, params },
+    });
+    if (error) throw new Error(error.message || "Edge function error");
+    if (data?.error === "rate_limit") throw new Error("RATE_LIMIT");
+    if (data?.error) throw new Error(data.error);
+    return data;
+  });
 }
 
 export async function getQuote(symbol: string): Promise<StockQuote> {
