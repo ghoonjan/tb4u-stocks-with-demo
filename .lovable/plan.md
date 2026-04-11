@@ -1,36 +1,31 @@
 
 
-## Fix: Scroll Shadow Indicators Not Visible
+## Fix: Holdings Table Horizontal Scrolling Broken
 
-### Testing Results
-- **Scroll works**: After removing `overflow-hidden`, the table scrolls horizontally at narrower viewports (confirmed at 768px iPad width).
-- **Shadows not visible**: The gradient overlays render but are virtually invisible because they use `from-background/80` while the table uses `bg-card`. In the dark theme, these two colors are nearly identical, so the shadow blends in.
+### Problem
+After removing `overflow-hidden` from the outer wrapper (line 254), the table content overflows the viewport without creating a scrollbar. The `overflow-x-auto` div expands to the table's 1200px width because nothing constrains it — so there's nothing to scroll.
+
+### Root Cause
+The `overflow-hidden` on the outer wrapper was **needed** to constrain the width of the inner scroll container. Without it, the chain is:
+```text
+outer div (no overflow) → div.relative → div.overflow-x-auto → table (1200px)
+```
+Each div expands to fit 1200px. No scrollbar is generated because `overflow-x-auto` only scrolls when its content exceeds its own width — and its width grew to match the table.
 
 ### Fix
 
-**File: `src/components/dashboard/HoldingsTable.tsx`** — `ScrollShadowWrapper` component (lines 56-62)
+**File: `src/components/dashboard/HoldingsTable.tsx`**
 
-Two changes to make shadows visible:
-
-1. **Change gradient color from `background` to `card`** — match the surface the table sits on.
-2. **Increase shadow width from `w-8` to `w-12`** — make the fade more noticeable.
+1. **Add `overflow-hidden` back to the outer wrapper** (line 254) — this constrains the scroll container width and makes the horizontal scrollbar appear.
 
 ```tsx
-// Left shadow (line 56-58)
-<div
-  className="pointer-events-none absolute inset-y-0 left-0 w-12 bg-gradient-to-r from-card/90 to-transparent transition-opacity duration-200"
-  style={{ opacity: canScrollLeft ? 1 : 0 }}
-/>
-// Right shadow (line 60-62)
-<div
-  className="pointer-events-none absolute inset-y-0 right-0 w-12 bg-gradient-to-l from-card/90 to-transparent transition-opacity duration-200"
-  style={{ opacity: canScrollRight ? 1 : 0 }}
-/>
+// Line 254: restore overflow-hidden
+<div className="rounded-2xl border border-border/50 bg-card overflow-hidden" style={{ boxShadow: "inset 0 1px 0 0 rgba(255,255,255,0.04)" }}>
 ```
 
+The shadow gradient fix (`from-card/90`, `w-12`) is already in place from the previous change and will now actually be visible once scrolling works.
+
 ### What Changes
-- One file: `src/components/dashboard/HoldingsTable.tsx`
-- Shadow gradient color: `from-background/80` → `from-card/90`
-- Shadow width: `w-8` → `w-12`
-- Shadows will now visually match the card surface and be clearly visible when scrolling
+- One line in `HoldingsTable.tsx`: add `overflow-hidden` back to the outer wrapper
+- Horizontal scrolling will work again, and the shadow indicators will be visible
 
