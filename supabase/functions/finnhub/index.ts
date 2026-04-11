@@ -1,3 +1,5 @@
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.1';
+
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
@@ -5,6 +7,7 @@ const corsHeaders = {
 
 const FINNHUB_BASE = 'https://finnhub.io/api/v1';
 
+// L1: In-memory cache (per-instance)
 const cache = new Map<string, { data: unknown; ts: number }>();
 const MAX_CACHE_SIZE = 500;
 
@@ -31,6 +34,12 @@ function evictIfNeeded() {
   if (oldestKey) cache.delete(oldestKey);
 }
 
+function getSupabaseAdmin() {
+  const url = Deno.env.get('SUPABASE_URL')!;
+  const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+  return createClient(url, serviceKey);
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
@@ -52,28 +61,63 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Check cache
     const sortedParams = new URLSearchParams(Object.entries(params || {}).sort());
     const cacheKey = `${endpoint}:${sortedParams.toString()}`;
     const ttl = TTL[endpoint] ?? 60_000;
-    const cached = cache.get(cacheKey);
+    const ttlSeconds = Math.ceil(ttl / 1000);
 
-    if (cached && Date.now() - cached.ts < ttl) {
-      const ttlSeconds = Math.ceil((ttl - (Date.now() - cached.ts)) / 1000);
-      return new Response(JSON.stringify(cached.data), {
+    // --- L1: In-memory cache ---
+    const l1 = cache.get(cacheKey);
+    if (l1 && Date.now() - l1.ts < ttl) {
+      const remainingSeconds = Math.ceil((ttl - (Date.now() - l1.ts)) / 1000);
+      return new Response(JSON.stringify(l1.data), {
         status: 200,
         headers: {
           ...corsHeaders,
           'Content-Type': 'application/json',
-          'X-Cache': 'HIT',
-          'Cache-Control': `public, max-age=${ttlSeconds}`,
+          'X-Cache': 'HIT-L1',
+          'Cache-Control': `public, max-age=${remainingSeconds}`,
         },
       });
     }
 
+    // --- L2: Database cache ---
+    const supabaseAdmin = getSupabaseAdmin();
+    
+    try {
+      const { data: dbRow } = await supabaseAdmin
+        .from('finnhub_cache')
+        .select('response_data, cached_at, ttl_seconds')
+        .eq('cache_key', cacheKey)
+        .single();
+
+      if (dbRow) {
+        const cachedAt = new Date(dbRow.cached_at).getTime();
+        const dbTtl = dbRow.ttl_seconds * 1000;
+        if (Date.now() - cachedAt < dbTtl) {
+          // Populate L1
+          cache.set(cacheKey, { data: dbRow.response_data, ts: cachedAt });
+          evictIfNeeded();
+
+          const remainingSeconds = Math.ceil((dbTtl - (Date.now() - cachedAt)) / 1000);
+          return new Response(JSON.stringify(dbRow.response_data), {
+            status: 200,
+            headers: {
+              ...corsHeaders,
+              'Content-Type': 'application/json',
+              'X-Cache': 'HIT-L2',
+              'Cache-Control': `public, max-age=${remainingSeconds}`,
+            },
+          });
+        }
+      }
+    } catch {
+      // L2 miss or DB error — continue to Finnhub
+    }
+
+    // --- Finnhub API call ---
     const queryParams = new URLSearchParams({ ...params, token: apiKey });
     const url = `${FINNHUB_BASE}${endpoint}?${queryParams.toString()}`;
-
     const response = await fetch(url);
 
     if (response.status === 429) {
@@ -92,11 +136,31 @@ Deno.serve(async (req) => {
 
     const data = await response.json();
 
-    // Store in cache
+    // Store in L1
     cache.set(cacheKey, { data, ts: Date.now() });
     evictIfNeeded();
 
-    const ttlSeconds = Math.ceil(ttl / 1000);
+    // Store in L2 (fire-and-forget upsert)
+    supabaseAdmin
+      .from('finnhub_cache')
+      .upsert({
+        cache_key: cacheKey,
+        endpoint,
+        response_data: data,
+        cached_at: new Date().toISOString(),
+        ttl_seconds: ttlSeconds,
+      }, { onConflict: 'cache_key' })
+      .then(({ error }) => {
+        if (error) console.error('L2 cache write error:', error.message);
+      });
+
+    // Probabilistic cleanup (~5% of requests)
+    if (Math.random() < 0.05) {
+      supabaseAdmin.rpc('cleanup_stale_finnhub_cache').then(({ error }) => {
+        if (error) console.error('Cache cleanup error:', error.message);
+      });
+    }
+
     return new Response(JSON.stringify(data), {
       status: 200,
       headers: {
