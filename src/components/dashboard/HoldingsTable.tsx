@@ -252,7 +252,7 @@ export function HoldingsTable({ holdings, loading, onAddHolding, onEditHolding, 
         </div>
       ) : (
         /* Desktop table */
-        <div className="overflow-x-auto">
+        <ScrollShadowWrapper>
           <table className="w-full min-w-[1200px]" role="table">
             <colgroup>
               <col style={{ width: 200 }} />
