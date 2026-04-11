@@ -1,31 +1,53 @@
 
 
-## Fix: Holdings Table Horizontal Scrolling Broken
+## Add Server-Side Caching to Finnhub Edge Function
 
-### Problem
-After removing `overflow-hidden` from the outer wrapper (line 254), the table content overflows the viewport without creating a scrollbar. The `overflow-x-auto` div expands to the table's 1200px width because nothing constrains it — so there's nothing to scroll.
+### Why
+Currently, all caching lives client-side in `marketData.ts`. Every browser tab, every user, every page load hits the Finnhub API independently. Server-side caching in the edge function means repeated requests for the same ticker across all users return cached data, dramatically reducing Finnhub API calls and rate-limit hits.
 
-### Root Cause
-The `overflow-hidden` on the outer wrapper was **needed** to constrain the width of the inner scroll container. Without it, the chain is:
-```text
-outer div (no overflow) → div.relative → div.overflow-x-auto → table (1200px)
+### Approach
+Use a **Deno in-memory `Map`** inside the edge function with endpoint-specific TTLs. Edge function instances persist across requests (until shutdown), so the cache survives multiple calls within the same instance lifecycle.
+
+### Changes
+
+**File: `supabase/functions/finnhub/index.ts`**
+
+1. Add a `Map<string, { data: unknown; ts: number }>` cache at module scope
+2. Define TTLs per endpoint:
+   - `/quote` — 60 seconds (prices change frequently)
+   - `/stock/profile2` — 1 hour (rarely changes)
+   - `/stock/metric` — 1 hour
+   - `/stock/candle` — 5 minutes
+   - `/company-news` — 10 minutes
+   - `/calendar/earnings`, `/stock/earnings` — 1 hour
+3. Build a cache key from `endpoint + sorted params` (excluding the API token)
+4. Before calling Finnhub, check the cache. If a valid entry exists, return it immediately
+5. After a successful Finnhub response, store in cache
+6. Add a `Cache-Control` response header so CDN/browser layers can also benefit
+7. Cap cache size (evict oldest entries beyond 500) to prevent memory growth
+
+### Technical Detail
+
+```typescript
+const cache = new Map<string, { data: unknown; ts: number }>();
+const TTL: Record<string, number> = {
+  '/quote': 60_000,
+  '/stock/profile2': 3600_000,
+  '/stock/metric': 3600_000,
+  '/stock/candle': 300_000,
+  '/company-news': 600_000,
+  '/calendar/earnings': 3600_000,
+  '/stock/earnings': 3600_000,
+};
+
+// Cache key = endpoint + sorted param string (no token)
+const cacheKey = `${endpoint}:${new URLSearchParams(params).toString()}`;
+const cached = cache.get(cacheKey);
+const ttl = TTL[endpoint] ?? 60_000;
+if (cached && Date.now() - cached.ts < ttl) {
+  return new Response(JSON.stringify(cached.data), { headers: ... });
+}
 ```
-Each div expands to fit 1200px. No scrollbar is generated because `overflow-x-auto` only scrolls when its content exceeds its own width — and its width grew to match the table.
 
-### Fix
-
-**File: `src/components/dashboard/HoldingsTable.tsx`**
-
-1. **Add `overflow-hidden` back to the outer wrapper** (line 254) — this constrains the scroll container width and makes the horizontal scrollbar appear.
-
-```tsx
-// Line 254: restore overflow-hidden
-<div className="rounded-2xl border border-border/50 bg-card overflow-hidden" style={{ boxShadow: "inset 0 1px 0 0 rgba(255,255,255,0.04)" }}>
-```
-
-The shadow gradient fix (`from-card/90`, `w-12`) is already in place from the previous change and will now actually be visible once scrolling works.
-
-### What Changes
-- One line in `HoldingsTable.tsx`: add `overflow-hidden` back to the outer wrapper
-- Horizontal scrolling will work again, and the shadow indicators will be visible
+No database tables or client-side changes needed. The existing client-side cache remains as a second layer.
 
