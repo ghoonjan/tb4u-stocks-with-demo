@@ -1,4 +1,4 @@
-import { useState, useMemo, useRef, useEffect, Fragment, memo, lazy, Suspense } from "react";
+import { useState, useMemo, useRef, useEffect, useCallback, Fragment, memo, lazy, Suspense, type ReactNode } from "react";
 import { ChevronDown, ChevronUp, Star, Plus, ChevronsUpDown, MoreHorizontal, Pencil, Trash2, BookOpen, Eye, Loader2 } from "lucide-react";
 import type { HoldingDisplay } from "@/hooks/usePortfolioData";
 import type { HoldingAnalytics } from "@/hooks/useAnalyticsData";
@@ -23,6 +23,44 @@ function ConvictionStars({ rating }: { rating: number }) {
       {[1, 2, 3, 4, 5].map((i) => (
         <Star key={i} size={12} className={i <= rating ? "fill-primary text-primary" : "text-muted-foreground/30"} />
       ))}
+    </div>
+  );
+}
+
+function ScrollShadowWrapper({ children }: { children: ReactNode }) {
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(false);
+
+  const check = useCallback(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    setCanScrollLeft(el.scrollLeft > 2);
+    setCanScrollRight(el.scrollLeft + el.clientWidth < el.scrollWidth - 2);
+  }, []);
+
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    check();
+    const ro = new ResizeObserver(check);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [check]);
+
+  return (
+    <div className="relative">
+      <div ref={scrollRef} onScroll={check} className="overflow-x-auto">
+        {children}
+      </div>
+      <div
+        className="pointer-events-none absolute inset-y-0 left-0 w-8 bg-gradient-to-r from-background/80 to-transparent transition-opacity duration-200"
+        style={{ opacity: canScrollLeft ? 1 : 0 }}
+      />
+      <div
+        className="pointer-events-none absolute inset-y-0 right-0 w-8 bg-gradient-to-l from-background/80 to-transparent transition-opacity duration-200"
+        style={{ opacity: canScrollRight ? 1 : 0 }}
+      />
     </div>
   );
 }
@@ -252,7 +290,7 @@ export function HoldingsTable({ holdings, loading, onAddHolding, onEditHolding, 
         </div>
       ) : (
         /* Desktop table */
-        <div className="overflow-x-auto">
+        <ScrollShadowWrapper>
           <table className="w-full min-w-[1200px]" role="table">
             <colgroup>
               <col style={{ width: 200 }} />
@@ -298,7 +336,7 @@ export function HoldingsTable({ holdings, loading, onAddHolding, onEditHolding, 
               ))}
             </tbody>
           </table>
-        </div>
+        </ScrollShadowWrapper>
       )}
       {!loading && holdings.length > 0 && (
         <div className="flex items-center justify-between px-3 sm:px-4 py-3 border-t border-border">
