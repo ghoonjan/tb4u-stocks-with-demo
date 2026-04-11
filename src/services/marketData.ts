@@ -136,8 +136,8 @@ export async function getBasicFinancials(symbol: string): Promise<BasicFinancial
 }
 
 /**
- * Fetch quotes for multiple tickers with rate-limit-safe staggering.
- * 200ms delay between calls to stay under 60/min.
+ * Fetch quotes for multiple tickers.
+ * Global throttle queue handles rate-limit pacing automatically.
  */
 export async function getBatchQuotes(
   symbols: string[],
@@ -150,17 +150,14 @@ export async function getBatchQuotes(
       results.set(symbols[i], quote);
     } catch (err: any) {
       if (err.message === "RATE_LIMIT") {
-        // Wait 30s and retry
         await new Promise((r) => setTimeout(r, 30_000));
         try {
           const quote = await getQuote(symbols[i]);
           results.set(symbols[i], quote);
         } catch { /* skip */ }
       }
-      // INVALID_TICKER or other — skip
     }
     onProgress?.(i + 1, symbols.length);
-    if (i < symbols.length - 1) await new Promise((r) => setTimeout(r, 200));
   }
   return results;
 }
