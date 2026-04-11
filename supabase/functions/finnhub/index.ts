@@ -5,6 +5,32 @@ const corsHeaders = {
 
 const FINNHUB_BASE = 'https://finnhub.io/api/v1';
 
+const cache = new Map<string, { data: unknown; ts: number }>();
+const MAX_CACHE_SIZE = 500;
+
+const TTL: Record<string, number> = {
+  '/quote': 60_000,
+  '/stock/profile2': 3_600_000,
+  '/stock/metric': 3_600_000,
+  '/stock/candle': 300_000,
+  '/company-news': 600_000,
+  '/calendar/earnings': 3_600_000,
+  '/stock/earnings': 3_600_000,
+};
+
+function evictIfNeeded() {
+  if (cache.size <= MAX_CACHE_SIZE) return;
+  let oldestKey: string | null = null;
+  let oldestTs = Infinity;
+  for (const [key, entry] of cache) {
+    if (entry.ts < oldestTs) {
+      oldestTs = entry.ts;
+      oldestKey = key;
+    }
+  }
+  if (oldestKey) cache.delete(oldestKey);
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
@@ -23,6 +49,25 @@ Deno.serve(async (req) => {
     if (!allowedEndpoints.includes(endpoint)) {
       return new Response(JSON.stringify({ error: 'Endpoint not allowed' }), {
         status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    // Check cache
+    const sortedParams = new URLSearchParams(Object.entries(params || {}).sort());
+    const cacheKey = `${endpoint}:${sortedParams.toString()}`;
+    const ttl = TTL[endpoint] ?? 60_000;
+    const cached = cache.get(cacheKey);
+
+    if (cached && Date.now() - cached.ts < ttl) {
+      const ttlSeconds = Math.ceil((ttl - (Date.now() - cached.ts)) / 1000);
+      return new Response(JSON.stringify(cached.data), {
+        status: 200,
+        headers: {
+          ...corsHeaders,
+          'Content-Type': 'application/json',
+          'X-Cache': 'HIT',
+          'Cache-Control': `public, max-age=${ttlSeconds}`,
+        },
       });
     }
 
@@ -47,8 +92,19 @@ Deno.serve(async (req) => {
 
     const data = await response.json();
 
+    // Store in cache
+    cache.set(cacheKey, { data, ts: Date.now() });
+    evictIfNeeded();
+
+    const ttlSeconds = Math.ceil(ttl / 1000);
     return new Response(JSON.stringify(data), {
-      status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      status: 200,
+      headers: {
+        ...corsHeaders,
+        'Content-Type': 'application/json',
+        'X-Cache': 'MISS',
+        'Cache-Control': `public, max-age=${ttlSeconds}`,
+      },
     });
   } catch (err) {
     return new Response(JSON.stringify({ error: err.message }), {
