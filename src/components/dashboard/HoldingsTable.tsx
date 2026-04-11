@@ -130,9 +130,9 @@ const HoldingRow = memo(function HoldingRow({
 }) {
   return (
     <Fragment>
-      <tr onClick={onToggle} className="group border-b border-border/50 cursor-pointer transition-colors hover:bg-overlay/50 row-accent-border" tabIndex={0} role="row"
+      <tr onClick={onToggle} className="group border-b border-border/50 cursor-pointer transition-colors hover:bg-overlay/50" tabIndex={0} role="row"
         onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onToggle(); } }}>
-        <td className="py-3 px-4">
+        <td className="py-3 px-4 relative cell-accent-border">
           <div>
             <span className="text-sm font-bold text-foreground group-hover:text-primary transition-colors">{h.ticker}</span>
             <p className="text-[11px] text-muted-foreground truncate max-w-[170px]">{h.companyName}</p>
@@ -268,18 +268,18 @@ export function HoldingsTable({ holdings, loading, onAddHolding, onEditHolding, 
               <col style={{ width: 80 }} />
             </colgroup>
             <thead>
-              <tr className="border-b border-border bg-card sticky top-0 z-10">
-                <th className="py-3 px-4 text-left"><SortHeader label="Ticker" sortKey="ticker" currentSort={sortKey} currentDir={sortDir} onSort={handleSort} /></th>
-                <th className="py-3 px-3 text-right"><SortHeader label="Shares" sortKey="shares" currentSort={sortKey} currentDir={sortDir} onSort={handleSort} className="justify-end" /></th>
-                <th className="py-3 px-3 text-right"><SortHeader label="Avg Cost" sortKey="avgCostBasis" currentSort={sortKey} currentDir={sortDir} onSort={handleSort} className="justify-end" /></th>
-                <th className="py-3 px-3 text-right"><SortHeader label="Price" sortKey="currentPrice" currentSort={sortKey} currentDir={sortDir} onSort={handleSort} className="justify-end" /></th>
-                <th className="py-3 px-3 text-right"><SortHeader label="Day Chg" sortKey="dayChangeDollar" currentSort={sortKey} currentDir={sortDir} onSort={handleSort} className="justify-end" /></th>
-                <th className="py-3 px-3 text-right"><SortHeader label="Total P&L" sortKey="totalPLDollar" currentSort={sortKey} currentDir={sortDir} onSort={handleSort} className="justify-end" /></th>
-                <th className="py-3 px-3 text-right"><SortHeader label="Value" sortKey="positionValue" currentSort={sortKey} currentDir={sortDir} onSort={handleSort} className="justify-end" /></th>
-                <th className="py-3 px-3 text-right"><SortHeader label="Wt%" sortKey="weight" currentSort={sortKey} currentDir={sortDir} onSort={handleSort} className="justify-end" /></th>
-                <th className="py-3 px-3 text-center"><span className="text-[11px] font-semibold uppercase tracking-[0.05em] text-muted-foreground">Conv.</span></th>
-                <th className="py-3 px-3 text-center"><span className="text-[11px] font-semibold uppercase tracking-[0.05em] text-muted-foreground">Div</span></th>
-                <th className="py-3 px-3" />
+              <tr className="border-b border-border">
+                <th className="py-3 px-4 text-left sticky top-0 z-10 bg-card"><SortHeader label="Ticker" sortKey="ticker" currentSort={sortKey} currentDir={sortDir} onSort={handleSort} /></th>
+                <th className="py-3 px-3 text-right sticky top-0 z-10 bg-card"><SortHeader label="Shares" sortKey="shares" currentSort={sortKey} currentDir={sortDir} onSort={handleSort} className="justify-end" /></th>
+                <th className="py-3 px-3 text-right sticky top-0 z-10 bg-card"><SortHeader label="Avg Cost" sortKey="avgCostBasis" currentSort={sortKey} currentDir={sortDir} onSort={handleSort} className="justify-end" /></th>
+                <th className="py-3 px-3 text-right sticky top-0 z-10 bg-card"><SortHeader label="Price" sortKey="currentPrice" currentSort={sortKey} currentDir={sortDir} onSort={handleSort} className="justify-end" /></th>
+                <th className="py-3 px-3 text-right sticky top-0 z-10 bg-card"><SortHeader label="Day Chg" sortKey="dayChangeDollar" currentSort={sortKey} currentDir={sortDir} onSort={handleSort} className="justify-end" /></th>
+                <th className="py-3 px-3 text-right sticky top-0 z-10 bg-card"><SortHeader label="Total P&L" sortKey="totalPLDollar" currentSort={sortKey} currentDir={sortDir} onSort={handleSort} className="justify-end" /></th>
+                <th className="py-3 px-3 text-right sticky top-0 z-10 bg-card"><SortHeader label="Value" sortKey="positionValue" currentSort={sortKey} currentDir={sortDir} onSort={handleSort} className="justify-end" /></th>
+                <th className="py-3 px-3 text-right sticky top-0 z-10 bg-card"><SortHeader label="Wt%" sortKey="weight" currentSort={sortKey} currentDir={sortDir} onSort={handleSort} className="justify-end" /></th>
+                <th className="py-3 px-3 text-center sticky top-0 z-10 bg-card"><span className="text-[11px] font-semibold uppercase tracking-[0.05em] text-muted-foreground">Conv.</span></th>
+                <th className="py-3 px-3 text-center sticky top-0 z-10 bg-card"><span className="text-[11px] font-semibold uppercase tracking-[0.05em] text-muted-foreground">Div</span></th>
+                <th className="py-3 px-3 sticky top-0 z-10 bg-card" />
               </tr>
             </thead>
             <tbody>
