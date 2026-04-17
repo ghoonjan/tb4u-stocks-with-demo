@@ -299,17 +299,11 @@ export function PortfolioHeader({
         <div className="flex h-9 items-center border-t border-border bg-card/50 overflow-x-auto relative z-[1] scrollbar-none" data-tour="macro" role="region" aria-label="Market indicators">
           <MacroItem label="S&P 500" quote={macroData?.spy ?? null} />
           <span className="h-3 w-px bg-border shrink-0" />
-          <div className="flex items-center gap-2 px-3 sm:px-4 shrink-0">
-            <span className="text-[11px] text-muted-foreground uppercase tracking-wide">10Y</span>
-            <span className="font-mono text-xs text-muted-foreground">—</span>
-          </div>
+          <MacroItem label="10Y (IEF)" quote={macroData?.ief ?? null} />
           <span className="h-3 w-px bg-border shrink-0" />
-          <div className="flex items-center gap-2 px-3 sm:px-4 shrink-0">
-            <span className="text-[11px] text-muted-foreground uppercase tracking-wide">VIX</span>
-            <span className="font-mono text-xs text-muted-foreground">—</span>
-          </div>
+          <MacroItem label="VIX (VIXY)" quote={macroData?.vixy ?? null} />
           <span className="h-3 w-px bg-border shrink-0" />
-          <MacroItem label="DXY" quote={macroData?.uup ?? null} />
+          <MacroItem label="USD (UUP)" quote={macroData?.uup ?? null} />
           <span className="h-3 w-px bg-border shrink-0" />
           <div className="flex items-center gap-2 px-3 sm:px-4 shrink-0">
             <span className="text-[11px] text-muted-foreground uppercase tracking-wide">FOMC</span>
