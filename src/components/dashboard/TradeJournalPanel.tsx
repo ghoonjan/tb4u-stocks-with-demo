@@ -84,7 +84,7 @@ export function TradeJournalPanel({ open, onClose, refreshKey }: { open: boolean
 
   return (
     <Sheet open={open} onOpenChange={(v) => !v && onClose()}>
-      <SheetContent side="left" className="w-[420px] sm:w-[460px] bg-card border-border p-0 flex flex-col">
+      <SheetContent side="left" className="w-full max-w-[420px] sm:max-w-[460px] bg-card border-border p-0 flex flex-col">
         <SheetHeader className="p-4 pb-3 border-b border-border">
           <SheetTitle className="text-foreground">Trade Journal</SheetTitle>
         </SheetHeader>
