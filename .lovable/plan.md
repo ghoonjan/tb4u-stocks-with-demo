@@ -1,56 +1,42 @@
 
+The user wants a Nasdaq 100 ticker added to the macro strip, matching how SPY is displayed for the S&P 500. The standard ETF proxy for the Nasdaq 100 is **QQQ** (Invesco QQQ Trust), which Finnhub's free tier supports.
 
-## Fix Macro Strip: 10Y, VIX, DXY
+Looking at the existing pattern: `SPY` is fetched via `MACRO_SYMBOLS`, stored in `macroData.spy`, and rendered in `PortfolioHeader.tsx` as a `MacroItem` labeled "S&P 500". I'll mirror this exactly for QQQ → "Nasdaq 100".
 
-### Root cause
-The Finnhub free tier doesn't expose index symbols (`^TNX`, `^VIX`, `^DXY`), so the header was hardcoded to show "—" for **10Y** and **VIX**. **DXY** is labeled as the dollar index but actually fetches `UUP` (an ETF that trades ~$27 — that's the ETF share price, not the DXY index ~100). The screenshot shows "27.31" because that's UUP's price.
-
-We need ETF proxies that Finnhub supports, with honest labels so users understand they're tracking proxies.
-
-### Proxy mapping
-| Strip label | ETF symbol | Tracks |
-|---|---|---|
-| 10Y (IEF) | `IEF` | iShares 7-10Y Treasury — inverse correlation to 10Y yield |
-| VIX (VIXY) | `VIXY` | ProShares VIX short-term futures |
-| USD (UUP) | `UUP` | Invesco US Dollar Bullish — directional proxy for DXY |
-
-The labels include the proxy ticker in parentheses so the price makes sense at a glance (e.g. `USD (UUP) 27.31`) and it's clear these aren't the raw indices.
+## Add Nasdaq 100 (QQQ) to Macro Strip
 
 ### Changes
 
-1. **`src/constants/index.ts`** — expand `MACRO_SYMBOLS`:
+1. **`src/constants/index.ts`** — add `QQQ` to `MACRO_SYMBOLS`:
    ```ts
-   export const MACRO_SYMBOLS = ["SPY", "UUP", "IEF", "VIXY"] as const;
+   export const MACRO_SYMBOLS = ["SPY", "QQQ", "UUP", "IEF", "VIXY"] as const;
    ```
 
-2. **`src/hooks/useMacroData.ts`** — extend `MacroData` and `fetchMacro`:
+2. **`src/hooks/useMacroData.ts`** — extend `MacroData` interface and `setMacroData`:
    ```ts
    export interface MacroData {
      spy: StockQuote | null;
+     qqq: StockQuote | null;
      uup: StockQuote | null;
      ief: StockQuote | null;
      vixy: StockQuote | null;
    }
-   // setMacroData with all four from quotes.get(...)
+   // add: qqq: quotes.get("QQQ") ?? null,
    ```
 
-3. **`src/components/dashboard/PortfolioHeader.tsx`** — replace the two hardcoded `—` blocks and update DXY label:
+3. **`src/components/dashboard/PortfolioHeader.tsx`** — add a `MacroItem` for QQQ next to the SPY item:
    ```tsx
-   <MacroItem label="10Y (IEF)" quote={macroData?.ief ?? null} />
-   <MacroItem label="VIX (VIXY)" quote={macroData?.vixy ?? null} />
-   <MacroItem label="USD (UUP)" quote={macroData?.uup ?? null} />
+   <MacroItem label="Nasdaq 100 (QQQ)" quote={macroData?.qqq ?? null} />
    ```
 
-### Why this fix works
-- All three new symbols are US-listed ETFs, fully supported on Finnhub's free tier and already routed through the existing L1+L2 cache
-- No edge-function or schema changes needed
-- Labels honestly reflect what's being shown (proxy ETF, not raw index)
-- Color coding (`text-gain` / `text-loss` from `dp`) still works since ETF day-change percents are meaningful
+### Why this works
+- `QQQ` is a US-listed ETF fully supported by Finnhub's free tier
+- Reuses the existing L1 + L2 cache and refresh interval logic — no edge function or DB changes
+- Label format matches the recently updated proxies ("USD (UUP)", "10Y (IEF)", "VIX (VIXY)") for visual consistency
 
 ### What changes
 - `src/constants/index.ts` — 1 line
-- `src/hooks/useMacroData.ts` — interface + 4 lines in setMacroData
-- `src/components/dashboard/PortfolioHeader.tsx` — replace 3 macro blocks (lines 302-312)
+- `src/hooks/useMacroData.ts` — interface field + 1 line in setMacroData
+- `src/components/dashboard/PortfolioHeader.tsx` — 1 new `MacroItem` line next to SPY
 
 No database migration, no edge function changes.
-
