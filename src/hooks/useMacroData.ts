@@ -5,6 +5,8 @@ import { FOMC_DATES, MARKET_HOLIDAYS, MACRO_SYMBOLS, QUOTE_REFRESH_INTERVAL_MARK
 export interface MacroData {
   spy: StockQuote | null;
   uup: StockQuote | null;
+  ief: StockQuote | null;
+  vixy: StockQuote | null;
 }
 
 export function getNextFomc(): { date: Date; daysAway: number; label: string } {
@@ -48,7 +50,7 @@ export function isMarketOpen(): boolean {
 }
 
 export function useMacroData() {
-  const [macroData, setMacroData] = useState<MacroData>({ spy: null, uup: null });
+  const [macroData, setMacroData] = useState<MacroData>({ spy: null, uup: null, ief: null, vixy: null });
   const [loading, setLoading] = useState(true);
 
   const fetchMacro = useCallback(async () => {
@@ -57,6 +59,8 @@ export function useMacroData() {
       setMacroData({
         spy: quotes.get("SPY") ?? null,
         uup: quotes.get("UUP") ?? null,
+        ief: quotes.get("IEF") ?? null,
+        vixy: quotes.get("VIXY") ?? null,
       });
     } catch { /* silent */ }
     setLoading(false);

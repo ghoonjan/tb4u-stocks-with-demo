@@ -47,7 +47,7 @@ export const SECTOR_COLORS = [
 ];
 
 // ─── Macro Proxy Symbols ────────────────────────────────────────
-export const MACRO_SYMBOLS = ["SPY", "UUP"] as const;
+export const MACRO_SYMBOLS = ["SPY", "UUP", "IEF", "VIXY"] as const;
 
 // ─── Limits ─────────────────────────────────────────────────────
 export const MAX_WATCHLIST = 30;
