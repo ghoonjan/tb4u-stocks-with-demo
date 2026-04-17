@@ -1,26 +1,56 @@
 
 
-## Fix: Trade Journal Close Button Off-Screen in Portrait
+## Fix Macro Strip: 10Y, VIX, DXY
 
-### Root Cause
-`TradeJournalPanel` opens a left-side `Sheet` with hardcoded width `w-[420px] sm:w-[460px]`. On phones in portrait (e.g., 390px wide), the panel is wider than the viewport, pushing the absolutely-positioned close button (`right-4 top-4`) off-screen to the right. In landscape, the viewport is wide enough for the full 420px panel, so the X is visible.
+### Root cause
+The Finnhub free tier doesn't expose index symbols (`^TNX`, `^VIX`, `^DXY`), so the header was hardcoded to show "—" for **10Y** and **VIX**. **DXY** is labeled as the dollar index but actually fetches `UUP` (an ETF that trades ~$27 — that's the ETF share price, not the DXY index ~100). The screenshot shows "27.31" because that's UUP's price.
 
-This also explains the clipped "Top Reas…" stat label in the portrait screenshot — the entire panel overflows the viewport.
+We need ETF proxies that Finnhub supports, with honest labels so users understand they're tracking proxies.
 
-### Fix
-Change the SheetContent width in `src/components/dashboard/TradeJournalPanel.tsx` from a fixed pixel width to a responsive width that never exceeds the viewport on mobile:
+### Proxy mapping
+| Strip label | ETF symbol | Tracks |
+|---|---|---|
+| 10Y (IEF) | `IEF` | iShares 7-10Y Treasury — inverse correlation to 10Y yield |
+| VIX (VIXY) | `VIXY` | ProShares VIX short-term futures |
+| USD (UUP) | `UUP` | Invesco US Dollar Bullish — directional proxy for DXY |
 
-```tsx
-// Before
-<SheetContent side="left" className="w-[420px] sm:w-[460px] bg-card border-border p-0 flex flex-col">
+The labels include the proxy ticker in parentheses so the price makes sense at a glance (e.g. `USD (UUP) 27.31`) and it's clear these aren't the raw indices.
 
-// After  
-<SheetContent side="left" className="w-full max-w-[420px] sm:max-w-[460px] bg-card border-border p-0 flex flex-col">
-```
+### Changes
 
-`w-full` makes it fill the viewport on small screens (so the X stays on-screen), while `max-w-[420px]` / `sm:max-w-[460px]` preserves the desktop sizing.
+1. **`src/constants/index.ts`** — expand `MACRO_SYMBOLS`:
+   ```ts
+   export const MACRO_SYMBOLS = ["SPY", "UUP", "IEF", "VIXY"] as const;
+   ```
 
-### What Changes
-- One line in `src/components/dashboard/TradeJournalPanel.tsx` (line 87)
-- No other components affected — desktop/landscape behavior is unchanged; mobile portrait now fits the viewport with a visible close button
+2. **`src/hooks/useMacroData.ts`** — extend `MacroData` and `fetchMacro`:
+   ```ts
+   export interface MacroData {
+     spy: StockQuote | null;
+     uup: StockQuote | null;
+     ief: StockQuote | null;
+     vixy: StockQuote | null;
+   }
+   // setMacroData with all four from quotes.get(...)
+   ```
+
+3. **`src/components/dashboard/PortfolioHeader.tsx`** — replace the two hardcoded `—` blocks and update DXY label:
+   ```tsx
+   <MacroItem label="10Y (IEF)" quote={macroData?.ief ?? null} />
+   <MacroItem label="VIX (VIXY)" quote={macroData?.vixy ?? null} />
+   <MacroItem label="USD (UUP)" quote={macroData?.uup ?? null} />
+   ```
+
+### Why this fix works
+- All three new symbols are US-listed ETFs, fully supported on Finnhub's free tier and already routed through the existing L1+L2 cache
+- No edge-function or schema changes needed
+- Labels honestly reflect what's being shown (proxy ETF, not raw index)
+- Color coding (`text-gain` / `text-loss` from `dp`) still works since ETF day-change percents are meaningful
+
+### What changes
+- `src/constants/index.ts` — 1 line
+- `src/hooks/useMacroData.ts` — interface + 4 lines in setMacroData
+- `src/components/dashboard/PortfolioHeader.tsx` — replace 3 macro blocks (lines 302-312)
+
+No database migration, no edge function changes.
 
