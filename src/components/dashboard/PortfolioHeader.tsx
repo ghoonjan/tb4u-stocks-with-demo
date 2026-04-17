@@ -299,6 +299,8 @@ export function PortfolioHeader({
         <div className="flex h-9 items-center border-t border-border bg-card/50 overflow-x-auto relative z-[1] scrollbar-none" data-tour="macro" role="region" aria-label="Market indicators">
           <MacroItem label="S&P 500" quote={macroData?.spy ?? null} />
           <span className="h-3 w-px bg-border shrink-0" />
+          <MacroItem label="Nasdaq 100 (QQQ)" quote={macroData?.qqq ?? null} />
+          <span className="h-3 w-px bg-border shrink-0" />
           <MacroItem label="10Y (IEF)" quote={macroData?.ief ?? null} />
           <span className="h-3 w-px bg-border shrink-0" />
           <MacroItem label="VIX (VIXY)" quote={macroData?.vixy ?? null} />

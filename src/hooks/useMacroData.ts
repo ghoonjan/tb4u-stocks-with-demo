@@ -4,6 +4,7 @@ import { FOMC_DATES, MARKET_HOLIDAYS, MACRO_SYMBOLS, QUOTE_REFRESH_INTERVAL_MARK
 
 export interface MacroData {
   spy: StockQuote | null;
+  qqq: StockQuote | null;
   uup: StockQuote | null;
   ief: StockQuote | null;
   vixy: StockQuote | null;
@@ -50,7 +51,7 @@ export function isMarketOpen(): boolean {
 }
 
 export function useMacroData() {
-  const [macroData, setMacroData] = useState<MacroData>({ spy: null, uup: null, ief: null, vixy: null });
+  const [macroData, setMacroData] = useState<MacroData>({ spy: null, qqq: null, uup: null, ief: null, vixy: null });
   const [loading, setLoading] = useState(true);
 
   const fetchMacro = useCallback(async () => {
@@ -58,6 +59,7 @@ export function useMacroData() {
       const quotes = await getBatchQuotes([...MACRO_SYMBOLS]);
       setMacroData({
         spy: quotes.get("SPY") ?? null,
+        qqq: quotes.get("QQQ") ?? null,
         uup: quotes.get("UUP") ?? null,
         ief: quotes.get("IEF") ?? null,
         vixy: quotes.get("VIXY") ?? null,
