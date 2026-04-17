@@ -1,46 +1,26 @@
 
 
-## Persistent Database Cache for Finnhub API Responses
+## Fix: Trade Journal Close Button Off-Screen in Portrait
 
-### Overview
-Add a database table as a second-level cache behind the existing in-memory `Map`. The edge function checks memory first, then the database, and only calls Finnhub as a last resort. This ensures cache survives across cold starts and instance restarts.
+### Root Cause
+`TradeJournalPanel` opens a left-side `Sheet` with hardcoded width `w-[420px] sm:w-[460px]`. On phones in portrait (e.g., 390px wide), the panel is wider than the viewport, pushing the absolutely-positioned close button (`right-4 top-4`) off-screen to the right. In landscape, the viewport is wide enough for the full 420px panel, so the X is visible.
 
-### Database Changes
+This also explains the clipped "Top Reas…" stat label in the portrait screenshot — the entire panel overflows the viewport.
 
-**New table: `finnhub_cache`**
+### Fix
+Change the SheetContent width in `src/components/dashboard/TradeJournalPanel.tsx` from a fixed pixel width to a responsive width that never exceeds the viewport on mobile:
 
-| Column | Type | Notes |
-|--------|------|-------|
-| `id` | uuid (PK) | Default `gen_random_uuid()` |
-| `cache_key` | text (unique) | `endpoint:sorted_params` |
-| `endpoint` | text | For cleanup queries |
-| `response_data` | jsonb | The cached API response |
-| `cached_at` | timestamptz | `now()` |
-| `ttl_seconds` | integer | TTL for this entry |
+```tsx
+// Before
+<SheetContent side="left" className="w-[420px] sm:w-[460px] bg-card border-border p-0 flex flex-col">
 
-No RLS needed — this table is only accessed from the edge function using the service role key, not from the client.
-
-**Database function for cleanup:**
-A `cleanup_stale_finnhub_cache()` function that deletes rows where `cached_at + ttl_seconds < now()`. Called periodically from the edge function (e.g., 1 in 20 requests) to avoid unbounded growth.
-
-### Edge Function Changes
-
-**File: `supabase/functions/finnhub/index.ts`**
-
-Update the request flow to a two-tier cache:
-
-```text
-Request → In-memory Map (L1) → Database table (L2) → Finnhub API
+// After  
+<SheetContent side="left" className="w-full max-w-[420px] sm:max-w-[460px] bg-card border-border p-0 flex flex-col">
 ```
 
-1. Import `createClient` from `@supabase/supabase-js` and initialize with the service role key
-2. On cache miss from the in-memory `Map`, query `finnhub_cache` for a row matching the cache key where `cached_at + ttl_seconds > now()`
-3. If found, populate the in-memory cache and return the response
-4. If not found, call Finnhub, then upsert into both the in-memory cache and the database table
-5. On ~5% of requests, run the cleanup function to prune expired rows
+`w-full` makes it fill the viewport on small screens (so the X stays on-screen), while `max-w-[420px]` / `sm:max-w-[460px]` preserves the desktop sizing.
 
 ### What Changes
-- **Migration**: One new table `finnhub_cache` + one cleanup function
-- **Edge function**: `supabase/functions/finnhub/index.ts` — add database reads/writes as L2 cache
-- **No client-side changes** — the existing client code and in-memory L1 cache remain untouched
+- One line in `src/components/dashboard/TradeJournalPanel.tsx` (line 87)
+- No other components affected — desktop/landscape behavior is unchanged; mobile portrait now fits the viewport with a visible close button
 
