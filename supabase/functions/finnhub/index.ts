@@ -80,7 +80,11 @@ Deno.serve(async (req) => {
       });
     }
 
-    const sortedParams = new URLSearchParams(Object.entries(params || {}).sort());
+    const sortedParams = new URLSearchParams(
+      (Object.entries(params || {}) as [string, unknown][])
+        .sort(([a], [b]) => a.localeCompare(b))
+        .map(([k, v]) => [k, String(v)])
+    );
     const cacheKey = `${endpoint}:${sortedParams.toString()}`;
     const ttl = TTL[endpoint] ?? 60_000;
     const ttlSeconds = Math.ceil(ttl / 1000);
@@ -190,7 +194,8 @@ Deno.serve(async (req) => {
       },
     });
   } catch (err) {
-    return new Response(JSON.stringify({ error: err.message }), {
+    const message = err instanceof Error ? err.message : 'Internal error';
+    return new Response(JSON.stringify({ error: message }), {
       status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   }
