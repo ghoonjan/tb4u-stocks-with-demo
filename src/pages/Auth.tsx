@@ -17,15 +17,31 @@ const Auth = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
+    let active = true;
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (session) navigate("/");
+      if (session && active) navigate("/");
     });
 
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session) navigate("/");
-    });
+    const syncSession = async () => {
+      const { data: { session }, error } = await supabase.auth.getSession();
 
-    return () => subscription.unsubscribe();
+      if (error) {
+        await supabase.auth.signOut();
+        return;
+      }
+
+      if (session && active) {
+        navigate("/");
+      }
+    };
+
+    void syncSession();
+
+    return () => {
+      active = false;
+      subscription.unsubscribe();
+    };
   }, [navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -58,7 +74,6 @@ const Auth = () => {
       <GradientMeshBackground />
       <div className="flex flex-1 items-center justify-center px-4">
       <div className="w-full max-w-sm relative z-10">
-        {/* Logo */}
         <div className="mb-8 flex flex-col items-center text-center">
           <div className="animate-logo-float mb-4">
             <LogoMark size={80} />
@@ -75,7 +90,6 @@ const Auth = () => {
           <p className="mt-1 text-xs text-muted-foreground">Stock Portfolio Command Center</p>
         </div>
 
-        {/* Card */}
         <div className="layer-modal p-6">
           <h2 className="mb-6 text-base font-semibold text-foreground">
             {isLogin ? "Sign in" : "Create account"}

@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { PortfolioHeader } from "@/components/dashboard/PortfolioHeader";
@@ -27,9 +27,12 @@ import { OnboardingFlow } from "@/components/dashboard/OnboardingFlow";
 import { GradientMeshBackground } from "@/components/GradientMeshBackground";
 import { useScrollReveal } from "@/hooks/useScrollReveal";
 
-const Dashboard = () => {
-  const [email, setEmail] = useState<string | null>(null);
-  const navigate = useNavigate();
+type AuthenticatedUser = {
+  id: string;
+  email: string | null;
+};
+
+function DashboardContent({ user, onLogout }: { user: AuthenticatedUser; onLogout: () => Promise<void> }) {
   const [searchParams, setSearchParams] = useSearchParams();
   const [digestOpen, setDigestOpen] = useState(false);
   const portfolio = usePortfolioData();
@@ -44,14 +47,11 @@ const Dashboard = () => {
     macroData,
   });
 
-  // Modal states
   const [holdingModalOpen, setHoldingModalOpen] = useState(false);
   const [editingHolding, setEditingHolding] = useState<HoldingDisplay | null>(null);
   const [deletingHolding, setDeletingHolding] = useState<HoldingDisplay | null>(null);
   const [watchlistModalOpen, setWatchlistModalOpen] = useState(false);
   const [prefillFromWatchlist, setPrefillFromWatchlist] = useState<{ ticker: string; companyName: string } | null>(null);
-
-  // Trade journal states
   const [tradeModalOpen, setTradeModalOpen] = useState(false);
   const [tradeModalHolding, setTradeModalHolding] = useState<HoldingDisplay | null>(null);
   const [journalPanelOpen, setJournalPanelOpen] = useState(false);
@@ -62,21 +62,12 @@ const Dashboard = () => {
   const watchlistRevealRef = useScrollReveal<HTMLDivElement>();
 
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (!session) {
-        toast({ title: "Session expired", description: "Please log in again." });
-        navigate("/auth");
-        return;
-      }
-      setEmail(session.user.email ?? null);
-    });
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      if (!session) { navigate("/auth"); return; }
-      setEmail(session.user.email ?? null);
+    let active = true;
 
-      // Handle unsubscribe from email digest
-      if (searchParams.get("action") === "unsubscribe" && searchParams.get("uid") === session.user.id) {
-        await supabase.from("profiles").update({ email_digest_enabled: false }).eq("id", session.user.id);
+    const syncUserState = async () => {
+      if (searchParams.get("action") === "unsubscribe" && searchParams.get("uid") === user.id) {
+        await supabase.from("profiles").update({ email_digest_enabled: false }).eq("id", user.id);
+        if (!active) return;
         toast({ title: "Unsubscribed", description: "Email digest has been turned off." });
         setSearchParams({});
       }
@@ -84,26 +75,26 @@ const Dashboard = () => {
       const { data: profile } = await supabase
         .from("profiles")
         .select("onboarding_completed")
-        .eq("id", session.user.id)
+        .eq("id", user.id)
         .single();
-      if (profile && !profile.onboarding_completed) {
+
+      if (active && profile && !profile.onboarding_completed) {
         setShowOnboarding(true);
       }
-    });
-    return () => subscription.unsubscribe();
-  }, [navigate, searchParams, setSearchParams]);
+    };
 
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-    navigate("/auth");
-  };
+    void syncUserState();
+
+    return () => {
+      active = false;
+    };
+  }, [searchParams, setSearchParams, user.id]);
 
   const openTradeModal = (holding?: HoldingDisplay) => {
     setTradeModalHolding(holding ?? null);
     setTradeModalOpen(true);
   };
 
-  // Build initial for HoldingModal from prefill or editing
   const holdingModalInitial = editingHolding ?? (prefillFromWatchlist ? {
     ticker: prefillFromWatchlist.ticker,
     companyName: prefillFromWatchlist.companyName,
@@ -129,7 +120,7 @@ const Dashboard = () => {
     <div className="min-h-screen bg-background flex flex-col relative pb-14">
       <GradientMeshBackground />
       <OfflineBanner />
-      <PortfolioHeader data-tour="header" email={email} onLogout={handleLogout} totalValue={portfolio.totalValue} todayPL={portfolio.todayPL} todayPLPct={portfolio.todayPLPct} refreshing={portfolio.refreshing} lastUpdated={portfolio.lastUpdated} priceError={portfolio.priceError} macroData={macroData} macroLoading={macroLoading} onWhatIf={() => setWhatIfOpen(true)} onShare={() => setShareOpen(true)} onDigestSettings={() => setDigestOpen(true)} simpleReturn={simpleReturn} twr={twr} twrAvailable={twrAvailable} />
+      <PortfolioHeader data-tour="header" email={user.email} onLogout={onLogout} totalValue={portfolio.totalValue} todayPL={portfolio.todayPL} todayPLPct={portfolio.todayPLPct} refreshing={portfolio.refreshing} lastUpdated={portfolio.lastUpdated} priceError={portfolio.priceError} macroData={macroData} macroLoading={macroLoading} onWhatIf={() => setWhatIfOpen(true)} onShare={() => setShareOpen(true)} onDigestSettings={() => setDigestOpen(true)} simpleReturn={simpleReturn} twr={twr} twrAvailable={twrAvailable} />
 
       <div className="flex-1 flex flex-col lg:flex-row gap-3 sm:gap-4 p-2 sm:p-4 max-w-[1600px] mx-auto w-full">
         <div className="flex-1 lg:w-[62%] min-w-0 layer-surface" data-tour="holdings">
@@ -183,7 +174,6 @@ const Dashboard = () => {
         />
       </div>
 
-      {/* Journal Button - above copyright footer */}
       <div className="px-2 sm:px-4 pb-2 max-w-[1600px] mx-auto w-full">
         <button
           onClick={() => setJournalPanelOpen(true)}
@@ -196,7 +186,6 @@ const Dashboard = () => {
         </button>
       </div>
 
-      {/* Add/Edit Holding Modal */}
       <HoldingModal
         open={holdingModalOpen}
         onClose={() => { setHoldingModalOpen(false); setEditingHolding(null); setPrefillFromWatchlist(null); }}
@@ -215,7 +204,6 @@ const Dashboard = () => {
         initial={holdingModalInitial}
       />
 
-      {/* Delete Confirmation */}
       <ConfirmDialog
         open={!!deletingHolding}
         title="Remove Holding"
@@ -231,7 +219,6 @@ const Dashboard = () => {
         onCancel={() => setDeletingHolding(null)}
       />
 
-      {/* Watchlist Modal */}
       <WatchlistModal
         open={watchlistModalOpen}
         onClose={() => setWatchlistModalOpen(false)}
@@ -239,7 +226,6 @@ const Dashboard = () => {
         maxReached={portfolio.watchlist.length >= 30}
       />
 
-      {/* Trade Journal Modal */}
       <TradeJournalModal
         open={tradeModalOpen}
         onClose={() => { setTradeModalOpen(false); setTradeModalHolding(null); }}
@@ -255,14 +241,12 @@ const Dashboard = () => {
         }}
       />
 
-      {/* Trade Journal Panel */}
       <TradeJournalPanel
         open={journalPanelOpen}
         onClose={() => setJournalPanelOpen(false)}
         refreshKey={journalRefreshKey}
       />
 
-      {/* What If Simulator */}
       <WhatIfSimulator
         open={whatIfOpen}
         onClose={() => setWhatIfOpen(false)}
@@ -271,7 +255,6 @@ const Dashboard = () => {
         onApplied={() => portfolio.refetch()}
       />
 
-      {/* Share Modal */}
       <ShareModal
         open={shareOpen}
         onClose={() => setShareOpen(false)}
@@ -282,18 +265,84 @@ const Dashboard = () => {
         spyDp={macroData?.spy?.dp ?? 0}
       />
 
-      {/* Onboarding */}
       <OnboardingFlow
         open={showOnboarding}
         portfolioId={portfolio.portfolioId ?? ""}
         onComplete={() => { setShowOnboarding(false); portfolio.refetch(); }}
       />
 
-      {/* Digest Settings */}
       <DigestSettings open={digestOpen} onClose={() => setDigestOpen(false)} />
       <CopyrightFooter />
     </div>
   );
+}
+
+const Dashboard = () => {
+  const navigate = useNavigate();
+  const [user, setUser] = useState<AuthenticatedUser | null | undefined>(undefined);
+  const hadSessionRef = useRef(false);
+
+  useEffect(() => {
+    let active = true;
+
+    const setAuthenticatedUser = (session: Awaited<ReturnType<typeof supabase.auth.getSession>>["data"]["session"]) => {
+      if (!active) return;
+      if (!session) {
+        setUser(null);
+        navigate("/auth");
+        return;
+      }
+      hadSessionRef.current = true;
+      setUser({
+        id: session.user.id,
+        email: session.user.email ?? null,
+      });
+    };
+
+    const syncSession = async () => {
+      const { data: { session }, error } = await supabase.auth.getSession();
+
+      if (error) {
+        await supabase.auth.signOut();
+      }
+
+      setAuthenticatedUser(session);
+    };
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      if (!session && hadSessionRef.current) {
+        toast({ title: "Session expired", description: "Please log in again." });
+      }
+
+      if (!session) {
+        await supabase.auth.signOut();
+      }
+
+      setAuthenticatedUser(session);
+    });
+
+    void syncSession();
+
+    return () => {
+      active = false;
+      subscription.unsubscribe();
+    };
+  }, [navigate]);
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    navigate("/auth");
+  };
+
+  if (user === undefined) {
+    return <div className="min-h-screen bg-background" />;
+  }
+
+  if (user === null) {
+    return null;
+  }
+
+  return <DashboardContent user={user} onLogout={handleLogout} />;
 };
 
 export default Dashboard;
