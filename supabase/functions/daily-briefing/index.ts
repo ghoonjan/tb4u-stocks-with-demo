@@ -46,7 +46,57 @@ serve(async (req) => {
     }
     const userId = claimsData.claims.sub;
 
-    const { portfolioContext, regenerate } = await req.json();
+    const body = await req.json();
+    const regenerate = Boolean(body?.regenerate);
+    const rawCtx = body?.portfolioContext;
+
+    // Validate portfolioContext: strict shape, types, and length limits.
+    // This prevents prompt injection by ensuring fields cannot contain
+    // arbitrarily long or structured payloads designed to override the system prompt.
+    if (!rawCtx || typeof rawCtx !== "object") {
+      return new Response(JSON.stringify({ error: "Invalid portfolioContext" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const REQUIRED_FIELDS = [
+      "totalValue",
+      "todayPL",
+      "holdings",
+      "upcomingEvents",
+      "biggestMovers",
+      "spyChange",
+      "taxOpportunities",
+      "driftStatus",
+    ] as const;
+
+    // Strip control characters, collapse whitespace/newlines, and clamp length.
+    // Newlines are the primary vector for injecting fake "system:" turns into the prompt.
+    const sanitize = (v: unknown, maxLen: number): string => {
+      if (typeof v !== "string") return "";
+      return v
+        .replace(/[\u0000-\u001F\u007F]/g, " ") // control chars incl. newlines/tabs
+        .replace(/\s+/g, " ")
+        .trim()
+        .slice(0, maxLen);
+    };
+
+    const FIELD_LIMITS: Record<(typeof REQUIRED_FIELDS)[number], number> = {
+      totalValue: 40,
+      todayPL: 60,
+      holdings: 2000,
+      upcomingEvents: 500,
+      biggestMovers: 300,
+      spyChange: 20,
+      taxOpportunities: 500,
+      driftStatus: 100,
+    };
+
+    const portfolioContext: Record<string, string> = {};
+    for (const field of REQUIRED_FIELDS) {
+      portfolioContext[field] = sanitize(rawCtx[field], FIELD_LIMITS[field]);
+    }
 
     // Check for existing briefing today
     const today = new Date().toISOString().slice(0, 10);
