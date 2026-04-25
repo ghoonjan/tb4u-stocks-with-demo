@@ -46,6 +46,25 @@ Deno.serve(async (req) => {
   }
 
   try {
+    // --- Auth check: require valid JWT to prevent API key exhaustion ---
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader?.startsWith('Bearer ')) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+        status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
+    const supabaseAuth = createClient(supabaseUrl, supabaseAnonKey, {
+      global: { headers: { Authorization: authHeader } },
+    });
+    const { data: userData, error: userError } = await supabaseAuth.auth.getUser();
+    if (userError || !userData?.user) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+        status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
     const apiKey = Deno.env.get('FINNHUB_API_KEY');
     if (!apiKey) {
       return new Response(JSON.stringify({ error: 'FINNHUB_API_KEY not configured' }), {
@@ -61,7 +80,11 @@ Deno.serve(async (req) => {
       });
     }
 
-    const sortedParams = new URLSearchParams(Object.entries(params || {}).sort());
+    const sortedParams = new URLSearchParams(
+      (Object.entries(params || {}) as [string, unknown][])
+        .sort(([a], [b]) => a.localeCompare(b))
+        .map(([k, v]) => [k, String(v)])
+    );
     const cacheKey = `${endpoint}:${sortedParams.toString()}`;
     const ttl = TTL[endpoint] ?? 60_000;
     const ttlSeconds = Math.ceil(ttl / 1000);
@@ -171,7 +194,8 @@ Deno.serve(async (req) => {
       },
     });
   } catch (err) {
-    return new Response(JSON.stringify({ error: err.message }), {
+    const message = err instanceof Error ? err.message : 'Internal error';
+    return new Response(JSON.stringify({ error: message }), {
       status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   }
