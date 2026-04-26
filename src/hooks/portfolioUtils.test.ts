@@ -79,4 +79,39 @@ describe("toDisplay", () => {
     const result = toDisplay(makeHolding({ target_allocation_pct: 25 }), null, 1500);
     expect(result.targetAllocationPct).toBe(25);
   });
+
+  describe("purchase date / holding period", () => {
+    const today = new Date().toISOString().slice(0, 10);
+    const daysAgo = (n: number) => {
+      const d = new Date();
+      d.setUTCDate(d.getUTCDate() - n);
+      return d.toISOString();
+    };
+
+    it("maps date_added to purchaseDate as YYYY-MM-DD", () => {
+      const r = toDisplay(makeHolding({ date_added: "2024-06-15T12:34:56Z" }), null, 0);
+      expect(r.purchaseDate).toBe("2024-06-15");
+    });
+
+    it("computes holdingPeriodDays for a recent date", () => {
+      const r = toDisplay(makeHolding({ date_added: daysAgo(10) }), null, 0);
+      expect(r.holdingPeriodDays).toBe(10);
+    });
+
+    it("isLongTerm is false for a 100-day-old holding", () => {
+      const r = toDisplay(makeHolding({ date_added: daysAgo(100) }), null, 0);
+      expect(r.isLongTerm).toBe(false);
+    });
+
+    it("isLongTerm is true for a 400-day-old holding", () => {
+      const r = toDisplay(makeHolding({ date_added: daysAgo(400) }), null, 0);
+      expect(r.isLongTerm).toBe(true);
+    });
+
+    it("today's date yields 0 days and not long-term", () => {
+      const r = toDisplay(makeHolding({ date_added: `${today}T08:00:00Z` }), null, 0);
+      expect(r.holdingPeriodDays).toBe(0);
+      expect(r.isLongTerm).toBe(false);
+    });
+  });
 });
