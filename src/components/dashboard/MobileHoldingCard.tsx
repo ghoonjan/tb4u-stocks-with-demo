@@ -91,6 +91,15 @@ export const MobileHoldingCard = memo(function MobileHoldingCard({
         </div>
       </div>
 
+      {/* Purchase date / holding period row */}
+      <div className="px-3 pb-2 flex items-center gap-2 text-[10px]">
+        <span className="text-muted-foreground">Held:</span>
+        <span className="text-foreground">{formatPurchaseDate(h.purchaseDate)}</span>
+        <span className="text-muted-foreground">·</span>
+        <span className="text-muted-foreground">{formatHoldingPeriod(h.holdingPeriodDays)}</span>
+        <TermBadge isLongTerm={h.isLongTerm} className="ml-auto" />
+      </div>
+
       {/* Expanded detail */}
       <div className={`overflow-hidden transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] ${expanded ? "max-h-[500px] opacity-100" : "max-h-0 opacity-0"}`}>
         {expanded && (
