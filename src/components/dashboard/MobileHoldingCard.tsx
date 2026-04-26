@@ -3,6 +3,8 @@ import { ChevronDown, Loader2, MoreHorizontal, Pencil, Trash2, BookOpen, Eye, St
 import type { HoldingDisplay } from "@/hooks/usePortfolioData";
 import type { HoldingAnalytics } from "@/hooks/useAnalyticsData";
 import { fmtDollar, fmtPct, fmtPL, plColor, plArrow } from "@/constants";
+import { formatPurchaseDate, formatHoldingPeriod } from "@/hooks/portfolioUtils";
+import { TermBadge } from "@/components/dashboard/TermBadge";
 
 const HoldingDetailCard = lazy(() =>
   import("@/components/dashboard/HoldingDetailCard").then((m) => ({ default: m.HoldingDetailCard }))
