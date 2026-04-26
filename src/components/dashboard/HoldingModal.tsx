@@ -162,6 +162,18 @@ export function HoldingModal({ open, onClose, onSubmit, initial }: HoldingModalP
           </div>
 
           <div>
+            <label className="mb-1 block text-xs font-medium text-muted-foreground">Purchase Date</label>
+            <input
+              type="date"
+              value={purchaseDate}
+              onChange={(e) => setPurchaseDate(e.target.value)}
+              max={today}
+              required
+              className={inputClass}
+            />
+          </div>
+
+          <div>
             <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Conviction Rating</label>
             <div className="flex gap-1" role="group" aria-label="Conviction rating">
               {[1, 2, 3, 4, 5].map((i) => (
