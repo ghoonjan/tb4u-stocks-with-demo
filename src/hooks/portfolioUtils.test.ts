@@ -1,6 +1,37 @@
 import { describe, it, expect } from "vitest";
-import { toDisplay } from "./portfolioUtils";
+import { toDisplay, formatPurchaseDate, formatHoldingPeriod } from "./portfolioUtils";
 import type { DbHolding } from "./usePortfolioData";
+import type { StockQuote } from "@/services/marketData";
+
+describe("formatPurchaseDate", () => {
+  it("formats ISO date as 'Mon D, YYYY'", () => {
+    expect(formatPurchaseDate("2024-06-15")).toBe("Jun 15, 2024");
+  });
+  it("trims a full timestamptz string", () => {
+    expect(formatPurchaseDate("2024-01-15T12:34:56Z")).toBe("Jan 15, 2024");
+  });
+  it("returns em dash for empty input", () => {
+    expect(formatPurchaseDate("")).toBe("—");
+  });
+});
+
+describe("formatHoldingPeriod", () => {
+  it("formats days under a year", () => {
+    expect(formatHoldingPeriod(0)).toBe("0 days");
+    expect(formatHoldingPeriod(1)).toBe("1 day");
+    expect(formatHoldingPeriod(182)).toBe("182 days");
+    expect(formatHoldingPeriod(364)).toBe("364 days");
+  });
+  it("formats one+ years with one decimal", () => {
+    expect(formatHoldingPeriod(365)).toBe("1.0 years");
+    expect(formatHoldingPeriod(548)).toBe("1.5 years");
+    expect(formatHoldingPeriod(730)).toBe("2.0 years");
+  });
+  it("returns em dash for invalid input", () => {
+    expect(formatHoldingPeriod(-5)).toBe("—");
+    expect(formatHoldingPeriod(NaN)).toBe("—");
+  });
+});
 import type { StockQuote } from "@/services/marketData";
 
 const makeHolding = (overrides: Partial<DbHolding> = {}): DbHolding => ({
