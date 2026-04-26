@@ -193,6 +193,15 @@ const HoldingRow = memo(function HoldingRow({
         </td>
         <td className="py-3 px-3 text-right font-mono text-sm text-foreground">{fmtDollar(h.positionValue)}</td>
         <td className="py-3 px-3 text-right font-mono text-sm text-foreground">{fmt(h.weight, 1)}%</td>
+        <td className="py-3 px-3">
+          <div className="flex flex-col items-start gap-0.5">
+            <span className="text-[11px] text-foreground whitespace-nowrap">{formatPurchaseDate(h.purchaseDate)}</span>
+            <div className="flex items-center gap-1">
+              <span className="text-[10px] text-muted-foreground whitespace-nowrap">{formatHoldingPeriod(h.holdingPeriodDays)}</span>
+              <TermBadge isLongTerm={h.isLongTerm} />
+            </div>
+          </div>
+        </td>
         <td className="py-3 px-3"><div className="flex justify-center"><ConvictionStars rating={h.convictionRating} /></div></td>
         <td className="py-3 px-3">
           <div className="flex justify-center">
@@ -208,7 +217,7 @@ const HoldingRow = memo(function HoldingRow({
         </td>
       </tr>
       <tr>
-        <td colSpan={11} className="p-0">
+        <td colSpan={12} className="p-0">
           <div className={`overflow-hidden transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] ${isExpanded ? "max-h-[400px] opacity-100" : "max-h-0 opacity-0"}`}>
             {isExpanded && (
               <Suspense fallback={<div className="flex items-center justify-center py-8"><Loader2 size={18} className="animate-spin text-muted-foreground" /><span className="ml-2 text-xs text-muted-foreground">Loading chart data…</span></div>}>
