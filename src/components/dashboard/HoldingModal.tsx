@@ -89,6 +89,10 @@ export function HoldingModal({ open, onClose, onSubmit, initial }: HoldingModalP
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (purchaseDate > today) {
+      toast.error("Purchase date cannot be in the future");
+      return;
+    }
     setSaving(true);
     const ok = await onSubmit({
       ticker,
