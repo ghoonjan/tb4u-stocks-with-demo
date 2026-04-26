@@ -3,6 +3,8 @@ import { ChevronDown, Loader2, MoreHorizontal, Pencil, Trash2, BookOpen, Eye, St
 import type { HoldingDisplay } from "@/hooks/usePortfolioData";
 import type { HoldingAnalytics } from "@/hooks/useAnalyticsData";
 import { fmtDollar, fmtPct, fmtPL, plColor, plArrow } from "@/constants";
+import { formatPurchaseDate, formatHoldingPeriod } from "@/hooks/portfolioUtils";
+import { TermBadge } from "@/components/dashboard/TermBadge";
 
 const HoldingDetailCard = lazy(() =>
   import("@/components/dashboard/HoldingDetailCard").then((m) => ({ default: m.HoldingDetailCard }))
@@ -87,6 +89,15 @@ export const MobileHoldingCard = memo(function MobileHoldingCard({
             </div>
           )}
         </div>
+      </div>
+
+      {/* Purchase date / holding period row */}
+      <div className="px-3 pb-2 flex items-center gap-2 text-[10px]">
+        <span className="text-muted-foreground">Held:</span>
+        <span className="text-foreground">{formatPurchaseDate(h.purchaseDate)}</span>
+        <span className="text-muted-foreground">·</span>
+        <span className="text-muted-foreground">{formatHoldingPeriod(h.holdingPeriodDays)}</span>
+        <TermBadge isLongTerm={h.isLongTerm} className="ml-auto" />
       </div>
 
       {/* Expanded detail */}

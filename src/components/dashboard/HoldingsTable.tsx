@@ -4,7 +4,9 @@ import type { HoldingDisplay } from "@/hooks/usePortfolioData";
 import type { HoldingAnalytics } from "@/hooks/useAnalyticsData";
 import { EmptyHoldings } from "@/components/dashboard/EmptyStates";
 import { calcDivSafety, DivSafetyBadge } from "@/components/dashboard/DivSafety";
+import { TermBadge } from "@/components/dashboard/TermBadge";
 import { fmt, fmtDollar, fmtPct, fmtPL, plColor, plArrow } from "@/constants";
+import { formatPurchaseDate, formatHoldingPeriod } from "@/hooks/portfolioUtils";
 import { MobileHoldingCard } from "@/components/dashboard/MobileHoldingCard";
 import { useIsMobile } from "@/hooks/use-mobile";
 
@@ -191,6 +193,15 @@ const HoldingRow = memo(function HoldingRow({
         </td>
         <td className="py-3 px-3 text-right font-mono text-sm text-foreground">{fmtDollar(h.positionValue)}</td>
         <td className="py-3 px-3 text-right font-mono text-sm text-foreground">{fmt(h.weight, 1)}%</td>
+        <td className="py-3 px-3">
+          <div className="flex flex-col items-start gap-0.5">
+            <span className="text-[11px] text-foreground whitespace-nowrap">{formatPurchaseDate(h.purchaseDate)}</span>
+            <div className="flex items-center gap-1">
+              <span className="text-[10px] text-muted-foreground whitespace-nowrap">{formatHoldingPeriod(h.holdingPeriodDays)}</span>
+              <TermBadge isLongTerm={h.isLongTerm} />
+            </div>
+          </div>
+        </td>
         <td className="py-3 px-3"><div className="flex justify-center"><ConvictionStars rating={h.convictionRating} /></div></td>
         <td className="py-3 px-3">
           <div className="flex justify-center">
@@ -206,7 +217,7 @@ const HoldingRow = memo(function HoldingRow({
         </td>
       </tr>
       <tr>
-        <td colSpan={11} className="p-0">
+        <td colSpan={12} className="p-0">
           <div className={`overflow-hidden transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] ${isExpanded ? "max-h-[400px] opacity-100" : "max-h-0 opacity-0"}`}>
             {isExpanded && (
               <Suspense fallback={<div className="flex items-center justify-center py-8"><Loader2 size={18} className="animate-spin text-muted-foreground" /><span className="ml-2 text-xs text-muted-foreground">Loading chart data…</span></div>}>
@@ -291,7 +302,7 @@ export function HoldingsTable({ holdings, loading, onAddHolding, onEditHolding, 
       ) : (
         /* Desktop table */
         <ScrollShadowWrapper>
-          <table className="w-full min-w-[1200px]" role="table">
+          <table className="w-full min-w-[1320px]" role="table">
             <colgroup>
               <col style={{ width: 200 }} />
               <col style={{ width: 80 }} />
@@ -301,6 +312,7 @@ export function HoldingsTable({ holdings, loading, onAddHolding, onEditHolding, 
               <col style={{ width: 150 }} />
               <col style={{ width: 120 }} />
               <col style={{ width: 65 }} />
+              <col style={{ width: 130 }} />
               <col style={{ width: 85 }} />
               <col style={{ width: 80 }} />
               <col style={{ width: 80 }} />
@@ -315,6 +327,7 @@ export function HoldingsTable({ holdings, loading, onAddHolding, onEditHolding, 
                 <th className="py-3 px-3 text-right sticky top-0 z-10 bg-card"><SortHeader label="Total P&L" sortKey="totalPLDollar" currentSort={sortKey} currentDir={sortDir} onSort={handleSort} className="justify-end" /></th>
                 <th className="py-3 px-3 text-right sticky top-0 z-10 bg-card"><SortHeader label="Value" sortKey="positionValue" currentSort={sortKey} currentDir={sortDir} onSort={handleSort} className="justify-end" /></th>
                 <th className="py-3 px-3 text-right sticky top-0 z-10 bg-card"><SortHeader label="Wt%" sortKey="weight" currentSort={sortKey} currentDir={sortDir} onSort={handleSort} className="justify-end" /></th>
+                <th className="py-3 px-3 text-left sticky top-0 z-10 bg-card"><SortHeader label="Held" sortKey="holdingPeriodDays" currentSort={sortKey} currentDir={sortDir} onSort={handleSort} /></th>
                 <th className="py-3 px-3 text-center sticky top-0 z-10 bg-card"><span className="text-[11px] font-semibold uppercase tracking-[0.05em] text-muted-foreground">Conv.</span></th>
                 <th className="py-3 px-3 text-center sticky top-0 z-10 bg-card"><span className="text-[11px] font-semibold uppercase tracking-[0.05em] text-muted-foreground">Div</span></th>
                 <th className="py-3 px-3 sticky top-0 z-10 bg-card" />
