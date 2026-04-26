@@ -114,6 +114,9 @@ function DashboardContent({ user, onLogout }: { user: AuthenticatedUser; onLogou
     portfolioId: portfolio.portfolioId ?? "",
     divYield: null,
     id: "",
+    purchaseDate: new Date().toISOString().slice(0, 10),
+    holdingPeriodDays: 0,
+    isLongTerm: false,
   } satisfies HoldingDisplay : null);
 
   return (

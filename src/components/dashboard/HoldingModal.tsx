@@ -15,9 +15,12 @@ interface HoldingModalProps {
     conviction_rating: number;
     thesis?: string;
     target_allocation_pct?: number;
+    date_added: string;
   }) => Promise<boolean | undefined>;
   initial?: HoldingDisplay | null;
 }
+
+const todayISO = () => new Date().toISOString().slice(0, 10);
 
 export function HoldingModal({ open, onClose, onSubmit, initial }: HoldingModalProps) {
   const [ticker, setTicker] = useState(initial?.ticker ?? "");
@@ -27,11 +30,13 @@ export function HoldingModal({ open, onClose, onSubmit, initial }: HoldingModalP
   const [conviction, setConviction] = useState(initial?.convictionRating ?? 3);
   const [thesis, setThesis] = useState(initial?.thesis ?? "");
   const [targetPct, setTargetPct] = useState(initial?.targetAllocationPct?.toString() ?? "");
+  const [purchaseDate, setPurchaseDate] = useState(initial?.purchaseDate || todayISO());
   const [saving, setSaving] = useState(false);
   const [logo, setLogo] = useState<string | null>(null);
   const [lookingUp, setLookingUp] = useState(false);
   const [tickerError, setTickerError] = useState<string | null>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout>>();
+  const today = todayISO();
 
   const lookupTicker = useCallback(async (symbol: string) => {
     if (!symbol || symbol.length < 1) return;
@@ -72,6 +77,7 @@ export function HoldingModal({ open, onClose, onSubmit, initial }: HoldingModalP
       setConviction(initial?.convictionRating ?? 3);
       setThesis(initial?.thesis ?? "");
       setTargetPct(initial?.targetAllocationPct?.toString() ?? "");
+      setPurchaseDate(initial?.purchaseDate || todayISO());
       setLogo(null);
       setTickerError(null);
       setSaving(false);
@@ -92,6 +98,7 @@ export function HoldingModal({ open, onClose, onSubmit, initial }: HoldingModalP
       conviction_rating: conviction,
       thesis: thesis || undefined,
       target_allocation_pct: targetPct ? parseFloat(targetPct) : undefined,
+      date_added: purchaseDate,
     });
     setSaving(false);
     if (ok) {
@@ -152,6 +159,18 @@ export function HoldingModal({ open, onClose, onSubmit, initial }: HoldingModalP
                 <input type="number" step="any" value={avgCost} onChange={(e) => setAvgCost(e.target.value)} className={`${inputClass} pl-7`} placeholder="150.00" required min="0.01" />
               </div>
             </div>
+          </div>
+
+          <div>
+            <label className="mb-1 block text-xs font-medium text-muted-foreground">Purchase Date</label>
+            <input
+              type="date"
+              value={purchaseDate}
+              onChange={(e) => setPurchaseDate(e.target.value)}
+              max={today}
+              required
+              className={inputClass}
+            />
           </div>
 
           <div>
