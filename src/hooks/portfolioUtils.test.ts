@@ -32,7 +32,6 @@ describe("formatHoldingPeriod", () => {
     expect(formatHoldingPeriod(NaN)).toBe("—");
   });
 });
-import type { StockQuote } from "@/services/marketData";
 
 const makeHolding = (overrides: Partial<DbHolding> = {}): DbHolding => ({
   id: "h1",
