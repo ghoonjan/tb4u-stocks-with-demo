@@ -28,6 +28,9 @@ export interface HoldingDisplay {
   notes: string | null;
   portfolioId: string;
   divYield: number | null;
+  purchaseDate: string;
+  holdingPeriodDays: number;
+  isLongTerm: boolean;
 }
 
 // toDisplay extracted to portfolioUtils.ts for testability
