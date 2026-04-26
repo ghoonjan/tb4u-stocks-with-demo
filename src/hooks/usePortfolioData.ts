@@ -184,6 +184,7 @@ export function usePortfolioData() {
   const addHolding = async (data: {
     ticker: string; company_name: string; shares: number; avg_cost_basis: number;
     conviction_rating: number; thesis?: string; target_allocation_pct?: number;
+    date_added: string;
   }) => {
     if (!portfolioId) return;
     const { error } = await supabase.from("holdings").insert({
@@ -191,6 +192,7 @@ export function usePortfolioData() {
       company_name: data.company_name, shares: data.shares,
       avg_cost_basis: data.avg_cost_basis, conviction_rating: data.conviction_rating,
       thesis: data.thesis || null, target_allocation_pct: data.target_allocation_pct || null,
+      date_added: data.date_added,
     });
     if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return false; }
     await fetchData();
@@ -201,12 +203,14 @@ export function usePortfolioData() {
   const updateHolding = async (id: string, data: {
     ticker: string; company_name: string; shares: number; avg_cost_basis: number;
     conviction_rating: number; thesis?: string; target_allocation_pct?: number;
+    date_added: string;
   }) => {
     const { error } = await supabase.from("holdings").update({
       ticker: data.ticker.toUpperCase(), company_name: data.company_name,
       shares: data.shares, avg_cost_basis: data.avg_cost_basis,
       conviction_rating: data.conviction_rating,
       thesis: data.thesis || null, target_allocation_pct: data.target_allocation_pct || null,
+      date_added: data.date_added,
     }).eq("id", id);
     if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return false; }
     await fetchData();
