@@ -4,7 +4,9 @@ import type { HoldingDisplay } from "@/hooks/usePortfolioData";
 import type { HoldingAnalytics } from "@/hooks/useAnalyticsData";
 import { EmptyHoldings } from "@/components/dashboard/EmptyStates";
 import { calcDivSafety, DivSafetyBadge } from "@/components/dashboard/DivSafety";
+import { TermBadge } from "@/components/dashboard/TermBadge";
 import { fmt, fmtDollar, fmtPct, fmtPL, plColor, plArrow } from "@/constants";
+import { formatPurchaseDate, formatHoldingPeriod } from "@/hooks/portfolioUtils";
 import { MobileHoldingCard } from "@/components/dashboard/MobileHoldingCard";
 import { useIsMobile } from "@/hooks/use-mobile";
 
