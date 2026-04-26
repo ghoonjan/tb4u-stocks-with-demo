@@ -302,7 +302,7 @@ export function HoldingsTable({ holdings, loading, onAddHolding, onEditHolding, 
       ) : (
         /* Desktop table */
         <ScrollShadowWrapper>
-          <table className="w-full min-w-[1200px]" role="table">
+          <table className="w-full min-w-[1320px]" role="table">
             <colgroup>
               <col style={{ width: 200 }} />
               <col style={{ width: 80 }} />
@@ -312,6 +312,7 @@ export function HoldingsTable({ holdings, loading, onAddHolding, onEditHolding, 
               <col style={{ width: 150 }} />
               <col style={{ width: 120 }} />
               <col style={{ width: 65 }} />
+              <col style={{ width: 130 }} />
               <col style={{ width: 85 }} />
               <col style={{ width: 80 }} />
               <col style={{ width: 80 }} />
@@ -326,6 +327,7 @@ export function HoldingsTable({ holdings, loading, onAddHolding, onEditHolding, 
                 <th className="py-3 px-3 text-right sticky top-0 z-10 bg-card"><SortHeader label="Total P&L" sortKey="totalPLDollar" currentSort={sortKey} currentDir={sortDir} onSort={handleSort} className="justify-end" /></th>
                 <th className="py-3 px-3 text-right sticky top-0 z-10 bg-card"><SortHeader label="Value" sortKey="positionValue" currentSort={sortKey} currentDir={sortDir} onSort={handleSort} className="justify-end" /></th>
                 <th className="py-3 px-3 text-right sticky top-0 z-10 bg-card"><SortHeader label="Wt%" sortKey="weight" currentSort={sortKey} currentDir={sortDir} onSort={handleSort} className="justify-end" /></th>
+                <th className="py-3 px-3 text-left sticky top-0 z-10 bg-card"><SortHeader label="Held" sortKey="holdingPeriodDays" currentSort={sortKey} currentDir={sortDir} onSort={handleSort} /></th>
                 <th className="py-3 px-3 text-center sticky top-0 z-10 bg-card"><span className="text-[11px] font-semibold uppercase tracking-[0.05em] text-muted-foreground">Conv.</span></th>
                 <th className="py-3 px-3 text-center sticky top-0 z-10 bg-card"><span className="text-[11px] font-semibold uppercase tracking-[0.05em] text-muted-foreground">Div</span></th>
                 <th className="py-3 px-3 sticky top-0 z-10 bg-card" />
