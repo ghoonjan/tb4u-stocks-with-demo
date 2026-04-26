@@ -3,6 +3,27 @@ import type { StockQuote } from "@/services/marketData";
 
 const MS_PER_DAY = 86_400_000;
 
+/** Format an ISO date (YYYY-MM-DD) as "Jan 15, 2024". Returns "—" if invalid. */
+export function formatPurchaseDate(isoDate: string): string {
+  if (!isoDate) return "—";
+  const d = new Date(`${isoDate.slice(0, 10)}T00:00:00Z`);
+  if (Number.isNaN(d.getTime())) return "—";
+  return d.toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    timeZone: "UTC",
+  });
+}
+
+/** Format a holding period in days as "12 days" or "1.5 years" (>= 365 days). */
+export function formatHoldingPeriod(days: number): string {
+  if (!Number.isFinite(days) || days < 0) return "—";
+  if (days < 365) return `${days} day${days === 1 ? "" : "s"}`;
+  const years = days / 365;
+  return `${years.toFixed(1)} years`;
+}
+
 export function toDisplay(h: DbHolding, quote: StockQuote | null, totalValue: number): HoldingDisplay {
   const price = quote?.c ?? h.avg_cost_basis;
   const positionValue = h.shares * price;
