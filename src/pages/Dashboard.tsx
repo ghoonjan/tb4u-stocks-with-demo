@@ -303,24 +303,19 @@ const Dashboard = () => {
     };
 
     const syncSession = async () => {
-      const { data: { session }, error } = await supabase.auth.getSession();
-
-      if (error) {
-        await supabase.auth.signOut();
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        setAuthenticatedUser(session);
+      } catch (err) {
+        console.error("[Dashboard] getSession failed", err);
+        setAuthenticatedUser(null);
       }
-
-      setAuthenticatedUser(session);
     };
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       if (!session && hadSessionRef.current) {
         toast({ title: "Session expired", description: "Please log in again." });
       }
-
-      if (!session) {
-        await supabase.auth.signOut();
-      }
-
       setAuthenticatedUser(session);
     });
 
@@ -338,11 +333,19 @@ const Dashboard = () => {
   };
 
   if (user === undefined) {
-    return <div className="min-h-screen bg-background" />;
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center text-muted-foreground text-sm">
+        Loading…
+      </div>
+    );
   }
 
   if (user === null) {
-    return null;
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center text-muted-foreground text-sm">
+        Redirecting to sign in…
+      </div>
+    );
   }
 
   return <DashboardContent user={user} onLogout={handleLogout} />;
