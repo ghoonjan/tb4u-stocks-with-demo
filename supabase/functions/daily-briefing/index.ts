@@ -223,7 +223,7 @@ Format: Start with a one-line summary of the portfolio's status. Then cover the 
   } catch (e) {
     console.error("Briefing error:", e);
     return new Response(
-      JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }),
+      JSON.stringify({ error: "An internal error occurred" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
