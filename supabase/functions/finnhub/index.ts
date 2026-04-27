@@ -194,8 +194,8 @@ Deno.serve(async (req) => {
       },
     });
   } catch (err) {
-    const message = err instanceof Error ? err.message : 'Internal error';
-    return new Response(JSON.stringify({ error: message }), {
+    console.error('Finnhub error:', err);
+    return new Response(JSON.stringify({ error: 'An internal error occurred' }), {
       status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   }
