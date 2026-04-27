@@ -1,55 +1,35 @@
-# Wire `date_added` through the holdings stack
+## What I found so far
 
-The `holdings.date_added` column already exists in the database (`timestamp with time zone`, defaults to `now()`). It's currently ignored by the UI. We'll wire it through the entire stack — no migration needed.
+- **Preview works.** The session replay of `id-preview--…lovable.app` shows the DOM mounting normally (root div, toaster region, mouse movement) — so the current source code is not crashing.
+- **Published HTML serves OK.** `https://dawnlight-folio.lovable.app/` returns HTTP 200 with the expected `<title>TB4U — Portfolio Dashboard</title>` and a single bundle `/assets/index-DmFnSCAn.js`.
+- **Published JS downloads OK** (1.37 MB, HTTP 200) and contains the `date_added` purchase-date code.
+- **Published JS does NOT contain `TermBadge`** — confirming the published bundle is *older* than the current source. So at minimum the latest edits have not been pushed live yet.
+- The recent security migration only `REVOKE`s execute on two internal `SECURITY DEFINER` functions (`handle_new_user`, `cleanup_stale_finnhub_cache`). The frontend never calls those directly, so it cannot cause a blank page.
+- Analytics show 2 desktop + 1 mobile visit today — small sample, not conclusive that it's "desktop-only".
 
-A note on the column type: it's a `timestamptz`, not a `DATE`. We'll send/receive ISO date strings (`YYYY-MM-DD`), which Postgres accepts and coerces cleanly. We'll truncate to the date portion when reading.
+## Most likely cause
 
----
+The published bundle is stale relative to the source. The blank screen is almost certainly the **previous** published build hitting a runtime error against the **new** database/edge-function state (e.g. an old query path that no longer matches what the deployed edge functions return), and silently failing without an error boundary.
 
-## 1. `src/components/dashboard/HoldingModal.tsx`
+There is no top-level `<ErrorBoundary>` in `src/App.tsx`, so any uncaught render error in `Dashboard` mounts an empty `<div id="root">` — exactly the symptom described.
 
-- Extend the `onSubmit` payload type with `date_added: string` (ISO `YYYY-MM-DD`).
-- Add a `purchaseDate` state, initialized from `initial?.purchaseDate` (after step 3 adds the field) or today's date for new holdings. Reset alongside the other fields in the `useEffect([open, initial])` block.
-- Add a new `<input type="date">` field labeled "Purchase Date" with:
-  - `value={purchaseDate}`
-  - `max={today}` (today's date, computed once at render as `new Date().toISOString().slice(0,10)`)
-  - `required`
-- Place it in a new row below the Shares / Avg Cost row (or share that row — design call: keep the existing 2-col grid and add a single full-width row to keep things uncluttered).
-- Include `date_added: purchaseDate` in the `onSubmit({ ... })` call.
+## Plan
 
-## 2. `src/hooks/usePortfolioData.ts`
+### Step 1 — Re-publish first (zero-risk, fastest fix)
+Ask you to click **Publish → Update** in the editor. This rebuilds and ships the current source (which we've confirmed renders correctly in preview). For ~80% of "blank page after publish" reports, this alone resolves it.
 
-- Add three fields to the `HoldingDisplay` interface:
-  - `purchaseDate: string` (ISO `YYYY-MM-DD`)
-  - `holdingPeriodDays: number`
-  - `isLongTerm: boolean`
-- Update `addHolding` signature to accept `date_added: string` and pass it into `supabase.from("holdings").insert({ ..., date_added: data.date_added })`.
-- Update `updateHolding` signature to accept `date_added: string` and pass it into the `.update({ ..., date_added: data.date_added })` payload.
+### Step 2 — If re-publishing doesn't fix it, switch to default mode and:
 
-## 3. `src/hooks/portfolioUtils.ts` — `toDisplay()`
+1. **Open the live published site with browser tools** (`navigate_to_url` to `https://dawnlight-folio.lovable.app/`), capture console + network so we see the *actual* runtime error desktop users hit.
+2. **Add a top-level error boundary** in `src/App.tsx` that wraps `<Routes>` and renders a visible fallback ("Something went wrong — please refresh") instead of a blank page. This means future regressions are visible, not silent.
+3. **Audit `Dashboard.tsx` mount path** for unguarded destructures of possibly-`undefined` data from hooks (`usePortfolioData`, `useMacroData`, `useDailyBriefing`, `useAnalyticsData`) — a single `someArray.map` on undefined is enough to blank the page in production.
+4. If the live console reveals a specific 4xx/5xx from an edge function (`finnhub`, `daily-briefing`, `generate-digest`), patch that call site to fail soft.
 
-- Map `h.date_added` → `purchaseDate` as a normalized `YYYY-MM-DD` string (slice the timestamp).
-- Compute `holdingPeriodDays` as `Math.floor((todayMs - purchaseMs) / 86_400_000)`, clamped to `>= 0`.
-- Set `isLongTerm = holdingPeriodDays > 365`.
+### Technical notes
+- App entry: `src/main.tsx` → `src/App.tsx` → `<BrowserRouter>` with `Dashboard` at `/`. No error boundary anywhere in the tree.
+- Published bundle hash: `index-DmFnSCAn.js` — useful to compare against the next deploy.
+- The `Lock "lock:sb-…-auth-token" was not released` warnings in console are React Strict-Mode artifacts, unrelated.
 
-## 4. `src/hooks/portfolioUtils.test.ts`
+## Recommended action right now
 
-- Update the `makeHolding` factory's `date_added` so existing tests still pass.
-- Add tests:
-  - `purchaseDate` is the date portion of `date_added`.
-  - `holdingPeriodDays` is computed correctly for a recent date (e.g., 10 days ago → 10).
-  - `isLongTerm` is `false` for a 100-day-old holding and `true` for a 400-day-old holding.
-  - Edge case: a `date_added` equal to today produces `holdingPeriodDays === 0` and `isLongTerm === false`.
-
-## 5. `src/pages/Dashboard.tsx`
-
-- The `onSubmit` handler at line 192 already forwards `data` to `portfolio.addHolding(data)` and `portfolio.updateHolding(editingHolding.id, data)`. Since `data` will now include `date_added` (typed via the modal), this works automatically once the hook signatures accept the new field.
-- The `initial={holdingModalInitial}` prop already passes the full `HoldingDisplay`, which will now include `purchaseDate` — the modal can read it directly. No structural changes here, just verifying type alignment compiles.
-
-## What we are NOT doing
-
-- No new database migration — `date_added` already exists.
-- No changes to `HoldingDetailCard.tsx` (the user's spec didn't mention it; I'll leave it alone unless asked, to avoid scope creep). If you want the purchase date / holding period shown on the detail card, let me know and I'll add it.
-- No changes to the realtime subscription or fetch logic — `date_added` is already returned by `select("*")`.
-
-Once you approve, I'll switch out of plan mode and apply all five changes in one pass.
+Click **Publish → Update**, then reload `dawnlight-folio.lovable.app` in a fresh desktop tab (hard-refresh: Cmd/Ctrl-Shift-R). Tell me whether it renders. If still blank, approve this plan and I'll switch to default mode to add the error boundary and instrument the live site.
