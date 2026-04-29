@@ -1,35 +1,53 @@
-## What I found so far
+## Goal
 
-- **Preview works.** The session replay of `id-preview--…lovable.app` shows the DOM mounting normally (root div, toaster region, mouse movement) — so the current source code is not crashing.
-- **Published HTML serves OK.** `https://dawnlight-folio.lovable.app/` returns HTTP 200 with the expected `<title>TB4U — Portfolio Dashboard</title>` and a single bundle `/assets/index-DmFnSCAn.js`.
-- **Published JS downloads OK** (1.37 MB, HTTP 200) and contains the `date_added` purchase-date code.
-- **Published JS does NOT contain `TermBadge`** — confirming the published bundle is *older* than the current source. So at minimum the latest edits have not been pushed live yet.
-- The recent security migration only `REVOKE`s execute on two internal `SECURITY DEFINER` functions (`handle_new_user`, `cleanup_stale_finnhub_cache`). The frontend never calls those directly, so it cannot cause a blank page.
-- Analytics show 2 desktop + 1 mobile visit today — small sample, not conclusive that it's "desktop-only".
+Create a super admin account (`saxplayingurd@gmail.com`) and a protected `/admin` page for it. Set up a proper roles system following Supabase security best practices (separate `user_roles` table, no role on `profiles`).
 
-## Most likely cause
+## What you'll get
 
-The published bundle is stale relative to the source. The blank screen is almost certainly the **previous** published build hitting a runtime error against the **new** database/edge-function state (e.g. an old query path that no longer matches what the deployed edge functions return), and silently failing without an error boundary.
+1. A new login: **saxplayingurd@gmail.com** with a strong temporary password I'll generate (e.g. `TB4U-Admin-<random>!`). You log in once and immediately change it from the new admin page.
+2. A new route **`/admin`** visible only to users with the `super_admin` role. It shows a list of all users (email, signup date), their role badges, and lets you grant/revoke `super_admin` on other accounts.
+3. A "Change password" control on `/admin` so you can rotate the temp password right after first login.
 
-There is no top-level `<ErrorBoundary>` in `src/App.tsx`, so any uncaught render error in `Dashboard` mounts an empty `<div id="root">` — exactly the symptom described.
+## Steps
 
-## Plan
+### 1. Database migration (roles system)
+- Create enum `public.app_role` with values: `super_admin`, `admin`, `user`.
+- Create table `public.user_roles (id, user_id → auth.users, role app_role, created_at)` with unique `(user_id, role)`.
+- Enable RLS on `user_roles`.
+- Create `SECURITY DEFINER` function `public.has_role(_user_id uuid, _role app_role) returns boolean` to safely check roles inside policies (avoids recursion).
+- Create helper `public.is_super_admin(_user_id uuid)` for cleaner policy reads.
+- RLS policies on `user_roles`:
+  - SELECT: a user can see their own roles; super_admins can see all.
+  - INSERT/UPDATE/DELETE: only super_admins.
 
-### Step 1 — Re-publish first (zero-risk, fastest fix)
-Ask you to click **Publish → Update** in the editor. This rebuilds and ships the current source (which we've confirmed renders correctly in preview). For ~80% of "blank page after publish" reports, this alone resolves it.
+### 2. Provision the super admin user
+- Insert the new auth user `saxplayingurd@gmail.com` with email already confirmed and a generated strong password.
+- The existing `handle_new_user` trigger (referenced in memory) will auto-create their `profiles` and `portfolios` rows.
+- Insert a `user_roles` row granting `super_admin`.
+- I'll print the temp password in chat once after creation. Change it immediately on first login.
 
-### Step 2 — If re-publishing doesn't fix it, switch to default mode and:
+### 3. Frontend
+- Add `src/hooks/useUserRole.ts` — fetches current user's roles via `user_roles` select.
+- Add `src/pages/Admin.tsx` — protected page:
+  - Redirects to `/auth` if not signed in, to `/` if signed in but not `super_admin`.
+  - Sections: **Your account** (change password via `supabase.auth.updateUser({ password })`), **Users** (list `profiles` + role badges, grant/revoke super_admin buttons).
+- Register `/admin` route in `src/App.tsx`.
+- Add a small "Admin" link in the dashboard header that only renders when `useUserRole()` returns `super_admin`.
 
-1. **Open the live published site with browser tools** (`navigate_to_url` to `https://dawnlight-folio.lovable.app/`), capture console + network so we see the *actual* runtime error desktop users hit.
-2. **Add a top-level error boundary** in `src/App.tsx` that wraps `<Routes>` and renders a visible fallback ("Something went wrong — please refresh") instead of a blank page. This means future regressions are visible, not silent.
-3. **Audit `Dashboard.tsx` mount path** for unguarded destructures of possibly-`undefined` data from hooks (`usePortfolioData`, `useMacroData`, `useDailyBriefing`, `useAnalyticsData`) — a single `someArray.map` on undefined is enough to blank the page in production.
-4. If the live console reveals a specific 4xx/5xx from an edge function (`finnhub`, `daily-briefing`, `generate-digest`), patch that call site to fail soft.
+### 4. Supporting RLS update
+- Add a SELECT policy on `profiles` so super_admins can read all profile rows (needed for the user list). Keeps existing "users see own profile" policy intact.
 
-### Technical notes
-- App entry: `src/main.tsx` → `src/App.tsx` → `<BrowserRouter>` with `Dashboard` at `/`. No error boundary anywhere in the tree.
-- Published bundle hash: `index-DmFnSCAn.js` — useful to compare against the next deploy.
-- The `Lock "lock:sb-…-auth-token" was not released` warnings in console are React Strict-Mode artifacts, unrelated.
+## Technical notes
 
-## Recommended action right now
+- Roles live in their own table per Supabase security guidance — never on `profiles`. All checks go through `has_role()` (SECURITY DEFINER, `search_path = public`) to prevent recursive RLS.
+- Password is set via the admin API during the migration (using `crypt()` against `auth.users.encrypted_password`). Email is marked confirmed so you can sign in immediately without a verification link.
+- No anonymous auth, no auto-confirm change for normal signups — only this one account is pre-confirmed.
+- The `/admin` page uses the existing dark theme, LogoMark, GradientMeshBackground, and CopyrightFooter for visual consistency.
 
-Click **Publish → Update**, then reload `dawnlight-folio.lovable.app` in a fresh desktop tab (hard-refresh: Cmd/Ctrl-Shift-R). Tell me whether it renders. If still blank, approve this plan and I'll switch to default mode to add the error boundary and instrument the live site.
+## After approval
+
+Once you approve, I'll:
+1. Run the schema migration.
+2. Run the data migration that creates the user + assigns the role, and post the temp password in chat.
+3. Add the hook, `/admin` page, header link, and route.
+4. Confirm by signing-state checks; you log in at `/auth`, navigate to `/admin`, and rotate the password.
