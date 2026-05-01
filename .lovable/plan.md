@@ -1,51 +1,57 @@
-# Add Build Version Indicator to Footer
+# Add "Forgot password?" flow
 
-## Goal
+## What you'll get
 
-Make it trivial to tell which build any device (iPad, phone, laptop) is currently running. Each production build will get a unique short hash + timestamp, displayed in the existing sticky footer next to the copyright line.
+1. A **"Forgot password?"** link on the sign-in form at `/auth`. Clicking it switches the card into a "Reset password" mode where the user enters their email and gets a reset link.
+2. A new **`/reset-password`** page where the user lands from the email link to set a new password.
+3. Clear success / error messaging in both places.
 
-## What you'll see
-
-The footer (already sticky at the bottom of every page) will read something like:
+## User flow
 
 ```text
-© 2026 TechBargains4You. All rights reserved.  ·  v.a3f9c21 · 2026-04-30 14:22 UTC
+/auth (sign in)
+   │  click "Forgot password?"
+   ▼
+/auth (reset mode) — enter email, submit
+   │  email sent
+   ▼
+inbox — click reset link
+   │
+   ▼
+/reset-password — enter + confirm new password → redirect to /
 ```
 
-If your iPad shows an older hash than your laptop, you'll know instantly it's a cache issue, not a deploy issue.
+## Changes
 
-## Implementation
+### `src/pages/Auth.tsx`
+- Add a third mode alongside `isLogin` / signup: `"reset"`.
+- Add a small "Forgot password?" link directly under the password field (only visible in sign-in mode).
+- In reset mode: hide the password field, change the button to "Send reset link", call:
+  ```ts
+  supabase.auth.resetPasswordForEmail(email, {
+    redirectTo: `${window.location.origin}/reset-password`,
+  })
+  ```
+- On success show "Check your email for a reset link." Add a "Back to sign in" link.
 
-### 1. Generate version info at build time (`vite.config.ts`)
+### `src/pages/ResetPassword.tsx` (new)
+- Public route. Reuses the same layout (LogoMark, GradientMeshBackground, CopyrightFooter, `layer-modal` card) as `Auth.tsx` for visual consistency.
+- On mount: listen via `supabase.auth.onAuthStateChange` for the `PASSWORD_RECOVERY` event so the recovery session is established before the form submits.
+- Form: new password + confirm new password (min 6 chars, must match).
+- Submit calls `supabase.auth.updateUser({ password })`, then signs out and redirects to `/auth` with a success message — or, if you prefer, navigates to `/` since the user is already authenticated by the recovery session. Plan default: redirect to `/auth` and show "Password updated, please sign in." (safer; avoids confusion if they want to log in fresh).
+- If no recovery session is detected after a short delay, show "This reset link is invalid or has expired" with a link back to `/auth`.
 
-Inject two compile-time constants via Vite's `define`:
+### `src/App.tsx`
+- Add `<Route path="/reset-password" element={<ResetPassword />} />` (public, above the `*` catch-all).
 
-- `__BUILD_HASH__` — first 7 chars of a hash derived from build timestamp (stable across the bundle, unique per build)
-- `__BUILD_TIME__` — ISO timestamp of the build
+## Notes on auth emails
 
-These are baked into the JS bundle when `vite build` runs, so every published deploy gets a fresh value. In `dev`, they'll show `dev` / current time so local previews are obvious.
+Right now your project sends the **default Lovable password-reset email** — it works, but it's unbranded and comes from a generic sender. The reset link itself will use the `redirectTo` we set, so the flow above will work today.
 
-### 2. Type declarations (`src/vite-env.d.ts`)
-
-Add `declare const __BUILD_HASH__: string;` and `declare const __BUILD_TIME__: string;` so TypeScript is happy.
-
-### 3. Update `CopyrightFooter.tsx`
-
-Append a small, muted version string after the copyright. Keep it on the same line on desktop, wrapping naturally on narrow screens. Style stays subtle — same `text-xs text-muted-foreground`, separated by a middle dot.
-
-Add a `title` tooltip on the version span showing the full build time so it's hover-readable on desktop.
-
-### 4. No changes needed elsewhere
-
-Footer is already mounted globally (sticky), so this single edit covers every page including `/`, `/auth`, `/admin`.
-
-## Files touched
-
-- `vite.config.ts` — add `define` block with build hash + time
-- `src/vite-env.d.ts` — declare the two globals
-- `src/components/CopyrightFooter.tsx` — render the version string
+If you later want the reset email to be **branded (TB4U logo, your colors, custom copy)** and sent from your own domain, that's a separate setup (custom email domain + auth email templates). Just say the word and I'll set that up after this lands. Not required for the feature to work.
 
 ## Out of scope
 
-- No service worker / PWA changes (you don't have one registered, which is correct).
-- No git-SHA lookup — Lovable builds don't expose git in the build env reliably; a build-time hash is the robust equivalent and changes on every publish.
+- Rate-limiting reset requests (Supabase already throttles per email).
+- Re-authentication / 2FA before password change.
+- Custom-branded reset email (see note above).
