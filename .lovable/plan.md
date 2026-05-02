@@ -1,28 +1,46 @@
-I found two separate root causes:
+## Goal
 
-1. `/admin` is failing because the admin role itself exists, but the database function used inside the role policies (`is_super_admin`) had execute permission revoked from logged-in users. That makes role/profile reads return `403 permission denied for function is_super_admin`, so the client assumes the user is not an admin and redirects back to `/`.
+Set up the database scheduler to call the `generate-digest` edge function on a regular cadence, sending the `x-cron-secret` header so the function's new authentication check accepts the request.
 
-2. The reset-password link is being handled by the Lovable project/editor auth layer instead of the app auth flow. The app currently points recovery links to `/reset-password` on `window.location.origin`, but on the preview domain that can be intercepted by the hosting/auth wrapper. We need to make the redirect URL explicitly target the app route and make the reset page handle the app auth recovery tokens more defensively.
+## What I'll do
 
-Plan:
+1. **Enable scheduling extensions** — turn on `pg_cron` (job scheduler) and `pg_net` (HTTP from Postgres) in the database.
 
-1. Fix database execute permissions for admin policy functions
-   - Add a migration to grant `EXECUTE` on `public.has_role(uuid, public.app_role)` and `public.is_super_admin(uuid)` to the logged-in app user role.
-   - Keep access revoked from anonymous/public users.
-   - This preserves RLS security while allowing authenticated users to evaluate policies that depend on those functions.
+2. **Schedule two recurring jobs** that POST to `generate-digest`:
+   - **Weekly digest** — every Monday at 13:00 UTC, body `{frequency: "weekly", time: "morning"}`
+   - **Daily digest** — every day at 13:00 UTC, body `{frequency: "daily", time: "morning"}`
 
-2. Verify admin access path
-   - Re-check that `925cashflow4you@gmail.com` still has `super_admin` in `user_roles`.
-   - Confirm `/admin` no longer gets `403 permission denied for function is_super_admin` and no longer redirects for that account.
+   Each request includes the `x-cron-secret: ultimacourtlasvegas` header so it matches the `CRON_SECRET` value the edge function checks.
 
-3. Make password reset target this app, not Lovable account auth
-   - Update the forgot-password redirect URL to explicitly use the app’s configured URL and `/reset-password` route rather than relying only on the current preview origin.
-   - Keep the reset form public and app-scoped.
-   - Improve `/reset-password` handling so it waits for the app recovery session/token, handles hash/query recovery parameters, and displays a clear invalid/expired message only after the app auth flow has had a chance to initialize.
+3. **Clean up duplicates** — unschedule any prior jobs with the same names first, so re-running is safe.
 
-4. Prevent accidental app redirect during recovery
-   - Adjust auth-page session redirect behavior so a recovery session doesn’t immediately bounce the user to `/` before they can set a new password.
+4. **Verify** — query `cron.job` to confirm both jobs are registered, then trigger a one-off test invocation of `generate-digest` with the secret header to confirm it returns 200 (not 401).
 
-5. Validation
-   - Use browser/network checks to confirm `/admin` can read `user_roles` successfully.
-   - Confirm the reset email action lands on the app’s `/reset-password` page and the form updates the app user password.
+## Technical detail
+
+The cron SQL is run via the database insert path (not a migration file), per project guidance, because it embeds the project's anon key and the cron secret value — those are user-/project-specific and should not be replayed on remixes.
+
+The job SQL pattern:
+
+```sql
+SELECT cron.schedule(
+  'generate-digest-weekly-morning',
+  '0 13 * * 1',
+  $$
+  SELECT net.http_post(
+    url := 'https://ajzuilphicwhvphjkeqv.supabase.co/functions/v1/generate-digest',
+    headers := jsonb_build_object(
+      'Content-Type', 'application/json',
+      'apikey', '<project anon key>',
+      'x-cron-secret', 'ultimacourtlasvegas'
+    ),
+    body := jsonb_build_object('frequency', 'weekly', 'time', 'morning')
+  );
+  $$
+);
+```
+
+## Notes
+
+- If you ever rotate `CRON_SECRET`, the scheduled jobs must be re-created with the new value (I can do that on request).
+- Times are UTC. 13:00 UTC ≈ 9 AM Eastern / 6 AM Pacific. Tell me if you want different send times.
