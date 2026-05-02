@@ -78,8 +78,11 @@ const Auth = () => {
         setMessage("Check your email for a confirmation link.");
       }
     } else if (mode === "reset") {
+      // Use the current page's origin so the reset link returns to THIS app
+      // (not the Lovable account / editor domain).
+      const redirectTo = `${window.location.origin}/reset-password`;
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/reset-password`,
+        redirectTo,
       });
       if (error) {
         setError(error.message);
