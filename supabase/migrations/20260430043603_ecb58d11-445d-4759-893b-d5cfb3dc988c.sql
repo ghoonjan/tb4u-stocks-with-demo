@@ -1,12 +1,6 @@
--- Rotate the super admin password. The previous password was committed in
--- plaintext to a migration file and must be treated as compromised.
-DO $$
-DECLARE
-  v_email text := 'saxplayingurd@gmail.com';
-  v_new_password text := 'TB4U-Admin-t01lbkBT21pvkQVnJUSHbvp8!';
-BEGIN
-  UPDATE auth.users
-  SET encrypted_password = crypt(v_new_password, gen_salt('bf')),
-      updated_at = now()
-  WHERE email = v_email;
-END $$;
+-- Super admin password rotation (sanitized).
+-- An earlier version of this migration contained a plaintext password used to
+-- rotate the super admin account. That value has itself been rotated again to
+-- a password that is not stored in any source file. This migration is now a
+-- no-op so historical apply order is preserved without re-exposing credentials.
+SELECT 1;
