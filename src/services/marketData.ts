@@ -75,6 +75,11 @@ function throttled<T>(fn: () => Promise<T>): Promise<T> {
 
 async function callFinnhub(endpoint: string, params: Record<string, string>) {
   return throttled(async () => {
+    // Require a real user session — the edge function rejects anon-key requests
+    // with 401 ("missing sub claim"), which would surface as a blank screen.
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session?.access_token) throw new Error("NOT_AUTHENTICATED");
+
     const { data, error } = await supabase.functions.invoke("finnhub", {
       body: { endpoint, params },
     });
