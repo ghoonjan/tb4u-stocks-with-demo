@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { PortfolioHeader } from "@/components/dashboard/PortfolioHeader";
 import { TemplateAdminPanel } from "@/components/dashboard/TemplateAdminPanel";
+import { WelcomeBanner } from "@/components/dashboard/WelcomeBanner";
 import { HoldingsTable } from "@/components/dashboard/HoldingsTable";
 import { IntelligenceSidebar } from "@/components/dashboard/IntelligenceSidebar";
 import { WatchlistPanel } from "@/components/dashboard/WatchlistPanel";
@@ -62,6 +63,7 @@ function DashboardContent({ user, onLogout }: { user: AuthenticatedUser; onLogou
   const [shareOpen, setShareOpen] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const watchlistRevealRef = useScrollReveal<HTMLDivElement>();
+  const holdingsSectionRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     let active = true;
@@ -127,8 +129,17 @@ function DashboardContent({ user, onLogout }: { user: AuthenticatedUser; onLogou
       <OfflineBanner />
       <PortfolioHeader data-tour="header" email={user.email} onLogout={onLogout} totalValue={portfolio.totalValue} todayPL={portfolio.todayPL} todayPLPct={portfolio.todayPLPct} refreshing={portfolio.refreshing} lastUpdated={portfolio.lastUpdated} priceError={portfolio.priceError} macroData={macroData} macroLoading={macroLoading} onWhatIf={() => setWhatIfOpen(true)} onShare={() => setShareOpen(true)} onDigestSettings={() => setDigestOpen(true)} simpleReturn={simpleReturn} twr={twr} twrAvailable={twrAvailable} />
       <TemplateAdminPanel userId={user.id} />
+      <WelcomeBanner
+        userId={user.id}
+        portfolioId={portfolio.portfolioId}
+        hasHoldings={portfolio.holdings.length > 0}
+        isInitialized={!portfolio.loading}
+        onExploreHoldings={() => holdingsSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })}
+        onViewWatchlist={() => watchlistRevealRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })}
+        onCleared={portfolio.refetch}
+      />
       <div className="flex-1 flex flex-col lg:flex-row gap-3 sm:gap-4 p-2 sm:p-4 max-w-[1600px] mx-auto w-full">
-        <div className="flex-1 lg:w-[62%] min-w-0 layer-surface" data-tour="holdings">
+        <div ref={holdingsSectionRef} className="flex-1 lg:w-[62%] min-w-0 layer-surface" data-tour="holdings">
           <HoldingsTable
             holdings={portfolio.holdings}
             loading={portfolio.loading}
