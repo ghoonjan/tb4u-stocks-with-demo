@@ -150,6 +150,15 @@ const AdminTemplates = () => {
     }
   };
 
+  const requestPromote = (p: PortfolioRow) => {
+    const currentHas = (template?.holdings_count ?? 0) > 0;
+    if (p.holdings_count === 0 && currentHas) {
+      setPendingPromote(p);
+    } else {
+      void promoteToTemplate(p.id);
+    }
+  };
+
   // Holding actions
   const handleSubmitHolding = async (data: {
     ticker: string;
