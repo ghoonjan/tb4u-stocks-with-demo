@@ -1,46 +1,51 @@
-## What's actually broken
+## Plan
 
-New users do get a cloned portfolio — but it's empty. The clone runs correctly; the source template just has nothing in it.
+I traced the issue to two backend/data-flow bugs that combine into the behavior you’re seeing:
 
-In the database, the super_admin currently owns two portfolios:
+1. `clone_template_for_user` now filters templates with `public.is_super_admin(p.user_id)`.
+   After the recent security hardening, `has_role/is_super_admin` intentionally returns `false` when a normal user checks another user’s role. That means a brand-new user can no longer resolve the super-admin-owned template portfolio inside this function, so the function copies the watchlist, marks the user initialized, but skips holdings.
 
-| Name | `is_template` | Holdings |
-|---|---|---|
-| Template Portfolio | false | **8** |
-| My Portfolio | **true** | 0 |
+2. Even if template lookup succeeds, the RPC currently creates a second `My Portfolio` for the new user. The dashboard then loads `portfolios ... limit(1)` with no ordering/filter, so it can bind to the wrong portfolio.
 
-`clone_template_for_user` reads from the portfolio flagged `is_template = true`, which is the empty "My Portfolio". The 8 real holdings live on "Template Portfolio", which is no longer flagged.
+## What I’ll change
 
-This likely happened when the admin toggled the template flag onto a different portfolio via the "Set as template" button — the flag moved, but holdings didn't.
+### 1. Fix template cloning at the backend
+Create a migration that updates `clone_template_for_user` to:
+- resolve the active template using an internal server-side check that is not blocked by caller-scoped role restrictions
+- clone holdings into the user’s existing non-template portfolio instead of creating a duplicate portfolio
+- only create a portfolio if the user truly has none
+- keep the watchlist seeding and initialization flag behavior
+- stay idempotent so the function won’t duplicate holdings if retried
 
-The watchlist works because it's seeded from the separate `watchlist_template` table, which is populated.
+### 2. Repair already affected users
+Add a data backfill in the same migration to repair users already hit by this bug by:
+- finding initialized, non-admin users whose portfolio is empty even though the active template has holdings
+- copying the current template holdings into their existing non-template portfolio
+- avoiding duplicate inserts for users who already have holdings
 
-## Fix
+### 3. Make dashboard portfolio selection deterministic
+Update the client portfolio loader so it:
+- always selects a non-template portfolio for the signed-in user
+- uses a deterministic order instead of bare `limit(1)`
+- never accidentally points admins at the template portfolio
 
-### 1. Repoint the template flag (data migration)
+### 4. Harden the guided onboarding path
+Tighten the onboarding flow so it:
+- fails clearly if a portfolio id is missing instead of silently doing nothing
+- writes manual onboarding holdings into the same canonical portfolio the dashboard is using
+- refreshes consistently after onboarding completion
 
-Make "Template Portfolio" (the one with 8 holdings) the active template, and clear the flag on the empty "My Portfolio":
+### 5. Verify the full first-time-user flow
+After implementation, I’ll validate these cases:
+- brand-new user lands with seeded watchlist and seeded holdings
+- guided onboarding still works when the user adds their own holdings
+- existing broken test users get repaired
+- super admin template management still behaves correctly
 
-```sql
-UPDATE public.portfolios SET is_template = false
-  WHERE id = 'd7fda9ea-3396-4008-8ac5-edcd8daaf44e';
-UPDATE public.portfolios SET is_template = true
-  WHERE id = '0b73a40e-ec54-4f84-8761-dbeffa1d3bb1';
-```
-
-After this, the next new signup will get the 8 holdings cloned.
-
-### 2. Harden the admin UI (`src/pages/AdminTemplates.tsx`)
-
-Two small changes so this doesn't silently happen again:
-
-- When the active template has **0 holdings**, show a warning banner ("This template is empty — new users will start with no holdings") instead of the neutral "No holdings yet" message.
-- In the "Promote a different portfolio to template" list, show each candidate's holdings count, and add a confirm dialog when promoting an empty portfolio over a non-empty current template.
-
-### 3. Verification
-
-After the migration:
-- Reload `/admin/templates` — "Template Portfolio" should be marked as the active template with 8 holdings.
-- Sign up a brand-new test account and confirm the dashboard shows the seeded holdings (no need to click "Add holding" first).
-
-No schema changes, no edge-function changes, no RLS changes.
+## Technical details
+- Files likely involved:
+  - `supabase/migrations/...sql`
+  - `src/hooks/usePortfolioData.ts`
+  - `src/components/dashboard/OnboardingFlow.tsx`
+- No auth-model change is needed.
+- The active template currently exists and has holdings; the issue is lookup/assignment, not missing template data.

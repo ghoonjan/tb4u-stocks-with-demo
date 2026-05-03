@@ -109,7 +109,13 @@ export function usePortfolioData() {
     const uid = session.user.id;
     setUserId(uid);
 
-    const { data: portfolios } = await supabase.from("portfolios").select("*").eq("user_id", uid).limit(1);
+    const { data: portfolios } = await supabase
+      .from("portfolios")
+      .select("*")
+      .eq("user_id", uid)
+      .eq("is_template", false)
+      .order("created_at", { ascending: true })
+      .limit(1);
     const pid = portfolios?.[0]?.id;
     if (!pid) { setLoading(false); return; }
     setPortfolioId(pid);
