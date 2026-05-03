@@ -393,9 +393,14 @@ const AdminTemplates = () => {
                 <div className="space-y-1.5">
                   {others.map((p) => (
                     <div key={p.id} className="flex items-center justify-between gap-3">
-                      <span className="text-sm text-foreground truncate">{p.name}</span>
+                      <span className="text-sm text-foreground truncate">
+                        {p.name}
+                        <span className="ml-2 text-xs text-muted-foreground">
+                          · {p.holdings_count} {p.holdings_count === 1 ? "holding" : "holdings"}
+                        </span>
+                      </span>
                       <button
-                        onClick={() => promoteToTemplate(p.id)}
+                        onClick={() => requestPromote(p)}
                         className="rounded-md border border-border bg-secondary px-3 py-1 text-xs font-medium text-muted-foreground hover:bg-accent hover:text-foreground"
                       >
                         Set as template
