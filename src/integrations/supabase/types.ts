@@ -168,18 +168,21 @@ export type Database = {
         Row: {
           created_at: string
           id: string
+          is_template: boolean
           name: string
           user_id: string
         }
         Insert: {
           created_at?: string
           id?: string
+          is_template?: boolean
           name?: string
           user_id: string
         }
         Update: {
           created_at?: string
           id?: string
+          is_template?: boolean
           name?: string
           user_id?: string
         }
@@ -201,6 +204,8 @@ export type Database = {
           display_name: string | null
           email: string | null
           email_digest_enabled: boolean
+          full_name: string | null
+          has_been_initialized: boolean
           id: string
           onboarding_completed: boolean
         }
@@ -211,6 +216,8 @@ export type Database = {
           display_name?: string | null
           email?: string | null
           email_digest_enabled?: boolean
+          full_name?: string | null
+          has_been_initialized?: boolean
           id: string
           onboarding_completed?: boolean
         }
@@ -221,6 +228,8 @@ export type Database = {
           display_name?: string | null
           email?: string | null
           email_digest_enabled?: boolean
+          full_name?: string | null
+          has_been_initialized?: boolean
           id?: string
           onboarding_completed?: boolean
         }
