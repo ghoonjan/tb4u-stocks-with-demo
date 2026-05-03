@@ -341,6 +341,33 @@ export type Database = {
           },
         ]
       }
+      watchlist_template: {
+        Row: {
+          company_name: string | null
+          created_at: string
+          id: string
+          notes: string | null
+          target_price: number | null
+          ticker: string
+        }
+        Insert: {
+          company_name?: string | null
+          created_at?: string
+          id?: string
+          notes?: string | null
+          target_price?: number | null
+          ticker: string
+        }
+        Update: {
+          company_name?: string | null
+          created_at?: string
+          id?: string
+          notes?: string | null
+          target_price?: number | null
+          ticker?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
