@@ -1,71 +1,57 @@
-# Phase 4 — Prompt 3: Auto-initialize hook + loading screen
+# Phase 4 — Prompt 4: Admin template badge & management
 
-Wire the `clone_template_for_user` RPC into the app so first-time signups get the template portfolio cloned automatically, with a one-time loading overlay.
+Adapt the spec to the project's actual security model and place the UI in the dashboard.
 
-## New file: `src/hooks/useInitializeUser.ts`
+## Spec ↔ project reconciliation
 
-A no-arg hook that returns `{ isInitializing, isInitialized }` and runs at most once per mount (guarded by a `useRef` flag).
+- The spec says `profile.role === 'admin'`. This project intentionally has **no** `role` column on `profiles` — admin status lives in `user_roles` as `super_admin` (per existing security memory). The existing hook `src/hooks/useUserRole.ts` already returns `isSuperAdmin`. We will **reuse it as-is** and treat `isSuperAdmin` as the admin gate. No new hook, no new role column.
+- Watchlist has no template marker / no parent container → skip the watchlist badge (per spec's "if you cannot find … skip").
 
-Flow:
-1. Initial state: `{ isInitializing: true, isInitialized: false }` so the dashboard never flashes empty before we know.
-2. `supabase.auth.getUser()` — if no user, return `{ false, true }`.
-3. `select has_been_initialized from profiles where id = user.id`.
-4. If `true` → `{ false, true }`.
-5. If `false` → call `supabase.rpc('clone_template_for_user', { target_user_id: user.id })`.
-   - Success → `toast("Welcome!", { description: "We've set up a sample portfolio for you to explore. Feel free to make it your own!" })`.
-   - Error → `toast.error("Setup failed — you can add holdings manually")`. Do not block.
-6. End in `{ false, true }` regardless.
+## New component: `src/components/dashboard/TemplateAdminPanel.tsx`
 
-Uses `sonner` (`import { toast } from "sonner"`), per project preference.
+A self-contained, admin-only panel rendered between `PortfolioHeader` and the main grid in `Dashboard.tsx`. Hidden entirely for non-admins.
+
+Behavior:
+1. Calls `useUserRole()`. If `loading` → render nothing. If `!isSuperAdmin` → render nothing.
+2. Fetches the admin's portfolios with their holdings count:
+   ```ts
+   supabase
+     .from("portfolios")
+     .select("id, name, is_template, holdings(count)")
+     .eq("user_id", userId)
+     .order("created_at", { ascending: true })
+   ```
+   (`holdings(count)` returns an aggregate on the embedded relation; falls back to a per-portfolio count query if needed.)
+3. Renders one card containing:
+   - **Template card** (only if a template exists): green badge "🌟 Template Portfolio" next to the portfolio name, muted helper line "New users receive a copy of this portfolio on their first login", and "X holdings will be cloned".
+   - **Other portfolios list** (if more than one portfolio total): each row shows portfolio name + a small outline button "Set as Template".
+   - If **no template** exists yet, show an amber notice "No template set — new users will start with an empty portfolio" and a "Set as Template" button on each portfolio.
+4. "Set as Template" handler:
+   - Inside a single logical operation:
+     - `update portfolios set is_template = false where user_id = <admin> and is_template = true`
+     - `update portfolios set is_template = true where id = <chosen>`
+   - Both are scoped by `user_id = auth.uid()` and protected by existing RLS (admin only operates on their own portfolios; RLS already restricts that).
+   - On success: `toast("Template updated", { description: "New users will now receive this portfolio" })` (sonner) and refetch.
+   - On error: `toast.error("Failed to update template")`.
+5. Optional realtime not needed; refetch after mutation is enough.
+
+Visual style:
+- Wrap in a rounded card consistent with other dashboard surfaces (`rounded-xl border border-border bg-card/60 backdrop-blur-sm p-3`).
+- Badge uses semantic green: `bg-gain/15 text-gain border border-gain/30 rounded-full px-2 py-0.5 text-[11px] font-medium`. No raw color classes.
+- "Set as Template" button: existing secondary button styling pattern from PortfolioHeader (`rounded-md border border-border bg-secondary px-3 py-1 text-xs hover:bg-secondary/80`).
 
 ## Integration: `src/pages/Dashboard.tsx`
 
-Inside `DashboardContent({ user })` (which only mounts after auth resolves and `user` is non-null), at the top:
+Insert one line right after `<PortfolioHeader … />`:
 
 ```tsx
-const { isInitializing } = useInitializeUser();
-if (isInitializing) {
-  return <InitializingOverlay />;
-}
+<TemplateAdminPanel userId={user.id} />
 ```
 
-Place above the existing `usePortfolioData()` etc. calls so data hooks only fire after cloning completes. Hooks order remains stable (always called before the early return).
+Plus the import. Nothing else changes in Dashboard.
 
-Wait — to keep hooks rules safe, the early-return-before-other-hooks would change call order. Instead, render the overlay by branching the JSX, but keep all hooks called unconditionally. The data hooks will refetch naturally once the clone finishes and the component re-renders (no manual invalidation needed; the user's first render will already have the cloned rows by the time `isInitializing` flips to false on the *next* render — `usePortfolioData` runs on mount and won't re-fetch). 
+## Out of scope
 
-Solution: gate the entire `DashboardContent` body by extracting a wrapper. Add a tiny `DashboardGate` component above `DashboardContent`:
-
-```tsx
-function Dashboard() {
-  // existing auth resolution unchanged
-  return <DashboardGate user={user} onLogout={handleLogout} />;
-}
-
-function DashboardGate({ user, onLogout }) {
-  const { isInitializing } = useInitializeUser();
-  if (isInitializing) return <InitializingOverlay />;
-  return <DashboardContent user={user} onLogout={onLogout} />;
-}
-```
-
-This guarantees `usePortfolioData` first runs *after* cloning completes, so the freshly cloned holdings appear without any extra refetch logic.
-
-## InitializingOverlay (inline in Dashboard.tsx)
-
-Full-screen, themed:
-
-```tsx
-<div className="min-h-screen bg-background flex flex-col items-center justify-center gap-4">
-  <Loader2 className="h-10 w-10 animate-spin text-primary" />
-  <p className="text-foreground font-medium">Setting up your portfolio…</p>
-  <p className="text-sm text-muted-foreground">This only happens once</p>
-</div>
-```
-
-Uses `Loader2` from `lucide-react` and existing semantic tokens (`bg-background`, `text-primary`, `text-muted-foreground`) — no new design tokens.
-
-## Out of scope / non-changes
-
-- No edits to `usePortfolioData`, `HoldingsTable`, or any data-fetching hooks.
-- No changes to existing `onboarding_completed` / `OnboardingFlow` logic — independent flag.
-- No retry UI; failure leaves the user on an empty dashboard (per spec, "do not block").
+- No changes to `useUserRole`, `usePortfolioData`, `PortfolioHeader`, or any data hook.
+- No watchlist template (no schema support).
+- No new RPC; mutations use existing RLS-protected `update` on `portfolios`.
