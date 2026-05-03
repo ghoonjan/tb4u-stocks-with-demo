@@ -21,7 +21,8 @@ import CopyrightFooter from "@/components/CopyrightFooter";
 import { usePerformanceMetrics } from "@/hooks/usePerformanceMetrics";
 import { useAnalyticsData } from "@/hooks/useAnalyticsData";
 import { toast } from "@/hooks/use-toast";
-import { BookOpen } from "lucide-react";
+import { BookOpen, Loader2 } from "lucide-react";
+import { useInitializeUser } from "@/hooks/useInitializeUser";
 import { OfflineBanner } from "@/components/dashboard/OfflineBanner";
 import { OnboardingFlow } from "@/components/dashboard/OnboardingFlow";
 import { GradientMeshBackground } from "@/components/GradientMeshBackground";
@@ -348,7 +349,24 @@ const Dashboard = () => {
     );
   }
 
-  return <DashboardContent user={user} onLogout={handleLogout} />;
+  return <DashboardGate user={user} onLogout={handleLogout} />;
 };
 
+function InitializingOverlay() {
+  return (
+    <div className="min-h-screen bg-background flex flex-col items-center justify-center gap-4 px-4 text-center">
+      <Loader2 className="h-10 w-10 animate-spin text-primary" />
+      <p className="text-foreground font-medium">Setting up your portfolio…</p>
+      <p className="text-sm text-muted-foreground">This only happens once</p>
+    </div>
+  );
+}
+
+function DashboardGate({ user, onLogout }: { user: AuthenticatedUser; onLogout: () => Promise<void> }) {
+  const { isInitializing } = useInitializeUser();
+  if (isInitializing) return <InitializingOverlay />;
+  return <DashboardContent user={user} onLogout={onLogout} />;
+}
+
 export default Dashboard;
+
