@@ -329,7 +329,10 @@ const AdminTemplates = () => {
                   </span>
                 </div>
                 {holdings.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">No holdings yet. Add one to seed new users.</p>
+                  <div className="flex items-start gap-2 rounded-md border border-warning/40 bg-warning/10 p-3 text-sm text-warning">
+                    <AlertTriangle size={14} className="mt-0.5 shrink-0" />
+                    <span>This template is empty — new users will sign up with no holdings. Add at least one to seed them.</span>
+                  </div>
                 ) : (
                   <div className="overflow-x-auto">
                     <table className="w-full text-sm">
