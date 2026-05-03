@@ -63,6 +63,7 @@ function DashboardContent({ user, onLogout }: { user: AuthenticatedUser; onLogou
   const [shareOpen, setShareOpen] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const watchlistRevealRef = useScrollReveal<HTMLDivElement>();
+  const holdingsSectionRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     let active = true;
