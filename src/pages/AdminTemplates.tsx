@@ -75,6 +75,7 @@ const AdminTemplates = () => {
   const [deletingWl, setDeletingWl] = useState<WatchlistTemplateRow | null>(null);
 
   const [creatingPortfolio, setCreatingPortfolio] = useState(false);
+  const [pendingPromote, setPendingPromote] = useState<PortfolioRow | null>(null);
 
   // Access control
   useEffect(() => {
