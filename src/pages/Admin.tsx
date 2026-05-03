@@ -139,6 +139,12 @@ const Admin = () => {
             </div>
             <div className="flex gap-2">
               <button
+                onClick={() => navigate("/admin/templates")}
+                className="rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
+              >
+                Manage Templates
+              </button>
+              <button
                 onClick={() => navigate("/")}
                 className="rounded-md border border-border bg-secondary px-3 py-1.5 text-xs font-medium text-foreground hover:bg-accent transition-colors"
               >
