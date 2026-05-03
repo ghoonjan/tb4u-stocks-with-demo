@@ -1,57 +1,63 @@
-# Phase 4 — Prompt 4: Admin template badge & management
+# Phase 4 — Prompt 5: Welcome banner for new users
 
-Adapt the spec to the project's actual security model and place the UI in the dashboard.
+## New component: `src/components/dashboard/WelcomeBanner.tsx`
 
-## Spec ↔ project reconciliation
+Props (passed from Dashboard so the banner stays decoupled from data hooks):
+- `userId: string`
+- `portfolioId: string | null`
+- `hasHoldings: boolean`
+- `isInitialized: boolean`
+- `onExploreHoldings: () => void`
+- `onViewWatchlist: () => void`
+- `onCleared: () => void | Promise<void>`
 
-- The spec says `profile.role === 'admin'`. This project intentionally has **no** `role` column on `profiles` — admin status lives in `user_roles` as `super_admin` (per existing security memory). The existing hook `src/hooks/useUserRole.ts` already returns `isSuperAdmin`. We will **reuse it as-is** and treat `isSuperAdmin` as the admin gate. No new hook, no new role column.
-- Watchlist has no template marker / no parent container → skip the watchlist badge (per spec's "if you cannot find … skip").
+Visibility gate (render `null` otherwise):
+- `useUserRole()` resolved AND `!isSuperAdmin` (admin = `super_admin`, per project model)
+- `isInitialized`
+- `localStorage["welcome_banner_dismissed_<userId>"] !== "true"`
+- `hasHoldings === true`
 
-## New component: `src/components/dashboard/TemplateAdminPanel.tsx`
+UI:
+- Rounded card, subtle gradient using semantic tokens: `bg-gradient-to-br from-primary/15 via-primary/5 to-transparent`, `border border-primary/30`, `backdrop-blur-sm`.
+- X dismiss button (top-right) — sets the localStorage key and hides.
+- Title: "👋 Welcome to your portfolio!"
+- Body: "We've loaded sample holdings to help you get started. These are yours now — edit, add, or remove them freely."
+- Three buttons:
+  - **Explore Holdings** (primary) → calls `onExploreHoldings`, then dismiss.
+  - **View Watchlist** (secondary) → calls `onViewWatchlist`, then dismiss.
+  - **Start Fresh** (ghost/outline) → opens existing `ConfirmDialog` ("Remove all sample holdings? You'll start with an empty portfolio."). On confirm:
+    - `supabase.from("holdings").delete().eq("portfolio_id", portfolioId)`
+    - On success: `toast("Portfolio cleared", { description: "Add your own holdings to get started!" })`, dismiss banner, `await onCleared()` so the parent refetches.
+    - On error: `toast.error("Could not clear holdings")`.
 
-A self-contained, admin-only panel rendered between `PortfolioHeader` and the main grid in `Dashboard.tsx`. Hidden entirely for non-admins.
+Any action button also dismisses the banner (per spec).
 
-Behavior:
-1. Calls `useUserRole()`. If `loading` → render nothing. If `!isSuperAdmin` → render nothing.
-2. Fetches the admin's portfolios with their holdings count:
-   ```ts
-   supabase
-     .from("portfolios")
-     .select("id, name, is_template, holdings(count)")
-     .eq("user_id", userId)
-     .order("created_at", { ascending: true })
-   ```
-   (`holdings(count)` returns an aggregate on the embedded relation; falls back to a per-portfolio count query if needed.)
-3. Renders one card containing:
-   - **Template card** (only if a template exists): green badge "🌟 Template Portfolio" next to the portfolio name, muted helper line "New users receive a copy of this portfolio on their first login", and "X holdings will be cloned".
-   - **Other portfolios list** (if more than one portfolio total): each row shows portfolio name + a small outline button "Set as Template".
-   - If **no template** exists yet, show an amber notice "No template set — new users will start with an empty portfolio" and a "Set as Template" button on each portfolio.
-4. "Set as Template" handler:
-   - Inside a single logical operation:
-     - `update portfolios set is_template = false where user_id = <admin> and is_template = true`
-     - `update portfolios set is_template = true where id = <chosen>`
-   - Both are scoped by `user_id = auth.uid()` and protected by existing RLS (admin only operates on their own portfolios; RLS already restricts that).
-   - On success: `toast("Template updated", { description: "New users will now receive this portfolio" })` (sonner) and refetch.
-   - On error: `toast.error("Failed to update template")`.
-5. Optional realtime not needed; refetch after mutation is enough.
-
-Visual style:
-- Wrap in a rounded card consistent with other dashboard surfaces (`rounded-xl border border-border bg-card/60 backdrop-blur-sm p-3`).
-- Badge uses semantic green: `bg-gain/15 text-gain border border-gain/30 rounded-full px-2 py-0.5 text-[11px] font-medium`. No raw color classes.
-- "Set as Template" button: existing secondary button styling pattern from PortfolioHeader (`rounded-md border border-border bg-secondary px-3 py-1 text-xs hover:bg-secondary/80`).
+Uses `sonner` for toasts and the existing `ConfirmDialog` component.
 
 ## Integration: `src/pages/Dashboard.tsx`
 
-Insert one line right after `<PortfolioHeader … />`:
+Add scroll target refs:
+- `holdingsSectionRef` already-existing wrapper around `<HoldingsTable>` — attach a `ref` to its `<div>`.
+- The watchlist wrapper already has `watchlistRevealRef`; reuse that for scrolling.
+
+Render the banner just below `<TemplateAdminPanel>` (admins won't see it anyway, but keeping it above the holdings grid matches "top of dashboard"):
 
 ```tsx
-<TemplateAdminPanel userId={user.id} />
+<WelcomeBanner
+  userId={user.id}
+  portfolioId={portfolio.portfolioId}
+  hasHoldings={portfolio.holdings.length > 0}
+  isInitialized={!portfolio.loading}
+  onExploreHoldings={() => holdingsSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })}
+  onViewWatchlist={() => watchlistRevealRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })}
+  onCleared={portfolio.refetch}
+/>
 ```
 
-Plus the import. Nothing else changes in Dashboard.
+`isInitialized` is derived from the portfolio finishing its first load (`!portfolio.loading`). The clone hook already gates the entire dashboard mount, so by the time this banner renders the user is past initialization — `!loading` is the right "data is ready" signal.
 
 ## Out of scope
 
-- No changes to `useUserRole`, `usePortfolioData`, `PortfolioHeader`, or any data hook.
-- No watchlist template (no schema support).
-- No new RPC; mutations use existing RLS-protected `update` on `portfolios`.
+- No watchlist page exists; "View Watchlist" scrolls to the existing watchlist panel.
+- No new RPC; deletion uses the existing RLS-protected `holdings` delete (already permitted via the `portfolios` ownership check).
+- `tax_lots` does not exist in this project — cascade note in spec is moot.
