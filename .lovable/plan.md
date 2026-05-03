@@ -1,39 +1,46 @@
-## Goal
-Allow super admins to delete test users (auth account + all related data) directly from the `/admin` user list.
+## What's actually broken
 
-## Why an edge function
-Deleting from `auth.users` requires the Supabase service role key — it cannot be done from the browser client. We'll add a small edge function that:
-1. Verifies the caller is authenticated and has `super_admin` role.
-2. Refuses to delete the caller themselves.
-3. Calls `supabase.auth.admin.deleteUser(targetUserId)` with the service role.
+New users do get a cloned portfolio — but it's empty. The clone runs correctly; the source template just has nothing in it.
 
-Because all our app tables key off `user_id` (and `holdings` cascades through `portfolios`), deleting the auth user plus the matching `profiles`/`portfolios`/`watchlist`/`alerts`/`trade_journal`/`daily_briefings`/`user_roles` rows is enough. The function will explicitly delete those rows first (no FKs to `auth.users` exist), then delete the auth user.
+In the database, the super_admin currently owns two portfolios:
 
-## Changes
+| Name | `is_template` | Holdings |
+|---|---|---|
+| Template Portfolio | false | **8** |
+| My Portfolio | **true** | 0 |
 
-### 1. New edge function: `supabase/functions/admin-delete-user/index.ts`
-- POST `{ user_id: string }`
-- Reads caller JWT from `Authorization` header, creates a user-scoped client to confirm identity.
-- Uses service-role client to:
-  - Verify caller has `super_admin` in `user_roles`.
-  - Reject if `user_id === caller.id`.
-  - Delete from `trade_journal`, `daily_briefings`, `alerts`, `watchlist`, `holdings` (via portfolio ids), `portfolios`, `user_roles`, `profiles` for that user_id.
-  - `auth.admin.deleteUser(user_id)`.
-- Returns `{ ok: true }` or `{ error }`.
-- Add `[functions.admin-delete-user]` block in `supabase/config.toml` with `verify_jwt = true` (default behavior; explicit for clarity).
+`clone_template_for_user` reads from the portfolio flagged `is_template = true`, which is the empty "My Portfolio". The 8 real holdings live on "Template Portfolio", which is no longer flagged.
 
-### 2. `src/pages/Admin.tsx`
-- Add a "Delete" button in the Actions cell (red, hidden for the current user).
-- Open the existing `ConfirmDialog` to confirm ("Delete {email}? This permanently removes their account and data.").
-- On confirm, call `supabase.functions.invoke("admin-delete-user", { body: { user_id } })`, toast result, then `loadUsers()`.
+This likely happened when the admin toggled the template flag onto a different portfolio via the "Set as template" button — the flag moved, but holdings didn't.
 
-### 3. No DB migration required
-RLS and schema are unchanged. Service role bypasses RLS for the cleanup.
+The watchlist works because it's seeded from the separate `watchlist_template` table, which is populated.
 
-## UX
-- Button: small destructive outline next to "Make super admin" / "Revoke admin".
-- Disabled for own row.
-- Confirm dialog clearly states the action is permanent.
+## Fix
 
-## Out of scope
-- Bulk delete / filtering test users by pattern. Can be added later if you want a "Delete all users created before X" tool.
+### 1. Repoint the template flag (data migration)
+
+Make "Template Portfolio" (the one with 8 holdings) the active template, and clear the flag on the empty "My Portfolio":
+
+```sql
+UPDATE public.portfolios SET is_template = false
+  WHERE id = 'd7fda9ea-3396-4008-8ac5-edcd8daaf44e';
+UPDATE public.portfolios SET is_template = true
+  WHERE id = '0b73a40e-ec54-4f84-8761-dbeffa1d3bb1';
+```
+
+After this, the next new signup will get the 8 holdings cloned.
+
+### 2. Harden the admin UI (`src/pages/AdminTemplates.tsx`)
+
+Two small changes so this doesn't silently happen again:
+
+- When the active template has **0 holdings**, show a warning banner ("This template is empty — new users will start with no holdings") instead of the neutral "No holdings yet" message.
+- In the "Promote a different portfolio to template" list, show each candidate's holdings count, and add a confirm dialog when promoting an empty portfolio over a non-empty current template.
+
+### 3. Verification
+
+After the migration:
+- Reload `/admin/templates` — "Template Portfolio" should be marked as the active template with 8 holdings.
+- Sign up a brand-new test account and confirm the dashboard shows the seeded holdings (no need to click "Add holding" first).
+
+No schema changes, no edge-function changes, no RLS changes.

@@ -12,7 +12,7 @@ import { ConfirmDialog } from "@/components/dashboard/ConfirmDialog";
 import type { HoldingDisplay } from "@/hooks/usePortfolioData";
 import { getCompanyProfile } from "@/services/marketData";
 
-type PortfolioRow = { id: string; name: string; is_template: boolean; user_id: string };
+type PortfolioRow = { id: string; name: string; is_template: boolean; user_id: string; holdings_count: number };
 type HoldingRow = {
   id: string;
   ticker: string;
@@ -75,6 +75,7 @@ const AdminTemplates = () => {
   const [deletingWl, setDeletingWl] = useState<WatchlistTemplateRow | null>(null);
 
   const [creatingPortfolio, setCreatingPortfolio] = useState(false);
+  const [pendingPromote, setPendingPromote] = useState<PortfolioRow | null>(null);
 
   // Access control
   useEffect(() => {
@@ -87,11 +88,19 @@ const AdminTemplates = () => {
 
   const load = useCallback(async () => {
     setLoading(true);
-    const [{ data: portfolioData }, { data: wlData }] = await Promise.all([
+    const [{ data: portfolioData }, { data: wlData }, { data: holdingsAll }] = await Promise.all([
       supabase.from("portfolios").select("id, name, is_template, user_id").order("created_at"),
       supabase.from("watchlist_template").select("id, ticker, company_name, target_price, notes").order("ticker"),
+      supabase.from("holdings").select("id, portfolio_id"),
     ]);
-    const ports = (portfolioData ?? []) as PortfolioRow[];
+    const counts = new Map<string, number>();
+    for (const h of (holdingsAll ?? []) as { portfolio_id: string }[]) {
+      counts.set(h.portfolio_id, (counts.get(h.portfolio_id) ?? 0) + 1);
+    }
+    const ports = ((portfolioData ?? []) as Omit<PortfolioRow, "holdings_count">[]).map((p) => ({
+      ...p,
+      holdings_count: counts.get(p.id) ?? 0,
+    })) as PortfolioRow[];
     setPortfolios(ports);
     setWatchlist((wlData ?? []) as WatchlistTemplateRow[]);
 
@@ -138,6 +147,15 @@ const AdminTemplates = () => {
     else {
       toast.success("Template updated");
       void load();
+    }
+  };
+
+  const requestPromote = (p: PortfolioRow) => {
+    const currentHas = (template?.holdings_count ?? 0) > 0;
+    if (p.holdings_count === 0 && currentHas) {
+      setPendingPromote(p);
+    } else {
+      void promoteToTemplate(p.id);
     }
   };
 
@@ -311,7 +329,10 @@ const AdminTemplates = () => {
                   </span>
                 </div>
                 {holdings.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">No holdings yet. Add one to seed new users.</p>
+                  <div className="flex items-start gap-2 rounded-md border border-warning/40 bg-warning/10 p-3 text-sm text-warning">
+                    <AlertTriangle size={14} className="mt-0.5 shrink-0" />
+                    <span>This template is empty — new users will sign up with no holdings. Add at least one to seed them.</span>
+                  </div>
                 ) : (
                   <div className="overflow-x-auto">
                     <table className="w-full text-sm">
@@ -372,9 +393,14 @@ const AdminTemplates = () => {
                 <div className="space-y-1.5">
                   {others.map((p) => (
                     <div key={p.id} className="flex items-center justify-between gap-3">
-                      <span className="text-sm text-foreground truncate">{p.name}</span>
+                      <span className="text-sm text-foreground truncate">
+                        {p.name}
+                        <span className="ml-2 text-xs text-muted-foreground">
+                          · {p.holdings_count} {p.holdings_count === 1 ? "holding" : "holdings"}
+                        </span>
+                      </span>
                       <button
-                        onClick={() => promoteToTemplate(p.id)}
+                        onClick={() => requestPromote(p)}
                         className="rounded-md border border-border bg-secondary px-3 py-1 text-xs font-medium text-muted-foreground hover:bg-accent hover:text-foreground"
                       >
                         Set as template
@@ -482,6 +508,20 @@ const AdminTemplates = () => {
         destructive
         onConfirm={confirmDeleteWl}
         onCancel={() => setDeletingWl(null)}
+      />
+
+      <ConfirmDialog
+        open={!!pendingPromote}
+        title="Promote empty portfolio?"
+        message={`"${pendingPromote?.name}" has no holdings. Promoting it will mean new users sign up with an empty portfolio. Continue?`}
+        confirmLabel="Promote anyway"
+        destructive
+        onConfirm={async () => {
+          const id = pendingPromote?.id;
+          setPendingPromote(null);
+          if (id) await promoteToTemplate(id);
+        }}
+        onCancel={() => setPendingPromote(null)}
       />
 
       <WatchlistTemplateModal
