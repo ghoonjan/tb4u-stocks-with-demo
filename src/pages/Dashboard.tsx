@@ -126,7 +126,7 @@ function DashboardContent({ user, onLogout }: { user: AuthenticatedUser; onLogou
       <GradientMeshBackground />
       <OfflineBanner />
       <PortfolioHeader data-tour="header" email={user.email} onLogout={onLogout} totalValue={portfolio.totalValue} todayPL={portfolio.todayPL} todayPLPct={portfolio.todayPLPct} refreshing={portfolio.refreshing} lastUpdated={portfolio.lastUpdated} priceError={portfolio.priceError} macroData={macroData} macroLoading={macroLoading} onWhatIf={() => setWhatIfOpen(true)} onShare={() => setShareOpen(true)} onDigestSettings={() => setDigestOpen(true)} simpleReturn={simpleReturn} twr={twr} twrAvailable={twrAvailable} />
-
+      <TemplateAdminPanel userId={user.id} />
       <div className="flex-1 flex flex-col lg:flex-row gap-3 sm:gap-4 p-2 sm:p-4 max-w-[1600px] mx-auto w-full">
         <div className="flex-1 lg:w-[62%] min-w-0 layer-surface" data-tour="holdings">
           <HoldingsTable
