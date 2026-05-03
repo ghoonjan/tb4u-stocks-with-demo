@@ -1,38 +1,35 @@
-# Phase 4 — Prompt 1: Profiles & Template Flag
+# Phase 4 — Prompt 2: `clone_template_for_user` function
 
-Reconciled with existing schema. Admin: `saxplayingurd@gmail.com`. Roles stay in `user_roles`. `full_name` added as new column (does not touch `display_name`).
+Create a Supabase migration that adds a SECURITY DEFINER function which clones the template portfolio (and its holdings) into a freshly-signed-up user's account.
 
-## Migration
+## Schema reality check
 
-1. **profiles** — add columns:
-   - `full_name TEXT`
-   - `has_been_initialized BOOLEAN NOT NULL DEFAULT false`
+- `tax_lots` table — does **not** exist → step 5 is a no-op (skipped).
+- `watchlist` table — exists, but has **no** `is_template` column and no parent container → step 6 is a no-op (skipped). Per spec ("If no watchlist template exists ... skip"), this is correct behavior.
+- `holdings` has no `user_id` column (ownership is via `portfolio_id → portfolios.user_id`), so we only set `portfolio_id` on cloned rows. The spec's "user_id = target_user_id" line doesn't apply to this schema.
 
-2. **portfolios** — add column:
-   - `is_template BOOLEAN NOT NULL DEFAULT false`
+## Function: `public.clone_template_for_user(target_user_id uuid) returns boolean`
 
-3. **handle_new_user()** — update trigger function so new profile rows get `has_been_initialized = false` (explicit, matches default). No other behavior change.
+Behavior, in order:
 
-4. **Backfill (admin user)** — look up `auth.users` row for `saxplayingurd@gmail.com`:
-   - Set their `profiles.has_been_initialized = true`.
-   - Ensure a `user_roles` row with `role = 'super_admin'` exists (insert if missing). No `role` column added to `profiles`.
-   - Mark their **oldest** `portfolios` row (by `created_at`) as `is_template = true`. If none exists, skip (do not auto-create).
+1. **Auth guard** — if `target_user_id <> auth.uid()` → raise `exception` (users can only initialize themselves).
+2. **Already initialized?** — `SELECT has_been_initialized FROM profiles WHERE id = target_user_id`. If `true`, return `false`.
+3. **Find template** — `SELECT id FROM portfolios WHERE is_template = true LIMIT 1`. If none, set `profiles.has_been_initialized = true` for the user and return `false`.
+4. **Create new portfolio** for target user: `name = 'My Portfolio'`, `is_template = false`. Capture new id.
+5. **Clone holdings** — single `INSERT … SELECT` from template's holdings into the new portfolio, copying: `ticker, company_name, shares, avg_cost_basis, conviction_rating, thesis, target_allocation_pct, notes, date_added`. New UUID per row; `portfolio_id` = new portfolio id.
+6. **tax_lots** — skipped (table absent).
+7. **watchlist** — skipped (no template marker).
+8. **Mark initialized** — `UPDATE profiles SET has_been_initialized = true WHERE id = target_user_id`.
+9. **Return `true`**.
 
-5. **Watchlist** — skipped (no parent container exists; spec acknowledged).
+## Security
 
-## Safety
+- `SECURITY DEFINER`, `SET search_path = public`.
+- Internal `auth.uid()` check prevents one user from initializing another.
+- `GRANT EXECUTE ON FUNCTION public.clone_template_for_user(uuid) TO authenticated;`
+- `REVOKE … FROM public, anon` for safety.
 
-- Pure `ALTER TABLE … ADD COLUMN` + targeted `UPDATE`/`INSERT` — no drops, no data loss.
-- All new columns have safe defaults so existing rows and inserts keep working.
-- `src/integrations/supabase/types.ts` regenerates automatically.
+## Out of scope
 
-## Post-migration verification (I will run via read_query)
-
-- `profiles` row for admin → `has_been_initialized = true`.
-- `user_roles` for admin includes `super_admin`.
-- Admin's first `portfolios` row → `is_template = true`.
-- App still loads; existing holdings unaffected.
-
-## Out of scope (later prompts)
-
-- UI changes, onboarding flow wiring, template cloning logic.
+- No call site yet — wired from the app in Prompt 3.
+- No data changes; pure schema/function migration.

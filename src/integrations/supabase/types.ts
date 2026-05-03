@@ -347,6 +347,10 @@ export type Database = {
     }
     Functions: {
       cleanup_stale_finnhub_cache: { Args: never; Returns: undefined }
+      clone_template_for_user: {
+        Args: { target_user_id: string }
+        Returns: boolean
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
