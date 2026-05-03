@@ -88,11 +88,19 @@ const AdminTemplates = () => {
 
   const load = useCallback(async () => {
     setLoading(true);
-    const [{ data: portfolioData }, { data: wlData }] = await Promise.all([
+    const [{ data: portfolioData }, { data: wlData }, { data: holdingsAll }] = await Promise.all([
       supabase.from("portfolios").select("id, name, is_template, user_id").order("created_at"),
       supabase.from("watchlist_template").select("id, ticker, company_name, target_price, notes").order("ticker"),
+      supabase.from("holdings").select("id, portfolio_id"),
     ]);
-    const ports = (portfolioData ?? []) as PortfolioRow[];
+    const counts = new Map<string, number>();
+    for (const h of (holdingsAll ?? []) as { portfolio_id: string }[]) {
+      counts.set(h.portfolio_id, (counts.get(h.portfolio_id) ?? 0) + 1);
+    }
+    const ports = ((portfolioData ?? []) as Omit<PortfolioRow, "holdings_count">[]).map((p) => ({
+      ...p,
+      holdings_count: counts.get(p.id) ?? 0,
+    })) as PortfolioRow[];
     setPortfolios(ports);
     setWatchlist((wlData ?? []) as WatchlistTemplateRow[]);
 
