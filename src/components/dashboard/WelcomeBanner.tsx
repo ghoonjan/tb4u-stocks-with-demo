@@ -61,6 +61,21 @@ export function WelcomeBanner({
   const handleStartFresh = async () => {
     if (!portfolioId) return;
     setClearing(true);
+
+    // Snapshot current holdings so we can restore them on Undo.
+    const { data: snapshot, error: snapErr } = await supabase
+      .from("holdings")
+      .select("ticker, company_name, shares, avg_cost_basis, conviction_rating, thesis, target_allocation_pct, notes, date_added")
+      .eq("portfolio_id", portfolioId);
+
+    if (snapErr) {
+      setClearing(false);
+      setConfirmOpen(false);
+      console.error("[WelcomeBanner] snapshot failed", snapErr);
+      toast.error("Could not clear holdings");
+      return;
+    }
+
     const { error } = await supabase
       .from("holdings")
       .delete()
@@ -74,10 +89,32 @@ export function WelcomeBanner({
       return;
     }
 
-    toast("Portfolio cleared", { description: "Add your own holdings to get started!" });
     dismiss();
     await onCleared();
+
+    const restore = async () => {
+      if (!snapshot || snapshot.length === 0) return;
+      const { error: restoreErr } = await supabase
+        .from("holdings")
+        .insert(snapshot.map((h) => ({ ...h, portfolio_id: portfolioId })));
+      if (restoreErr) {
+        console.error("[WelcomeBanner] restore failed", restoreErr);
+        toast.error("Could not restore holdings");
+        return;
+      }
+      toast.success("Sample holdings restored");
+      await onCleared();
+    };
+
+    toast("Portfolio cleared", {
+      description: "Add your own holdings to get started!",
+      duration: 8000,
+      action: snapshot && snapshot.length > 0
+        ? { label: "Undo", onClick: () => { void restore(); } }
+        : undefined,
+    });
   };
+
 
   return (
     <>
