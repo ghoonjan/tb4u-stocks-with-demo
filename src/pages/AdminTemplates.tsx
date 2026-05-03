@@ -12,7 +12,7 @@ import { ConfirmDialog } from "@/components/dashboard/ConfirmDialog";
 import type { HoldingDisplay } from "@/hooks/usePortfolioData";
 import { getCompanyProfile } from "@/services/marketData";
 
-type PortfolioRow = { id: string; name: string; is_template: boolean; user_id: string };
+type PortfolioRow = { id: string; name: string; is_template: boolean; user_id: string; holdings_count: number };
 type HoldingRow = {
   id: string;
   ticker: string;
