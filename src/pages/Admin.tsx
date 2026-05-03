@@ -6,6 +6,7 @@ import { useUserRole } from "@/hooks/useUserRole";
 import { LogoMark } from "@/components/LogoMark";
 import { GradientMeshBackground } from "@/components/GradientMeshBackground";
 import CopyrightFooter from "@/components/CopyrightFooter";
+import { ConfirmDialog } from "@/components/dashboard/ConfirmDialog";
 
 interface ProfileRow {
   id: string;
@@ -30,6 +31,9 @@ const Admin = () => {
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [pwSaving, setPwSaving] = useState(false);
+
+  const [deleteTarget, setDeleteTarget] = useState<ProfileRow | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   // Access control
   useEffect(() => {
@@ -109,6 +113,22 @@ const Admin = () => {
       toast.success("Revoked super_admin.");
       void loadUsers();
     }
+  };
+
+  const handleDeleteUser = async () => {
+    if (!deleteTarget) return;
+    setDeleting(true);
+    const { data, error } = await supabase.functions.invoke("admin-delete-user", {
+      body: { user_id: deleteTarget.id },
+    });
+    setDeleting(false);
+    if (error || (data && (data as { error?: string }).error)) {
+      toast.error(error?.message || (data as { error?: string }).error || "Failed to delete user.");
+      return;
+    }
+    toast.success(`Deleted ${deleteTarget.email ?? "user"}.`);
+    setDeleteTarget(null);
+    void loadUsers();
   };
 
   const handleSignOut = async () => {
@@ -260,22 +280,32 @@ const Admin = () => {
                             )}
                           </td>
                           <td className="py-3 pr-4 text-right">
-                            {isSA ? (
-                              <button
-                                onClick={() => revokeSuperAdmin(p.id)}
-                                disabled={p.id === userId}
-                                className="rounded-md border border-border bg-secondary px-3 py-1 text-xs text-foreground hover:bg-accent disabled:opacity-40 transition-colors"
-                              >
-                                Revoke admin
-                              </button>
-                            ) : (
-                              <button
-                                onClick={() => grantSuperAdmin(p.id)}
-                                className="rounded-md bg-primary px-3 py-1 text-xs font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
-                              >
-                                Make super admin
-                              </button>
-                            )}
+                            <div className="flex justify-end gap-2">
+                              {isSA ? (
+                                <button
+                                  onClick={() => revokeSuperAdmin(p.id)}
+                                  disabled={p.id === userId}
+                                  className="rounded-md border border-border bg-secondary px-3 py-1 text-xs text-foreground hover:bg-accent disabled:opacity-40 transition-colors"
+                                >
+                                  Revoke admin
+                                </button>
+                              ) : (
+                                <button
+                                  onClick={() => grantSuperAdmin(p.id)}
+                                  className="rounded-md bg-primary px-3 py-1 text-xs font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
+                                >
+                                  Make super admin
+                                </button>
+                              )}
+                              {p.id !== userId && !isSA && (
+                                <button
+                                  onClick={() => setDeleteTarget(p)}
+                                  className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-1 text-xs font-medium text-destructive hover:bg-destructive/20 transition-colors"
+                                >
+                                  Delete
+                                </button>
+                              )}
+                            </div>
                           </td>
                         </tr>
                       );
@@ -288,6 +318,15 @@ const Admin = () => {
         </div>
       </div>
       <CopyrightFooter />
+      <ConfirmDialog
+        open={!!deleteTarget}
+        title="Delete user?"
+        message={`Permanently delete ${deleteTarget?.email ?? "this user"} and all of their data (portfolios, holdings, watchlist, trades, briefings). This cannot be undone.`}
+        confirmLabel={deleting ? "Deleting…" : "Delete user"}
+        destructive
+        onConfirm={handleDeleteUser}
+        onCancel={() => (deleting ? null : setDeleteTarget(null))}
+      />
     </div>
   );
 };
