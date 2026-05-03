@@ -508,6 +508,19 @@ const AdminTemplates = () => {
         destructive
         onConfirm={confirmDeleteWl}
         onCancel={() => setDeletingWl(null)}
+
+      <ConfirmDialog
+        open={!!pendingPromote}
+        title="Promote empty portfolio?"
+        message={`"${pendingPromote?.name}" has no holdings. Promoting it will mean new users sign up with an empty portfolio. Continue?`}
+        confirmLabel="Promote anyway"
+        destructive
+        onConfirm={async () => {
+          const id = pendingPromote?.id;
+          setPendingPromote(null);
+          if (id) await promoteToTemplate(id);
+        }}
+        onCancel={() => setPendingPromote(null)}
       />
 
       <WatchlistTemplateModal
