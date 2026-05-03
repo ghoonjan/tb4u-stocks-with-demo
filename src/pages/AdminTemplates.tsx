@@ -508,6 +508,7 @@ const AdminTemplates = () => {
         destructive
         onConfirm={confirmDeleteWl}
         onCancel={() => setDeletingWl(null)}
+      />
 
       <ConfirmDialog
         open={!!pendingPromote}
