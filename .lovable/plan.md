@@ -1,35 +1,71 @@
-# Phase 4 — Prompt 2: `clone_template_for_user` function
+# Phase 4 — Prompt 3: Auto-initialize hook + loading screen
 
-Create a Supabase migration that adds a SECURITY DEFINER function which clones the template portfolio (and its holdings) into a freshly-signed-up user's account.
+Wire the `clone_template_for_user` RPC into the app so first-time signups get the template portfolio cloned automatically, with a one-time loading overlay.
 
-## Schema reality check
+## New file: `src/hooks/useInitializeUser.ts`
 
-- `tax_lots` table — does **not** exist → step 5 is a no-op (skipped).
-- `watchlist` table — exists, but has **no** `is_template` column and no parent container → step 6 is a no-op (skipped). Per spec ("If no watchlist template exists ... skip"), this is correct behavior.
-- `holdings` has no `user_id` column (ownership is via `portfolio_id → portfolios.user_id`), so we only set `portfolio_id` on cloned rows. The spec's "user_id = target_user_id" line doesn't apply to this schema.
+A no-arg hook that returns `{ isInitializing, isInitialized }` and runs at most once per mount (guarded by a `useRef` flag).
 
-## Function: `public.clone_template_for_user(target_user_id uuid) returns boolean`
+Flow:
+1. Initial state: `{ isInitializing: true, isInitialized: false }` so the dashboard never flashes empty before we know.
+2. `supabase.auth.getUser()` — if no user, return `{ false, true }`.
+3. `select has_been_initialized from profiles where id = user.id`.
+4. If `true` → `{ false, true }`.
+5. If `false` → call `supabase.rpc('clone_template_for_user', { target_user_id: user.id })`.
+   - Success → `toast("Welcome!", { description: "We've set up a sample portfolio for you to explore. Feel free to make it your own!" })`.
+   - Error → `toast.error("Setup failed — you can add holdings manually")`. Do not block.
+6. End in `{ false, true }` regardless.
 
-Behavior, in order:
+Uses `sonner` (`import { toast } from "sonner"`), per project preference.
 
-1. **Auth guard** — if `target_user_id <> auth.uid()` → raise `exception` (users can only initialize themselves).
-2. **Already initialized?** — `SELECT has_been_initialized FROM profiles WHERE id = target_user_id`. If `true`, return `false`.
-3. **Find template** — `SELECT id FROM portfolios WHERE is_template = true LIMIT 1`. If none, set `profiles.has_been_initialized = true` for the user and return `false`.
-4. **Create new portfolio** for target user: `name = 'My Portfolio'`, `is_template = false`. Capture new id.
-5. **Clone holdings** — single `INSERT … SELECT` from template's holdings into the new portfolio, copying: `ticker, company_name, shares, avg_cost_basis, conviction_rating, thesis, target_allocation_pct, notes, date_added`. New UUID per row; `portfolio_id` = new portfolio id.
-6. **tax_lots** — skipped (table absent).
-7. **watchlist** — skipped (no template marker).
-8. **Mark initialized** — `UPDATE profiles SET has_been_initialized = true WHERE id = target_user_id`.
-9. **Return `true`**.
+## Integration: `src/pages/Dashboard.tsx`
 
-## Security
+Inside `DashboardContent({ user })` (which only mounts after auth resolves and `user` is non-null), at the top:
 
-- `SECURITY DEFINER`, `SET search_path = public`.
-- Internal `auth.uid()` check prevents one user from initializing another.
-- `GRANT EXECUTE ON FUNCTION public.clone_template_for_user(uuid) TO authenticated;`
-- `REVOKE … FROM public, anon` for safety.
+```tsx
+const { isInitializing } = useInitializeUser();
+if (isInitializing) {
+  return <InitializingOverlay />;
+}
+```
 
-## Out of scope
+Place above the existing `usePortfolioData()` etc. calls so data hooks only fire after cloning completes. Hooks order remains stable (always called before the early return).
 
-- No call site yet — wired from the app in Prompt 3.
-- No data changes; pure schema/function migration.
+Wait — to keep hooks rules safe, the early-return-before-other-hooks would change call order. Instead, render the overlay by branching the JSX, but keep all hooks called unconditionally. The data hooks will refetch naturally once the clone finishes and the component re-renders (no manual invalidation needed; the user's first render will already have the cloned rows by the time `isInitializing` flips to false on the *next* render — `usePortfolioData` runs on mount and won't re-fetch). 
+
+Solution: gate the entire `DashboardContent` body by extracting a wrapper. Add a tiny `DashboardGate` component above `DashboardContent`:
+
+```tsx
+function Dashboard() {
+  // existing auth resolution unchanged
+  return <DashboardGate user={user} onLogout={handleLogout} />;
+}
+
+function DashboardGate({ user, onLogout }) {
+  const { isInitializing } = useInitializeUser();
+  if (isInitializing) return <InitializingOverlay />;
+  return <DashboardContent user={user} onLogout={onLogout} />;
+}
+```
+
+This guarantees `usePortfolioData` first runs *after* cloning completes, so the freshly cloned holdings appear without any extra refetch logic.
+
+## InitializingOverlay (inline in Dashboard.tsx)
+
+Full-screen, themed:
+
+```tsx
+<div className="min-h-screen bg-background flex flex-col items-center justify-center gap-4">
+  <Loader2 className="h-10 w-10 animate-spin text-primary" />
+  <p className="text-foreground font-medium">Setting up your portfolio…</p>
+  <p className="text-sm text-muted-foreground">This only happens once</p>
+</div>
+```
+
+Uses `Loader2` from `lucide-react` and existing semantic tokens (`bg-background`, `text-primary`, `text-muted-foreground`) — no new design tokens.
+
+## Out of scope / non-changes
+
+- No edits to `usePortfolioData`, `HoldingsTable`, or any data-fetching hooks.
+- No changes to existing `onboarding_completed` / `OnboardingFlow` logic — independent flag.
+- No retry UI; failure leaves the user on an empty dashboard (per spec, "do not block").
