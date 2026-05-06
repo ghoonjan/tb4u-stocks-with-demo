@@ -1,37 +1,32 @@
-## Goal
+## Problem
 
-Make sure new users immediately notice that their portfolio already comes pre-populated with seeded holdings, by giving the holdings table a dedicated, attention-grabbing step at the start of the guided tour.
+In `WatchlistPanel.tsx`, rows where the target price is hit render an extra `<td>` to draw the green left accent bar:
 
-## Background
+```tsx
+{isHit && <td className="absolute left-0 top-0 bottom-0 w-[3px] bg-gain rounded-r" />}
+```
 
-The guided tour in `src/components/dashboard/OnboardingFlow.tsx` already has a `holdings` step, but its copy ("Your positions live here. Click any row for details.") is generic and doesn't tell a brand-new user that the rows they see are sample/seeded positions added for them. New users have been missing the fact that their portfolio is already populated.
+Even with `absolute` positioning, the browser still counts it as a real table cell, so every following cell (Ticker, Price, Day Chg, …) is pushed one column to the right. Non-hit rows have no extra cell and render correctly — hence the misalignment visible in the screenshot for AGG and XLP.
 
-## Changes
+## Fix
 
-### 1. `src/components/dashboard/OnboardingFlow.tsx`
+Remove the rogue `<td>` and draw the accent bar in a way that does not occupy a column:
 
-- Pass a new optional `holdingsCount` prop into `OnboardingFlow` so the tour copy can say e.g. "We've added 8 sample holdings to get you started."
-- Replace the first entry of `TOUR_STEPS` with a dedicated "seeded holdings" step:
-  - Title: "Your Starter Portfolio"
-  - Description (dynamic): "We've pre-loaded {count} sample holdings so you can explore right away. Click any row for details, or use Add Holding to make it yours."
-  - Same selector (`[data-tour='holdings']`) so it reuses the existing anchor on the dashboard.
-- Make this step visually louder than the others by adding a `pulse-ring` set of classes (existing ring + `animate-pulse` and a slightly thicker `ring-4`) only for this first step, so new users can't miss the highlighted area.
-- Keep the remaining tour steps (sidebar, macro, header, watchlist) unchanged and in the same order.
-- Ensure the tour can start at this step even when the user skipped the welcome/holdings/preferences setup, so seeded users still see it.
+- Move the accent into the first real cell (Ticker) as an absolutely-positioned `<div>`, or
+- Apply it on the `<tr>` via a `border-l-2 border-gain` style when `isHit`.
 
-### 2. `src/pages/Dashboard.tsx`
+Preferred approach: put a `<div className="absolute left-0 top-0 bottom-0 w-[3px] bg-gain rounded-r" />` inside the existing first `<td>` (which already gets `relative` positioning implicitly via the row, so add `relative` to that `<td>`). This preserves the exact visual without altering table layout.
 
-- Pass `holdingsCount={portfolio.holdings.length}` into `<OnboardingFlow />` so the new copy can render the actual number.
-- No layout changes; the existing `data-tour="holdings"` anchor is reused.
+## Change scope
 
-## Out of scope
+- File: `src/components/dashboard/WatchlistPanel.tsx`
+  - Delete the standalone `{isHit && <td …/>}` line.
+  - Add `relative` to the first `<td>` (Ticker cell).
+  - Inside that `<td>`, conditionally render the accent `<div>` when `isHit`.
 
-- No database, RPC, or seeding changes — this only adjusts the tour UI.
-- No changes to the watchlist, sidebar, or other tour steps.
-- No new dependencies.
+No other files, styles, or logic change. No DB or API changes.
 
 ## Verification
 
-- Brand-new user: completes signup, sees the dashboard with seeded holdings, and the first tour tooltip points at the holdings table with the new "Your Starter Portfolio" copy and pulsing highlight.
-- Existing user replaying the tour: same first step appears with the correct count.
-- User with zero holdings (edge case): copy gracefully falls back to a non-numeric phrasing ("Your holdings will appear here…") instead of "0 sample holdings".
+- Hit rows (AGG, XLP) show the green left bar with Ticker / Price / Day Chg / Target / Distance / 52W / P/E / Yield in the same columns as non-hit rows (SDY, VPU).
+- Hover, expand-on-click, sorting, and the "X targets hit!" pill continue to work.

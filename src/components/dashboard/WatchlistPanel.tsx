@@ -310,8 +310,8 @@ export function WatchlistPanel({ items, quotes, financialsMap, loading, onAdd, o
                         onClick={() => setExpandedId(isExpanded ? null : w.id)}
                         className={`group border-t border-border/50 cursor-pointer transition-colors hover:bg-secondary/50 relative ${isHit ? "bg-gain/5" : ""}`}
                       >
-                        {isHit && <td className="absolute left-0 top-0 bottom-0 w-[3px] bg-gain rounded-r" />}
-                        <td className="py-2.5 px-4">
+                        <td className="py-2.5 px-4 relative">
+                          {isHit && <div className="absolute left-0 top-0 bottom-0 w-[3px] bg-gain rounded-r" />}
                           <div className="flex items-center gap-1.5">
                             {isHit && <Target size={12} className="text-gain shrink-0" />}
                             <div>
