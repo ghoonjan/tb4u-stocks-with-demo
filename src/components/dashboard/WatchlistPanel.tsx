@@ -274,22 +274,33 @@ export function WatchlistPanel({ items, quotes, financialsMap, loading, onAdd, o
           <EmptyWatchlist onAdd={onAdd} />
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[900px]">
+            <table className="w-full min-w-[900px] table-fixed">
+              <colgroup>
+                <col style={{ width: 130 }} />
+                <col style={{ width: 80 }} />
+                <col style={{ width: 110 }} />
+                <col style={{ width: 90 }} />
+                <col style={{ width: 110 }} />
+                <col style={{ width: 80 }} />
+                <col style={{ width: 60 }} />
+                <col style={{ width: 60 }} />
+                <col style={{ width: 90 }} />
+              </colgroup>
               <thead>
                 <tr className="border-t border-border">
-                  <th className="py-2 px-4 text-left w-[130px]"><SortHeader label="Ticker" sortKey="ticker" currentSort={sortKey} currentDir={sortDir} onSort={handleSort} /></th>
-                  <th className="py-2 px-3 text-right w-[80px]"><SortHeader label="Price" sortKey="currentPrice" currentSort={sortKey} currentDir={sortDir} onSort={handleSort} className="justify-end" /></th>
-                  <th className="py-2 px-3 text-right w-[110px]"><SortHeader label="Day Chg" sortKey="dayChange" currentSort={sortKey} currentDir={sortDir} onSort={handleSort} className="justify-end" /></th>
-                  <th className="py-2 px-3 text-right w-[90px]">
+                  <th className="py-2 px-4 text-left"><SortHeader label="Ticker" sortKey="ticker" currentSort={sortKey} currentDir={sortDir} onSort={handleSort} /></th>
+                  <th className="py-2 px-3 text-right"><SortHeader label="Price" sortKey="currentPrice" currentSort={sortKey} currentDir={sortDir} onSort={handleSort} className="justify-end" /></th>
+                  <th className="py-2 px-3 text-right"><SortHeader label="Day Chg" sortKey="dayChange" currentSort={sortKey} currentDir={sortDir} onSort={handleSort} className="justify-end" /></th>
+                  <th className="py-2 px-3 text-right">
                     <span className="text-[11px] font-semibold uppercase tracking-[0.05em] text-muted-foreground">Target</span>
                   </th>
-                  <th className="py-2 px-3 text-right w-[110px]"><SortHeader label="Distance" sortKey="distanceToTarget" currentSort={sortKey} currentDir={sortDir} onSort={handleSort} className="justify-end" /></th>
-                  <th className="py-2 px-3 text-right w-[80px]">
+                  <th className="py-2 px-3 text-right"><SortHeader label="Distance" sortKey="distanceToTarget" currentSort={sortKey} currentDir={sortDir} onSort={handleSort} className="justify-end" /></th>
+                  <th className="py-2 px-3 text-right">
                     <span className="text-[11px] font-semibold uppercase tracking-[0.05em] text-muted-foreground">52W Range</span>
                   </th>
-                  <th className="py-2 px-3 text-right w-[60px]"><SortHeader label="P/E" sortKey="pe" currentSort={sortKey} currentDir={sortDir} onSort={handleSort} className="justify-end" /></th>
-                  <th className="py-2 px-3 text-right w-[60px]"><SortHeader label="Yield" sortKey="divYield" currentSort={sortKey} currentDir={sortDir} onSort={handleSort} className="justify-end" /></th>
-                  <th className="py-2 px-3 w-[90px]" />
+                  <th className="py-2 px-3 text-right"><SortHeader label="P/E" sortKey="pe" currentSort={sortKey} currentDir={sortDir} onSort={handleSort} className="justify-end" /></th>
+                  <th className="py-2 px-3 text-right"><SortHeader label="Yield" sortKey="divYield" currentSort={sortKey} currentDir={sortDir} onSort={handleSort} className="justify-end" /></th>
+                  <th className="py-2 px-3" />
                 </tr>
               </thead>
               <tbody>
