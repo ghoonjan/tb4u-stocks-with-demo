@@ -284,6 +284,7 @@ function DashboardContent({ user, onLogout }: { user: AuthenticatedUser; onLogou
       <OnboardingFlow
         open={showOnboarding}
         portfolioId={portfolio.portfolioId ?? ""}
+        holdingsCount={portfolio.holdings.length}
         onComplete={() => { setShowOnboarding(false); portfolio.refetch(); }}
       />
 
