@@ -521,8 +521,8 @@ export function OnboardingFlow({ open, portfolioId, holdingsCount = 0, onComplet
   if (step === "tour") {
     return (
       <TourStep
-        step={TOUR_STEPS[tourIndex]}
-        total={TOUR_STEPS.length}
+        step={tourSteps[tourIndex]}
+        total={tourSteps.length}
         current={tourIndex}
         onNext={() => setTourIndex((i) => i + 1)}
         onSkip={finish}
