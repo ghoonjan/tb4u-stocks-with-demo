@@ -20,6 +20,7 @@ interface AddedHolding {
 interface OnboardingFlowProps {
   open: boolean;
   portfolioId: string;
+  holdingsCount?: number;
   onComplete: () => void;
 }
 
