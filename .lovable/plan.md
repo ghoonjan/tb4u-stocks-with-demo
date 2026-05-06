@@ -1,51 +1,37 @@
-## Plan
+## Goal
 
-I traced the issue to two backend/data-flow bugs that combine into the behavior you’re seeing:
+Make sure new users immediately notice that their portfolio already comes pre-populated with seeded holdings, by giving the holdings table a dedicated, attention-grabbing step at the start of the guided tour.
 
-1. `clone_template_for_user` now filters templates with `public.is_super_admin(p.user_id)`.
-   After the recent security hardening, `has_role/is_super_admin` intentionally returns `false` when a normal user checks another user’s role. That means a brand-new user can no longer resolve the super-admin-owned template portfolio inside this function, so the function copies the watchlist, marks the user initialized, but skips holdings.
+## Background
 
-2. Even if template lookup succeeds, the RPC currently creates a second `My Portfolio` for the new user. The dashboard then loads `portfolios ... limit(1)` with no ordering/filter, so it can bind to the wrong portfolio.
+The guided tour in `src/components/dashboard/OnboardingFlow.tsx` already has a `holdings` step, but its copy ("Your positions live here. Click any row for details.") is generic and doesn't tell a brand-new user that the rows they see are sample/seeded positions added for them. New users have been missing the fact that their portfolio is already populated.
 
-## What I’ll change
+## Changes
 
-### 1. Fix template cloning at the backend
-Create a migration that updates `clone_template_for_user` to:
-- resolve the active template using an internal server-side check that is not blocked by caller-scoped role restrictions
-- clone holdings into the user’s existing non-template portfolio instead of creating a duplicate portfolio
-- only create a portfolio if the user truly has none
-- keep the watchlist seeding and initialization flag behavior
-- stay idempotent so the function won’t duplicate holdings if retried
+### 1. `src/components/dashboard/OnboardingFlow.tsx`
 
-### 2. Repair already affected users
-Add a data backfill in the same migration to repair users already hit by this bug by:
-- finding initialized, non-admin users whose portfolio is empty even though the active template has holdings
-- copying the current template holdings into their existing non-template portfolio
-- avoiding duplicate inserts for users who already have holdings
+- Pass a new optional `holdingsCount` prop into `OnboardingFlow` so the tour copy can say e.g. "We've added 8 sample holdings to get you started."
+- Replace the first entry of `TOUR_STEPS` with a dedicated "seeded holdings" step:
+  - Title: "Your Starter Portfolio"
+  - Description (dynamic): "We've pre-loaded {count} sample holdings so you can explore right away. Click any row for details, or use Add Holding to make it yours."
+  - Same selector (`[data-tour='holdings']`) so it reuses the existing anchor on the dashboard.
+- Make this step visually louder than the others by adding a `pulse-ring` set of classes (existing ring + `animate-pulse` and a slightly thicker `ring-4`) only for this first step, so new users can't miss the highlighted area.
+- Keep the remaining tour steps (sidebar, macro, header, watchlist) unchanged and in the same order.
+- Ensure the tour can start at this step even when the user skipped the welcome/holdings/preferences setup, so seeded users still see it.
 
-### 3. Make dashboard portfolio selection deterministic
-Update the client portfolio loader so it:
-- always selects a non-template portfolio for the signed-in user
-- uses a deterministic order instead of bare `limit(1)`
-- never accidentally points admins at the template portfolio
+### 2. `src/pages/Dashboard.tsx`
 
-### 4. Harden the guided onboarding path
-Tighten the onboarding flow so it:
-- fails clearly if a portfolio id is missing instead of silently doing nothing
-- writes manual onboarding holdings into the same canonical portfolio the dashboard is using
-- refreshes consistently after onboarding completion
+- Pass `holdingsCount={portfolio.holdings.length}` into `<OnboardingFlow />` so the new copy can render the actual number.
+- No layout changes; the existing `data-tour="holdings"` anchor is reused.
 
-### 5. Verify the full first-time-user flow
-After implementation, I’ll validate these cases:
-- brand-new user lands with seeded watchlist and seeded holdings
-- guided onboarding still works when the user adds their own holdings
-- existing broken test users get repaired
-- super admin template management still behaves correctly
+## Out of scope
 
-## Technical details
-- Files likely involved:
-  - `supabase/migrations/...sql`
-  - `src/hooks/usePortfolioData.ts`
-  - `src/components/dashboard/OnboardingFlow.tsx`
-- No auth-model change is needed.
-- The active template currently exists and has holdings; the issue is lookup/assignment, not missing template data.
+- No database, RPC, or seeding changes — this only adjusts the tour UI.
+- No changes to the watchlist, sidebar, or other tour steps.
+- No new dependencies.
+
+## Verification
+
+- Brand-new user: completes signup, sees the dashboard with seeded holdings, and the first tour tooltip points at the holdings table with the new "Your Starter Portfolio" copy and pulsing highlight.
+- Existing user replaying the tour: same first step appears with the correct count.
+- User with zero holdings (edge case): copy gracefully falls back to a non-numeric phrasing ("Your holdings will appear here…") instead of "0 sample holdings".
