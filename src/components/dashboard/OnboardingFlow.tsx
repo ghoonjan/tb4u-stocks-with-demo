@@ -443,11 +443,12 @@ function TourStep({ step, total, current, onNext, onSkip, onFinish }: {
 }
 
 // ─── Main Onboarding Flow ────────────────────────────────────────
-export function OnboardingFlow({ open, portfolioId, onComplete }: OnboardingFlowProps) {
+export function OnboardingFlow({ open, portfolioId, holdingsCount = 0, onComplete }: OnboardingFlowProps) {
   const [step, setStep] = useState<Step>("welcome");
   const [holdings, setHoldings] = useState<AddedHolding[]>([]);
   const [saving, setSaving] = useState(false);
   const [tourIndex, setTourIndex] = useState(0);
+  const tourSteps = buildTourSteps(holdingsCount);
 
   const finish = useCallback(async () => {
     const { data: { session } } = await supabase.auth.getSession();
