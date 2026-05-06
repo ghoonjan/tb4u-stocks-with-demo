@@ -359,16 +359,23 @@ function ConvictionInput({ value, onChange }: { value: number; onChange: (v: num
 }
 
 // ─── Step 4: Tour ────────────────────────────────────────────────
-const TOUR_STEPS = [
-  { selector: "[data-tour='holdings']", title: "Your Holdings", description: "Your positions live here. Click any row for details." },
-  { selector: "[data-tour='sidebar']", title: "Intelligence Hub", description: "News, events, and analytics — all in one place." },
-  { selector: "[data-tour='macro']", title: "Market Pulse", description: "Market pulse at a glance — S&P 500, DXY, FOMC dates." },
-  { selector: "[data-tour='header']", title: "Portfolio Performance", description: "Your real-time P&L and performance metrics." },
-  { selector: "[data-tour='watchlist']", title: "Watchlist", description: "Track stocks you're considering before buying." },
-];
+type TourStepDef = { selector: string; title: string; description: string; emphasize?: boolean };
+
+function buildTourSteps(holdingsCount: number): TourStepDef[] {
+  const seededDescription = holdingsCount > 0
+    ? `We've pre-loaded ${holdingsCount} sample holding${holdingsCount === 1 ? "" : "s"} so you can explore right away. Click any row for details, or use Add Holding to make it yours.`
+    : "Your holdings will appear here. Use Add Holding to start tracking your positions.";
+  return [
+    { selector: "[data-tour='holdings']", title: "Your Starter Portfolio", description: seededDescription, emphasize: true },
+    { selector: "[data-tour='sidebar']", title: "Intelligence Hub", description: "News, events, and analytics — all in one place." },
+    { selector: "[data-tour='macro']", title: "Market Pulse", description: "Market pulse at a glance — S&P 500, DXY, FOMC dates." },
+    { selector: "[data-tour='header']", title: "Portfolio Performance", description: "Your real-time P&L and performance metrics." },
+    { selector: "[data-tour='watchlist']", title: "Watchlist", description: "Track stocks you're considering before buying." },
+  ];
+}
 
 function TourStep({ step, total, current, onNext, onSkip, onFinish }: {
-  step: typeof TOUR_STEPS[0];
+  step: TourStepDef;
   total: number;
   current: number;
   onNext: () => void;
@@ -382,16 +389,20 @@ function TourStep({ step, total, current, onNext, onSkip, onFinish }: {
     const el = document.querySelector(step.selector);
     if (el) {
       const rect = el.getBoundingClientRect();
-      el.classList.add("ring-2", "ring-primary", "ring-offset-2", "ring-offset-background", "relative", "z-[60]");
+      const ringClasses = step.emphasize
+        ? ["ring-4", "ring-primary", "ring-offset-2", "ring-offset-background", "relative", "z-[60]", "animate-pulse", "rounded-lg"]
+        : ["ring-2", "ring-primary", "ring-offset-2", "ring-offset-background", "relative", "z-[60]"];
+      el.classList.add(...ringClasses);
+      el.scrollIntoView({ behavior: "smooth", block: "center" });
       setPos({
         top: Math.min(rect.bottom + 12, window.innerHeight - 180),
         left: Math.max(16, Math.min(rect.left, window.innerWidth - 340)),
       });
       return () => {
-        el.classList.remove("ring-2", "ring-primary", "ring-offset-2", "ring-offset-background", "relative", "z-[60]");
+        el.classList.remove(...ringClasses);
       };
     }
-  }, [step.selector]);
+  }, [step.selector, step.emphasize]);
 
   return (
     <>
