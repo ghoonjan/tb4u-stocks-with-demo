@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Plus, Pencil, Trash2, Check, X } from "lucide-react";
+import { Plus, Pencil, Trash2, Check, X, DollarSign } from "lucide-react";
 import { useTaxLots, type TaxLot } from "@/hooks/useTaxLots";
 import { ConfirmDialog } from "./ConfirmDialog";
 
@@ -7,6 +7,8 @@ interface TaxLotsPanelProps {
   holdingId: string;
   ticker: string;
   currentPrice: number;
+  /** Called when all lots are depleted and the user confirms removal. */
+  onRequestRemoveHolding?: () => void;
 }
 
 interface LotFormState {
