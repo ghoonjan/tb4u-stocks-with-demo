@@ -205,6 +205,7 @@ export function HoldingDetailCard({ holding, onEdit, onDelete, onLogTrade }: Hol
           <ActionBtn icon={Trash2} label="Remove" onClick={onDelete} destructive />
         </div>
       </div>
+      </div>
 
       <div className="px-3 sm:px-5 pb-4">
         <TaxLotsPanel holdingId={holding.id} ticker={holding.ticker} currentPrice={holding.currentPrice} />
