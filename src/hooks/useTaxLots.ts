@@ -136,5 +136,77 @@ export function useTaxLots(holdingId: string | null) {
     [afterMutation],
   );
 
-  return { lots, isLoading, addLot, updateLot, deleteLot, refetch: fetchLots };
+  /**
+   * Sell `sharesSold` shares from a specific lot at `salePrice`. Reduces the lot's
+   * shares_remaining, recalculates the parent holding, optionally writes a
+   * trade_journal entry, and returns realized P/L plus a flag indicating whether
+   * the parent holding now has zero shares remaining.
+   */
+  const sellFromLot = useCallback(
+    async (
+      lot: TaxLot,
+      sharesSold: number,
+      salePrice: number,
+      opts: { ticker: string; notes?: string | null; logTrade?: boolean },
+    ): Promise<{ ok: boolean; realizedPL: number; holdingDepleted: boolean }> => {
+      const remaining = Number(lot.shares_remaining);
+      if (sharesSold <= 0 || sharesSold > remaining) {
+        toast.error("Invalid quantity", { description: `Must be between 0 and ${remaining}` });
+        return { ok: false, realizedPL: 0, holdingDepleted: false };
+      }
+      const newRemaining = remaining - sharesSold;
+      const { error: updErr } = await supabase
+        .from("tax_lots")
+        .update({ shares_remaining: newRemaining })
+        .eq("id", lot.id);
+      if (updErr) {
+        toast.error("Sell failed", { description: updErr.message });
+        return { ok: false, realizedPL: 0, holdingDepleted: false };
+      }
+
+      const realizedPL = (salePrice - Number(lot.cost_basis_per_share)) * sharesSold;
+
+      if (opts.logTrade && opts.ticker) {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          await supabase.from("trade_journal").insert({
+            user_id: user.id,
+            ticker: opts.ticker.toUpperCase(),
+            action: "SELL",
+            shares: sharesSold,
+            price_at_action: salePrice,
+            exit_reason: opts.notes ?? null,
+          });
+        }
+      }
+
+      if (holdingId) {
+        try { await recalcHolding(holdingId); }
+        catch (e) {
+          const msg = e instanceof Error ? e.message : "Recalc failed";
+          toast.error("Recalc failed", { description: msg });
+        }
+      }
+
+      const { data: allLots } = await supabase
+        .from("tax_lots")
+        .select("shares_remaining")
+        .eq("holding_id", holdingId ?? "");
+      const totalRemaining = (allLots ?? []).reduce(
+        (s, l) => s + Number(l.shares_remaining),
+        0,
+      );
+      const holdingDepleted = totalRemaining <= 0;
+
+      await fetchLots();
+
+      const plLabel = realizedPL >= 0 ? `+$${realizedPL.toFixed(2)}` : `-$${Math.abs(realizedPL).toFixed(2)}`;
+      toast.success(`Sold ${sharesSold} ${opts.ticker}`, { description: `Realized P/L: ${plLabel}` });
+
+      return { ok: true, realizedPL, holdingDepleted };
+    },
+    [holdingId, fetchLots],
+  );
+
+  return { lots, isLoading, addLot, updateLot, deleteLot, sellFromLot, refetch: fetchLots };
 }
