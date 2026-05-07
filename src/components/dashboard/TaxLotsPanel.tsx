@@ -274,6 +274,12 @@ export function TaxLotsPanel({ holdingId, ticker, currentPrice, onRequestRemoveH
                     </td>
                     <td className="py-2 text-right">
                       <div className="inline-flex gap-1">
+                        {sharesRem > 0 && (
+                          <button onClick={() => startSell(lot)} title="Sell shares from this lot"
+                            className="rounded-md p-1.5 text-muted-foreground hover:bg-emerald-500/10 hover:text-emerald-500 transition-colors">
+                            <DollarSign size={14} />
+                          </button>
+                        )}
                         <button onClick={() => startEdit(lot)} title="Edit"
                           className="rounded-md p-1.5 text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors">
                           <Pencil size={14} />
