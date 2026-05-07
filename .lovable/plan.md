@@ -1,32 +1,34 @@
-## Prompt 2: Backfill existing holdings into `tax_lots`
+## Prompt 3: `useTaxLots` data hook
 
-### Migration
+Create `src/hooks/useTaxLots.ts` exporting `useTaxLots(holdingId)` and a `recalcHolding(holdingId)` helper.
 
-One idempotent migration that inserts a single tax lot per existing holding, only where no lot already exists for that holding (so re-running is safe and it won't duplicate the lots created in testing).
+### Behavior
 
-```sql
-insert into public.tax_lots (
-  holding_id, shares, shares_remaining, cost_basis_per_share, purchased_at
-)
-select
-  h.id,
-  h.shares,
-  h.shares,
-  h.avg_cost_basis,
-  h.date_added::date
-from public.holdings h
-where not exists (
-  select 1 from public.tax_lots tl where tl.holding_id = h.id
-);
-```
+- Fetches `tax_lots` for the given `holding_id`, ordered by `purchased_at` ascending. Returns `{ lots, isLoading, addLot, updateLot, deleteLot, refetch }`.
+- `addLot({ shares, cost_basis_per_share, purchased_at, notes? })` inserts with `shares_remaining = shares`.
+- `updateLot(id, partial)` updates the given fields (allows editing `shares`, `cost_basis_per_share`, `purchased_at`, `notes`, and optionally `shares_remaining`).
+- `deleteLot(id)` deletes the lot.
+- After every mutation: call `recalcHolding(holdingId)`, then refetch lots.
+- Uses `sonner` toasts on success/error (matches project convention — see Portfolio Management memory).
 
-### Notes
+### `recalcHolding(holdingId)`
 
-- `purchased_at` is a `date`, while `holdings.date_added` is `timestamptz` — cast with `::date`.
-- The `where not exists` guard makes this safe even if some holdings already have lots from your manual testing of Prompt 1.
-- `shares_remaining` is set explicitly to `shares` (matches the trigger's default behavior).
-- The `tax_lots_validate` trigger will run on each insert; all values come from existing holdings so they should pass (`shares > 0`, `cost_basis > 0`, `purchased_at <= today`). If any historical holding has bad data (e.g. zero shares), that row would fail — let me know if you want me to skip such rows defensively.
+Pure helper, also exported so other code (e.g. future tests) can reuse it.
 
-### Scope
+1. Select `shares_remaining, cost_basis_per_share, purchased_at` for all lots of the holding.
+2. If no lots: return early (do not zero out the holding — avoids corrupting data if all lots are deleted in flight).
+3. Compute:
+   - `shares = SUM(shares_remaining)`
+   - `avg_cost_basis = SUM(shares_remaining * cost_basis_per_share) / SUM(shares_remaining)` (guard divide-by-zero)
+   - `date_added = MIN(purchased_at)` converted to ISO timestamp (holdings.date_added is `timestamptz`; tax_lots.purchased_at is `date`)
+4. `update` the `holdings` row.
 
-Migration-only. No app code, no UI changes. After approval I'll apply it and you can verify with a quick count of `tax_lots` vs `holdings`.
+### Notes / deviations
+
+- I'll early-return on zero lots rather than wiping the holding to 0 shares. If you'd prefer wiping, say so.
+- This hook is the data layer only — no UI yet (that's Prompt 4+).
+- No changes to `usePortfolioData`. The realtime subscription on `holdings` will pick up the recalculated values automatically.
+
+### Files
+
+- **New:** `src/hooks/useTaxLots.ts`
