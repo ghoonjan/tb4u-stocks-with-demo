@@ -100,6 +100,43 @@ export function TaxLotsPanel({ holdingId, ticker, currentPrice, onRequestRemoveH
     setDeleteTarget(null);
   };
 
+  const startSell = (lot: TaxLot) => {
+    setSellTarget(lot);
+    setSellShares(String(Number(lot.shares_remaining)));
+    setSellPrice(currentPrice > 0 ? currentPrice.toFixed(2) : "");
+    setSellNotes("");
+    setSellLogTrade(true);
+  };
+
+  const cancelSell = () => {
+    setSellTarget(null);
+    setSellShares("");
+    setSellPrice("");
+    setSellNotes("");
+  };
+
+  const handleSell = async () => {
+    if (!sellTarget) return;
+    const qty = parseFloat(sellShares);
+    const price = parseFloat(sellPrice);
+    if (!qty || qty <= 0 || qty > Number(sellTarget.shares_remaining)) return;
+    if (!price || price <= 0) return;
+    setSubmitting(true);
+    const result = await sellFromLot(sellTarget, qty, price, {
+      ticker, notes: sellNotes.trim() || null, logTrade: sellLogTrade,
+    });
+    setSubmitting(false);
+    if (result.ok) {
+      cancelSell();
+      if (result.holdingDepleted) setShowDepletedPrompt(true);
+    }
+  };
+
+  const handleConfirmRemoveHolding = () => {
+    setShowDepletedPrompt(false);
+    onRequestRemoveHolding?.();
+  };
+
   // Aggregates use shares_remaining
   const totals = lots.reduce(
     (acc, l) => {
