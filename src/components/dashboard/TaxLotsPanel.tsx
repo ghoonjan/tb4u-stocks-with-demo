@@ -41,13 +41,19 @@ const daysBetween = (iso: string) => {
   return Math.max(0, Math.floor(ms / (1000 * 60 * 60 * 24)));
 };
 
-export function TaxLotsPanel({ holdingId, ticker, currentPrice }: TaxLotsPanelProps) {
-  const { lots, isLoading, addLot, updateLot, deleteLot } = useTaxLots(holdingId);
+export function TaxLotsPanel({ holdingId, ticker, currentPrice, onRequestRemoveHolding }: TaxLotsPanelProps) {
+  const { lots, isLoading, addLot, updateLot, deleteLot, sellFromLot } = useTaxLots(holdingId);
   const [showAdd, setShowAdd] = useState(false);
   const [addForm, setAddForm] = useState<LotFormState>(emptyForm);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState<LotFormState>(emptyForm);
   const [deleteTarget, setDeleteTarget] = useState<TaxLot | null>(null);
+  const [sellTarget, setSellTarget] = useState<TaxLot | null>(null);
+  const [sellShares, setSellShares] = useState("");
+  const [sellPrice, setSellPrice] = useState("");
+  const [sellNotes, setSellNotes] = useState("");
+  const [sellLogTrade, setSellLogTrade] = useState(true);
+  const [showDepletedPrompt, setShowDepletedPrompt] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
   const parseForm = (f: LotFormState) => ({
