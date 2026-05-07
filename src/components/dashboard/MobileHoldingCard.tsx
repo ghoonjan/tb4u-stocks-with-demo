@@ -101,7 +101,7 @@ export const MobileHoldingCard = memo(function MobileHoldingCard({
       </div>
 
       {/* Expanded detail */}
-      <div className={`overflow-hidden transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] ${expanded ? "max-h-[500px] opacity-100" : "max-h-0 opacity-0"}`}>
+      <div className={`overflow-hidden transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] ${expanded ? "max-h-[2400px] opacity-100" : "max-h-0 opacity-0"}`}>
         {expanded && (
           <Suspense fallback={<div className="flex items-center justify-center py-8"><Loader2 size={18} className="animate-spin text-muted-foreground" /></div>}>
             <HoldingDetailCard holding={h} onEdit={onEdit} onDelete={onDelete} onLogTrade={onLogTrade} />
