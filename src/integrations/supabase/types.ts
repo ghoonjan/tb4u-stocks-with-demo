@@ -235,6 +235,47 @@ export type Database = {
         }
         Relationships: []
       }
+      tax_lots: {
+        Row: {
+          cost_basis_per_share: number
+          created_at: string
+          holding_id: string
+          id: string
+          notes: string | null
+          purchased_at: string
+          shares: number
+          shares_remaining: number
+        }
+        Insert: {
+          cost_basis_per_share: number
+          created_at?: string
+          holding_id: string
+          id?: string
+          notes?: string | null
+          purchased_at: string
+          shares: number
+          shares_remaining: number
+        }
+        Update: {
+          cost_basis_per_share?: number
+          created_at?: string
+          holding_id?: string
+          id?: string
+          notes?: string | null
+          purchased_at?: string
+          shares?: number
+          shares_remaining?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tax_lots_holding_id_fkey"
+            columns: ["holding_id"]
+            isOneToOne: false
+            referencedRelation: "holdings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       trade_journal: {
         Row: {
           action: string
