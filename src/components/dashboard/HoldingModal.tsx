@@ -154,14 +154,28 @@ export function HoldingModal({ open, onClose, onSubmit, initial }: HoldingModalP
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="mb-1 block text-xs font-medium text-muted-foreground">Shares</label>
-              <input type="number" step="any" value={shares} onChange={(e) => setShares(e.target.value)} className={inputClass} placeholder="100" required min="0.0001" />
+              <input
+                type="number" step="any" value={shares}
+                onChange={(e) => setShares(e.target.value)}
+                className={`${inputClass} ${initial ? "opacity-60 cursor-not-allowed" : ""}`}
+                placeholder="100" required={!initial} min="0.0001"
+                readOnly={!!initial} disabled={!!initial}
+              />
+              {initial && <p className="mt-1 text-[11px] text-muted-foreground">Calculated from lots</p>}
             </div>
             <div>
               <label className="mb-1 block text-xs font-medium text-muted-foreground">Avg Cost / Share</label>
               <div className="relative">
                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">$</span>
-                <input type="number" step="any" value={avgCost} onChange={(e) => setAvgCost(e.target.value)} className={`${inputClass} pl-7`} placeholder="150.00" required min="0.01" />
+                <input
+                  type="number" step="any" value={avgCost}
+                  onChange={(e) => setAvgCost(e.target.value)}
+                  className={`${inputClass} pl-7 ${initial ? "opacity-60 cursor-not-allowed" : ""}`}
+                  placeholder="150.00" required={!initial} min="0.01"
+                  readOnly={!!initial} disabled={!!initial}
+                />
               </div>
+              {initial && <p className="mt-1 text-[11px] text-muted-foreground">Calculated from lots</p>}
             </div>
           </div>
 
@@ -172,9 +186,12 @@ export function HoldingModal({ open, onClose, onSubmit, initial }: HoldingModalP
               value={purchaseDate}
               onChange={(e) => setPurchaseDate(e.target.value)}
               max={today}
-              required
-              className={inputClass}
+              required={!initial}
+              readOnly={!!initial}
+              disabled={!!initial}
+              className={`${inputClass} ${initial ? "opacity-60 cursor-not-allowed" : ""}`}
             />
+            {initial && <p className="mt-1 text-[11px] text-muted-foreground">Earliest lot date — edit lots to change</p>}
           </div>
 
           <div>
