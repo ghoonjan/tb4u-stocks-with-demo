@@ -206,7 +206,7 @@ export function HoldingDetailCard({ holding, onEdit, onDelete, onLogTrade }: Hol
         </div>
       </div>
 
-      <div className="lg:col-span-2 px-3 sm:px-4 pb-4">
+      <div className="px-3 sm:px-5 pb-4">
         <TaxLotsPanel holdingId={holding.id} ticker={holding.ticker} currentPrice={holding.currentPrice} />
       </div>
     </div>
