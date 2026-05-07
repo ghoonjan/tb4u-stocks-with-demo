@@ -192,31 +192,43 @@ export function usePortfolioData() {
     conviction_rating: number; thesis?: string; target_allocation_pct?: number;
     date_added: string;
   }) => {
-    if (!portfolioId) return;
-    const { error } = await supabase.from("holdings").insert({
+    if (!portfolioId) return false;
+    const { data: inserted, error } = await supabase.from("holdings").insert({
       portfolio_id: portfolioId, ticker: data.ticker.toUpperCase(),
       company_name: data.company_name, shares: data.shares,
       avg_cost_basis: data.avg_cost_basis, conviction_rating: data.conviction_rating,
       thesis: data.thesis || null, target_allocation_pct: data.target_allocation_pct || null,
       date_added: data.date_added,
+    }).select("id").single();
+    if (error || !inserted) { toast({ title: "Error", description: error?.message ?? "Insert failed", variant: "destructive" }); return false; }
+
+    // Seed initial tax lot from the holding's shares/cost/date
+    const { error: lotError } = await supabase.from("tax_lots").insert({
+      holding_id: inserted.id,
+      shares: data.shares,
+      shares_remaining: data.shares,
+      cost_basis_per_share: data.avg_cost_basis,
+      purchased_at: data.date_added.slice(0, 10),
     });
-    if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return false; }
+    if (lotError) {
+      toast({ title: "Holding added, lot failed", description: lotError.message, variant: "destructive" });
+    }
+
     await fetchData();
     toast({ title: "Holding added", description: `${data.ticker.toUpperCase()} added to portfolio.` });
     return true;
   };
 
+  // Editing a holding now only changes meta fields. Shares, avg cost, and date_added
+  // are derived from tax_lots and must not be overwritten here.
   const updateHolding = async (id: string, data: {
-    ticker: string; company_name: string; shares: number; avg_cost_basis: number;
+    ticker: string; company_name: string;
     conviction_rating: number; thesis?: string; target_allocation_pct?: number;
-    date_added: string;
   }) => {
     const { error } = await supabase.from("holdings").update({
       ticker: data.ticker.toUpperCase(), company_name: data.company_name,
-      shares: data.shares, avg_cost_basis: data.avg_cost_basis,
       conviction_rating: data.conviction_rating,
       thesis: data.thesis || null, target_allocation_pct: data.target_allocation_pct || null,
-      date_added: data.date_added,
     }).eq("id", id);
     if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return false; }
     await fetchData();
