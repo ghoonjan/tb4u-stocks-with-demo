@@ -318,6 +318,77 @@ export function TaxLotsPanel({ holdingId, ticker, currentPrice, onRequestRemoveH
         onConfirm={handleConfirmDelete}
         onCancel={() => setDeleteTarget(null)}
       />
+
+      <ConfirmDialog
+        open={showDepletedPrompt}
+        title="All shares sold"
+        message={`You have 0 shares of ${ticker} remaining across all lots. Remove this holding from your portfolio?`}
+        confirmLabel="Remove Holding"
+        destructive
+        onConfirm={handleConfirmRemoveHolding}
+        onCancel={() => setShowDepletedPrompt(false)}
+      />
+
+      {sellTarget && (() => {
+        const lotMax = Number(sellTarget.shares_remaining);
+        const qty = parseFloat(sellShares) || 0;
+        const price = parseFloat(sellPrice) || 0;
+        const previewPL = qty > 0 && price > 0
+          ? (price - Number(sellTarget.cost_basis_per_share)) * qty
+          : 0;
+        return (
+          <div className="fixed inset-0 z-50 flex items-center justify-center" role="dialog" aria-modal="true">
+            <div className="absolute inset-0 bg-black/60" onClick={cancelSell} />
+            <div className="relative w-full max-w-sm rounded-lg border border-border bg-card p-5 shadow-xl animate-in fade-in zoom-in-95 duration-200">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-sm font-semibold text-foreground">Sell from lot — {ticker}</h3>
+                <button onClick={cancelSell} className="text-muted-foreground hover:text-foreground"><X size={16} /></button>
+              </div>
+              <p className="text-[11px] text-muted-foreground mb-3">
+                Lot from {fmtDate(sellTarget.purchased_at)} · {lotMax} shares remaining · cost {fmtMoney(Number(sellTarget.cost_basis_per_share))}/sh
+              </p>
+              <div className="space-y-3">
+                <label className="flex flex-col gap-1">
+                  <span className="text-[11px] text-muted-foreground">Shares to sell (max {lotMax})</span>
+                  <input type="number" step="0.0001" min="0" max={lotMax} value={sellShares}
+                    onChange={(e) => setSellShares(e.target.value)}
+                    className="rounded-md border border-border bg-background px-2 py-1.5 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-primary" />
+                </label>
+                <label className="flex flex-col gap-1">
+                  <span className="text-[11px] text-muted-foreground">Sale price per share</span>
+                  <input type="number" step="0.01" min="0" value={sellPrice}
+                    onChange={(e) => setSellPrice(e.target.value)}
+                    className="rounded-md border border-border bg-background px-2 py-1.5 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-primary" />
+                </label>
+                <label className="flex flex-col gap-1">
+                  <span className="text-[11px] text-muted-foreground">Notes (optional)</span>
+                  <input type="text" value={sellNotes} onChange={(e) => setSellNotes(e.target.value)}
+                    className="rounded-md border border-border bg-background px-2 py-1.5 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-primary" />
+                </label>
+                <label className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <input type="checkbox" checked={sellLogTrade} onChange={(e) => setSellLogTrade(e.target.checked)} />
+                  Log as trade in Trade Journal
+                </label>
+                {qty > 0 && price > 0 && (
+                  <div className={`rounded-md border border-border bg-secondary/30 px-3 py-2 text-xs ${previewPL >= 0 ? "text-emerald-500" : "text-red-500"}`}>
+                    Realized P/L: <span className="font-semibold">{fmtMoney(previewPL)}</span>
+                  </div>
+                )}
+              </div>
+              <div className="flex gap-2 mt-5">
+                <button onClick={handleSell} disabled={submitting || !qty || qty > lotMax || !price}
+                  className="flex-1 rounded-md bg-primary px-3 py-2 text-xs font-medium text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50">
+                  Sell Shares
+                </button>
+                <button onClick={cancelSell}
+                  className="rounded-md border border-border px-3 py-2 text-xs text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors">
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 }
