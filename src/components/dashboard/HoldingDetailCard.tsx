@@ -4,6 +4,7 @@ import { Pencil, BookOpen, Bell, Trash2, ExternalLink, Loader2, Shield, CheckCir
 import type { HoldingDisplay } from "@/hooks/usePortfolioData";
 import { getCandles, getCompanyNews, getBasicFinancials, getCompanyProfile, type NewsArticle, type BasicFinancials, type CompanyProfile } from "@/services/marketData";
 import { calcDivSafety, DivSafetyBadge } from "@/components/dashboard/DivSafety";
+import { TaxLotsPanel } from "@/components/dashboard/TaxLotsPanel";
 
 type TimeRange = "1D" | "1W" | "1M" | "3M" | "1Y";
 const RANGES: TimeRange[] = ["1D", "1W", "1M", "3M", "1Y"];
