@@ -218,7 +218,7 @@ const HoldingRow = memo(function HoldingRow({
       </tr>
       <tr>
         <td colSpan={12} className="p-0">
-          <div className={`overflow-hidden transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] ${isExpanded ? "max-h-[400px] opacity-100" : "max-h-0 opacity-0"}`}>
+          <div className={`overflow-hidden transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] ${isExpanded ? "max-h-[2000px] opacity-100" : "max-h-0 opacity-0"}`}>
             {isExpanded && (
               <Suspense fallback={<div className="flex items-center justify-center py-8"><Loader2 size={18} className="animate-spin text-muted-foreground" /><span className="ml-2 text-xs text-muted-foreground">Loading chart data…</span></div>}>
                 <HoldingDetailCard holding={h} onEdit={onEdit} onDelete={onDelete} onLogTrade={onLogTrade} />

@@ -4,6 +4,7 @@ import { Pencil, BookOpen, Bell, Trash2, ExternalLink, Loader2, Shield, CheckCir
 import type { HoldingDisplay } from "@/hooks/usePortfolioData";
 import { getCandles, getCompanyNews, getBasicFinancials, getCompanyProfile, type NewsArticle, type BasicFinancials, type CompanyProfile } from "@/services/marketData";
 import { calcDivSafety, DivSafetyBadge } from "@/components/dashboard/DivSafety";
+import { TaxLotsPanel } from "@/components/dashboard/TaxLotsPanel";
 
 type TimeRange = "1D" | "1W" | "1M" | "3M" | "1Y";
 const RANGES: TimeRange[] = ["1D", "1W", "1M", "3M", "1Y"];
@@ -88,10 +89,11 @@ export function HoldingDetailCard({ holding, onEdit, onDelete, onLogTrade }: Hol
   const w52Pct = w52Range > 0 ? ((holding.currentPrice - w52Low) / w52Range) * 100 : 50;
 
   return (
-    <div className="flex flex-col sm:flex-row gap-4 px-3 sm:px-5 py-4 bg-secondary/20 border-b border-border" onClick={(e) => e.stopPropagation()}>
-      {/* Chart */}
-      <div className="sm:flex-1 min-w-0">
-        <div className="flex items-center gap-1 mb-2">
+    <div className="bg-secondary/20 border-b border-border" onClick={(e) => e.stopPropagation()}>
+      <div className="flex flex-col sm:flex-row gap-4 px-3 sm:px-5 py-4">
+        {/* Chart */}
+        <div className="sm:flex-1 min-w-0">
+          <div className="flex items-center gap-1 mb-2">
           {RANGES.map((r) => (
             <button
               key={r}
@@ -202,6 +204,11 @@ export function HoldingDetailCard({ holding, onEdit, onDelete, onLogTrade }: Hol
           <ActionBtn icon={Bell} label="Alert" onClick={() => {}} />
           <ActionBtn icon={Trash2} label="Remove" onClick={onDelete} destructive />
         </div>
+      </div>
+      </div>
+
+      <div className="px-3 sm:px-5 pb-4">
+        <TaxLotsPanel holdingId={holding.id} ticker={holding.ticker} currentPrice={holding.currentPrice} />
       </div>
     </div>
   );
