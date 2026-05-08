@@ -122,18 +122,18 @@ export function HoldingModal({ open, onClose, onSubmit, initial, existingTickers
   const inputClass = "w-full rounded-md border border-border bg-secondary px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary";
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center" role="dialog" aria-modal="true" aria-label={initial ? "Edit Holding" : "Add Holding"}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center" role="dialog" aria-modal="true" aria-label={initial ? "Edit Holding" : isAddingLot ? `Add Lot to ${tickerUpper}` : "Add Holding"}>
       <div className="absolute inset-0 bg-black/60" onClick={onClose} />
       <div className="relative w-full max-w-md rounded-lg border border-border bg-card p-6 shadow-xl animate-in fade-in zoom-in-95 duration-200">
         <div className="flex items-center justify-between mb-5">
           <h2 className="text-base font-semibold text-foreground">
-            {initial ? "Edit Holding" : "Add Holding"}
+            {initial ? "Edit Holding" : isAddingLot ? `Add Lot to ${tickerUpper}` : "Add Holding"}
           </h2>
           <button onClick={onClose} className="text-muted-foreground hover:text-foreground transition-colors" aria-label="Close"><X size={18} /></button>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="grid grid-cols-2 gap-3">
+          <div className={isAddingLot ? "" : "grid grid-cols-2 gap-3"}>
             <div>
               <label className="mb-1 block text-xs font-medium text-muted-foreground">Ticker Symbol</label>
               <div className="relative">
@@ -150,11 +150,18 @@ export function HoldingModal({ open, onClose, onSubmit, initial, existingTickers
                 {lookingUp && <Loader2 size={14} className="absolute right-2.5 top-1/2 -translate-y-1/2 animate-spin text-muted-foreground" />}
               </div>
               {tickerError && <p id="ticker-error" className="mt-1 text-[11px] text-destructive">{tickerError}</p>}
+              {isAddingLot && (
+                <p className="mt-1 text-[11px] text-primary">
+                  {tickerUpper} is already in your portfolio. This will add a new purchase lot.
+                </p>
+              )}
             </div>
-            <div>
-              <label className="mb-1 block text-xs font-medium text-muted-foreground">Company Name</label>
-              <input value={companyName} onChange={(e) => setCompanyName(e.target.value)} className={inputClass} placeholder="Apple Inc." required />
-            </div>
+            {!isAddingLot && (
+              <div>
+                <label className="mb-1 block text-xs font-medium text-muted-foreground">Company Name</label>
+                <input value={companyName} onChange={(e) => setCompanyName(e.target.value)} className={inputClass} placeholder="Apple Inc." required />
+              </div>
+            )}
           </div>
 
           <div className="grid grid-cols-2 gap-3">
@@ -170,7 +177,7 @@ export function HoldingModal({ open, onClose, onSubmit, initial, existingTickers
               {initial && <p className="mt-1 text-[11px] text-muted-foreground">Calculated from lots</p>}
             </div>
             <div>
-              <label className="mb-1 block text-xs font-medium text-muted-foreground">Avg Cost / Share</label>
+              <label className="mb-1 block text-xs font-medium text-muted-foreground">{isAddingLot ? "Cost / Share" : "Avg Cost / Share"}</label>
               <div className="relative">
                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">$</span>
                 <input
@@ -200,30 +207,34 @@ export function HoldingModal({ open, onClose, onSubmit, initial, existingTickers
             {initial && <p className="mt-1 text-[11px] text-muted-foreground">Earliest lot date — edit lots to change</p>}
           </div>
 
-          <div>
-            <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Conviction Rating</label>
-            <div className="flex gap-1" role="group" aria-label="Conviction rating">
-              {[1, 2, 3, 4, 5].map((i) => (
-                <button key={i} type="button" onClick={() => setConviction(i)} className="transition-transform hover:scale-110" aria-label={`${i} star${i !== 1 ? "s" : ""}`}>
-                  <Star size={20} className={i <= conviction ? "fill-primary text-primary" : "text-muted-foreground/30 hover:text-muted-foreground/60"} />
-                </button>
-              ))}
-            </div>
-          </div>
+          {!isAddingLot && (
+            <>
+              <div>
+                <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Conviction Rating</label>
+                <div className="flex gap-1" role="group" aria-label="Conviction rating">
+                  {[1, 2, 3, 4, 5].map((i) => (
+                    <button key={i} type="button" onClick={() => setConviction(i)} className="transition-transform hover:scale-110" aria-label={`${i} star${i !== 1 ? "s" : ""}`}>
+                      <Star size={20} className={i <= conviction ? "fill-primary text-primary" : "text-muted-foreground/30 hover:text-muted-foreground/60"} />
+                    </button>
+                  ))}
+                </div>
+              </div>
 
-          <div>
-            <label className="mb-1 block text-xs font-medium text-muted-foreground">Investment Thesis <span className="text-muted-foreground/60">(optional)</span></label>
-            <textarea value={thesis} onChange={(e) => setThesis(e.target.value)} className={`${inputClass} resize-none h-16`} placeholder="Why did you buy this? What's your edge?" />
-          </div>
+              <div>
+                <label className="mb-1 block text-xs font-medium text-muted-foreground">Investment Thesis <span className="text-muted-foreground/60">(optional)</span></label>
+                <textarea value={thesis} onChange={(e) => setThesis(e.target.value)} className={`${inputClass} resize-none h-16`} placeholder="Why did you buy this? What's your edge?" />
+              </div>
 
-          <div>
-            <label className="mb-1 block text-xs font-medium text-muted-foreground">Target Allocation % <span className="text-muted-foreground/60">(optional)</span></label>
-            <input type="number" step="any" value={targetPct} onChange={(e) => setTargetPct(e.target.value)} className={inputClass} placeholder="What % of your portfolio should this be?" min="0" max="100" />
-          </div>
+              <div>
+                <label className="mb-1 block text-xs font-medium text-muted-foreground">Target Allocation % <span className="text-muted-foreground/60">(optional)</span></label>
+                <input type="number" step="any" value={targetPct} onChange={(e) => setTargetPct(e.target.value)} className={inputClass} placeholder="What % of your portfolio should this be?" min="0" max="100" />
+              </div>
+            </>
+          )}
 
           <div className="flex gap-3 pt-2">
             <button type="submit" disabled={saving} className="flex-1 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50">
-              {saving ? "Saving..." : initial ? "Save Changes" : "Add to Portfolio"}
+              {saving ? "Saving..." : initial ? "Save Changes" : isAddingLot ? "Add Lot" : "Add to Portfolio"}
             </button>
             <button type="button" onClick={onClose} className="rounded-md border border-border px-4 py-2 text-sm text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground">
               Cancel
