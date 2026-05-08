@@ -87,7 +87,10 @@ export function useTaxLots(holdingId: string | null) {
   }, [holdingId, fetchLots]);
 
   const addLot = useCallback(
-    async (input: NewLotInput) => {
+    async (
+      input: NewLotInput,
+      opts?: { ticker?: string; logTrade?: boolean },
+    ) => {
       if (!holdingId) return false;
       const { error } = await supabase.from("tax_lots").insert({
         holding_id: holdingId,
@@ -101,6 +104,21 @@ export function useTaxLots(holdingId: string | null) {
         toast.error("Failed to add tax lot", { description: error.message });
         return false;
       }
+
+      if (opts?.logTrade && opts?.ticker) {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          await supabase.from("trade_journal").insert({
+            user_id: user.id,
+            ticker: opts.ticker.toUpperCase(),
+            action: "BUY",
+            shares: input.shares,
+            price_at_action: input.cost_basis_per_share,
+            exit_reason: input.notes ?? null,
+          });
+        }
+      }
+
       toast.success("Tax lot added");
       await afterMutation();
       return true;
