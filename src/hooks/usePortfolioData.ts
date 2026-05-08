@@ -278,6 +278,14 @@ export function usePortfolioData() {
     });
     if (lotError) {
       toast({ title: "Holding added, lot failed", description: lotError.message, variant: "destructive" });
+    } else if (userId) {
+      await supabase.from("trade_journal").insert({
+        user_id: userId,
+        ticker: tickerUpper,
+        action: "BUY",
+        shares: data.shares,
+        price_at_action: data.avg_cost_basis,
+      });
     }
 
     await fetchData();
