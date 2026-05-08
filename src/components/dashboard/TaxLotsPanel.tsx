@@ -67,7 +67,7 @@ export function TaxLotsPanel({ holdingId, ticker, currentPrice, onRequestRemoveH
     const data = parseForm(addForm);
     if (!data.shares || data.shares <= 0 || !data.cost_basis_per_share || data.cost_basis_per_share <= 0 || !data.purchased_at) return;
     setSubmitting(true);
-    const ok = await addLot(data);
+    const ok = await addLot(data, { ticker, logTrade: true });
     setSubmitting(false);
     if (ok) { setShowAdd(false); setAddForm(emptyForm()); }
   };
