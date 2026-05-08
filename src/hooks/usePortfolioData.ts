@@ -215,6 +215,16 @@ export function usePortfolioData() {
         return false;
       }
 
+      if (userId) {
+        await supabase.from("trade_journal").insert({
+          user_id: userId,
+          ticker: tickerUpper,
+          action: "BUY",
+          shares: data.shares,
+          price_at_action: data.avg_cost_basis,
+        });
+      }
+
       // Recalculate parent holding from all its lots
       const { data: lots, error: lotsErr } = await supabase
         .from("tax_lots")
