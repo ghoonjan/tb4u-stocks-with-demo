@@ -18,6 +18,7 @@ interface HoldingModalProps {
     date_added: string;
   }) => Promise<boolean | undefined>;
   initial?: HoldingDisplay | null;
+  existingTickers?: string[];
 }
 
 const todayISO = () => new Date().toISOString().slice(0, 10);
