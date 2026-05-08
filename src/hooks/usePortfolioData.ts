@@ -193,8 +193,64 @@ export function usePortfolioData() {
     date_added: string;
   }) => {
     if (!portfolioId) return false;
+    const tickerUpper = data.ticker.toUpperCase();
+    const purchasedAt = data.date_added.slice(0, 10);
+
+    // If a holding with the same ticker already exists, add a new lot to it
+    // instead of creating a duplicate holding row.
+    const existingHolding = rawHoldingsRef.current.find(
+      (h) => h.ticker.toUpperCase() === tickerUpper
+    );
+
+    if (existingHolding) {
+      const { error: lotError } = await supabase.from("tax_lots").insert({
+        holding_id: existingHolding.id,
+        shares: data.shares,
+        shares_remaining: data.shares,
+        cost_basis_per_share: data.avg_cost_basis,
+        purchased_at: purchasedAt,
+      });
+      if (lotError) {
+        toast({ title: "Error", description: lotError.message, variant: "destructive" });
+        return false;
+      }
+
+      // Recalculate parent holding from all its lots
+      const { data: lots, error: lotsErr } = await supabase
+        .from("tax_lots")
+        .select("shares_remaining, cost_basis_per_share, purchased_at")
+        .eq("holding_id", existingHolding.id);
+      if (lotsErr) {
+        toast({ title: "Error", description: lotsErr.message, variant: "destructive" });
+        return false;
+      }
+
+      const totalShares = (lots ?? []).reduce((s, l) => s + Number(l.shares_remaining), 0);
+      const totalCost = (lots ?? []).reduce(
+        (s, l) => s + Number(l.shares_remaining) * Number(l.cost_basis_per_share), 0
+      );
+      const avgCost = totalShares > 0 ? Math.round((totalCost / totalShares) * 10000) / 10000 : 0;
+      const earliest = (lots ?? [])
+        .map((l) => l.purchased_at)
+        .sort()[0] ?? purchasedAt;
+
+      const { error: updErr } = await supabase.from("holdings").update({
+        shares: totalShares,
+        avg_cost_basis: avgCost,
+        date_added: earliest,
+      }).eq("id", existingHolding.id);
+      if (updErr) {
+        toast({ title: "Error", description: updErr.message, variant: "destructive" });
+        return false;
+      }
+
+      await fetchData();
+      toast({ title: `Added new lot to ${tickerUpper}` });
+      return true;
+    }
+
     const { data: inserted, error } = await supabase.from("holdings").insert({
-      portfolio_id: portfolioId, ticker: data.ticker.toUpperCase(),
+      portfolio_id: portfolioId, ticker: tickerUpper,
       company_name: data.company_name, shares: data.shares,
       avg_cost_basis: data.avg_cost_basis, conviction_rating: data.conviction_rating,
       thesis: data.thesis || null, target_allocation_pct: data.target_allocation_pct || null,
@@ -208,14 +264,14 @@ export function usePortfolioData() {
       shares: data.shares,
       shares_remaining: data.shares,
       cost_basis_per_share: data.avg_cost_basis,
-      purchased_at: data.date_added.slice(0, 10),
+      purchased_at: purchasedAt,
     });
     if (lotError) {
       toast({ title: "Holding added, lot failed", description: lotError.message, variant: "destructive" });
     }
 
     await fetchData();
-    toast({ title: "Holding added", description: `${data.ticker.toUpperCase()} added to portfolio.` });
+    toast({ title: "Holding added", description: `${tickerUpper} added to portfolio.` });
     return true;
   };
 

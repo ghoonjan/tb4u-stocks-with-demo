@@ -1,34 +1,61 @@
-## Prompt 3: `useTaxLots` data hook
+## Goal
+Stop the "Add Holding" flow from creating duplicate holdings when the ticker already exists in the portfolio. Instead, treat it as adding another tax lot to the existing holding. Also adapt the modal UI and clean up any duplicates already in the database.
 
-Create `src/hooks/useTaxLots.ts` exporting `useTaxLots(holdingId)` and a `recalcHolding(holdingId)` helper.
+## Changes
 
-### Behavior
+### 1. `src/hooks/usePortfolioData.ts` — fix `addHolding`
+Before inserting, look up an existing holding by case-insensitive ticker match against `rawHoldingsRef.current`.
 
-- Fetches `tax_lots` for the given `holding_id`, ordered by `purchased_at` ascending. Returns `{ lots, isLoading, addLot, updateLot, deleteLot, refetch }`.
-- `addLot({ shares, cost_basis_per_share, purchased_at, notes? })` inserts with `shares_remaining = shares`.
-- `updateLot(id, partial)` updates the given fields (allows editing `shares`, `cost_basis_per_share`, `purchased_at`, `notes`, and optionally `shares_remaining`).
-- `deleteLot(id)` deletes the lot.
-- After every mutation: call `recalcHolding(holdingId)`, then refetch lots.
-- Uses `sonner` toasts on success/error (matches project convention — see Portfolio Management memory).
+- **No match** → keep current behavior (insert holding + seed initial tax lot + toast "Holding added").
+- **Match found** →
+  - Insert a new row into `tax_lots` with:
+    - `holding_id` = existing holding's id
+    - `shares`, `shares_remaining` = form `shares`
+    - `cost_basis_per_share` = form `avg_cost_basis`
+    - `purchased_at` = `data.date_added.slice(0, 10)`
+  - Re-fetch all `tax_lots` for that `holding_id`.
+  - Recalculate parent holding row:
+    - `shares` = sum of `shares_remaining`
+    - `avg_cost_basis` = `Σ(shares_remaining × cost_basis_per_share) / Σ(shares_remaining)`, rounded to 4 decimals (guard divide-by-zero)
+    - `date_added` = earliest `purchased_at`
+  - `UPDATE holdings` with those values.
+  - Toast: `Added new lot to {TICKER}`.
+  - `await fetchData()` and return `true`.
+- Errors at any step → destructive toast + return `false`.
 
-### `recalcHolding(holdingId)`
+`updateHolding`, `deleteHolding`, and the rest of the file are unchanged.
 
-Pure helper, also exported so other code (e.g. future tests) can reuse it.
+### 2. `src/components/dashboard/HoldingModal.tsx` — adapt UI when ticker exists
+Add a new optional prop `existingTickers: string[]` (uppercase set passed from parent — Dashboard already has `holdings`). Derive:
 
-1. Select `shares_remaining, cost_basis_per_share, purchased_at` for all lots of the holding.
-2. If no lots: return early (do not zero out the holding — avoids corrupting data if all lots are deleted in flight).
-3. Compute:
-   - `shares = SUM(shares_remaining)`
-   - `avg_cost_basis = SUM(shares_remaining * cost_basis_per_share) / SUM(shares_remaining)` (guard divide-by-zero)
-   - `date_added = MIN(purchased_at)` converted to ISO timestamp (holdings.date_added is `timestamptz`; tax_lots.purchased_at is `date`)
-4. `update` the `holdings` row.
+```ts
+const isAddingLot = !initial && existingTickers.includes(ticker.trim().toUpperCase()) && ticker.trim().length > 0;
+```
 
-### Notes / deviations
+When `isAddingLot` is true (and not in edit mode):
+- Modal title → `Add Lot to {TICKER}`
+- Submit button text → `Add Lot` (still `Saving...` while in flight)
+- Show an info paragraph below the ticker input: `{TICKER} is already in your portfolio. This will add a new purchase lot.`
+- Hide the Conviction Rating, Investment Thesis, and Target Allocation % fields (skip rendering). Company Name field stays — it's needed only by the new-holding branch and is harmless when ignored by the lot branch; but to keep the form tidy we'll also hide Company Name when `isAddingLot` (the existing holding already has it; submit will pass the empty string, which `addHolding` ignores in the lot branch).
+- Keep visible: Ticker, Shares, Avg Cost / Share, Purchase Date.
 
-- I'll early-return on zero lots rather than wiping the holding to 0 shares. If you'd prefer wiping, say so.
-- This hook is the data layer only — no UI yet (that's Prompt 4+).
-- No changes to `usePortfolioData`. The realtime subscription on `holdings` will pick up the recalculated values automatically.
+Edit mode (`initial`) is unaffected — keeps existing read-only behavior.
 
-### Files
+Find the call sites of `HoldingModal` (Dashboard etc.) and pass `existingTickers={holdings.map(h => h.ticker.toUpperCase())}`. (Will read those files during implementation; no behavior change beyond the new prop.)
 
-- **New:** `src/hooks/useTaxLots.ts`
+### 3. Database migration — collapse existing duplicate holdings
+Run the provided `DO $$ ... $$` block as a Supabase migration. For every `(portfolio_id, ticker)` group with >1 rows:
+- Pick the oldest row as the keeper.
+- Re-parent all `tax_lots` from the duplicates to the keeper.
+- Delete duplicate holding rows.
+- Recalculate keeper's `shares`, `avg_cost_basis` (4-decimal weighted avg), and `date_added` (earliest `purchased_at`).
+
+Safe no-op if there are no duplicates.
+
+## Out of scope
+- `src/hooks/useTaxLots.ts` and `src/components/dashboard/TaxLotsPanel.tsx` are untouched (the in-panel "Add Lot" flow already works).
+- No change to `updateHolding`/`deleteHolding`.
+
+## Verification
+- `tsc --noEmit` after the code edits.
+- Manually: in preview, add a holding for a brand-new ticker (creates holding + lot); add the same ticker again (creates an additional lot, no duplicate holding row, parent shares/avg cost recalculated, toast says "Added new lot to ...").

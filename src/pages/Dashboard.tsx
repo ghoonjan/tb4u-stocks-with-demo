@@ -218,6 +218,7 @@ function DashboardContent({ user, onLogout }: { user: AuthenticatedUser; onLogou
           return ok;
         }}
         initial={holdingModalInitial}
+        existingTickers={portfolio.holdings.map((h) => h.ticker)}
       />
 
       <ConfirmDialog
