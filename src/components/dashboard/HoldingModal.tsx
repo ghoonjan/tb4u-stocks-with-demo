@@ -23,7 +23,7 @@ interface HoldingModalProps {
 
 const todayISO = () => new Date().toISOString().slice(0, 10);
 
-export function HoldingModal({ open, onClose, onSubmit, initial }: HoldingModalProps) {
+export function HoldingModal({ open, onClose, onSubmit, initial, existingTickers = [] }: HoldingModalProps) {
   const [ticker, setTicker] = useState(initial?.ticker ?? "");
   const [companyName, setCompanyName] = useState(initial?.companyName ?? "");
   const [shares, setShares] = useState(initial?.shares?.toString() ?? "");
