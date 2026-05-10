@@ -571,7 +571,7 @@ function TourStep({ step, total, current, onNext, onSkip, onFinish }: {
 
 // ─── Main Onboarding Flow ────────────────────────────────────────
 export function OnboardingFlow({ open, portfolioId, holdingsCount = 0, onComplete }: OnboardingFlowProps) {
-  const [step, setStep] = useState<Step>("welcome");
+  const [step, setStep] = useState<Step>("profile");
   const [holdings, setHoldings] = useState<AddedHolding[]>([]);
   const [saving, setSaving] = useState(false);
   const [tourIndex, setTourIndex] = useState(0);
@@ -664,16 +664,19 @@ export function OnboardingFlow({ open, portfolioId, holdingsCount = 0, onComplet
       <div className="relative w-full max-w-xl max-h-[85vh] overflow-y-auto rounded-xl border border-border bg-card shadow-2xl p-8">
         {/* Progress dots */}
         <div className="flex items-center justify-center gap-2 mb-8">
-          {(["welcome", "holdings", "preferences", "tour"] as Step[]).map((s, i) => (
+          {STEP_ORDER.map((s, i) => (
             <div
               key={s}
               className={`h-1.5 rounded-full transition-all ${
-                s === step ? "w-8 bg-primary" : i < ["welcome", "holdings", "preferences", "tour"].indexOf(step) ? "w-4 bg-primary/40" : "w-4 bg-border"
+                s === step ? "w-8 bg-primary" : i < STEP_ORDER.indexOf(step) ? "w-4 bg-primary/40" : "w-4 bg-border"
               }`}
             />
           ))}
         </div>
 
+        {step === "profile" && (
+          <ProfileStep onNext={() => setStep("welcome")} />
+        )}
         {step === "welcome" && (
           <WelcomeStep onNext={() => setStep("holdings")} onSkip={finish} />
         )}
