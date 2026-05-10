@@ -193,103 +193,29 @@ export function usePortfolioData() {
     date_added: string;
   }) => {
     if (!portfolioId) return false;
-    const tickerUpper = data.ticker.toUpperCase();
-    const purchasedAt = data.date_added.slice(0, 10);
 
-    // If a holding with the same ticker already exists, add a new lot to it
-    // instead of creating a duplicate holding row.
-    const existingHolding = rawHoldingsRef.current.find(
-      (h) => h.ticker.toUpperCase() === tickerUpper
-    );
-
-    if (existingHolding) {
-      const { error: lotError } = await supabase.from("tax_lots").insert({
-        holding_id: existingHolding.id,
-        shares: data.shares,
-        shares_remaining: data.shares,
-        cost_basis_per_share: data.avg_cost_basis,
-        purchased_at: purchasedAt,
-      });
-      if (lotError) {
-        toast({ title: "Error", description: lotError.message, variant: "destructive" });
-        return false;
-      }
-
-      if (userId) {
-        await supabase.from("trade_journal").insert({
-          user_id: userId,
-          ticker: tickerUpper,
-          action: "BUY",
-          shares: data.shares,
-          price_at_action: data.avg_cost_basis,
-        });
-      }
-
-      // Recalculate parent holding from all its lots
-      const { data: lots, error: lotsErr } = await supabase
-        .from("tax_lots")
-        .select("shares_remaining, cost_basis_per_share, purchased_at")
-        .eq("holding_id", existingHolding.id);
-      if (lotsErr) {
-        toast({ title: "Error", description: lotsErr.message, variant: "destructive" });
-        return false;
-      }
-
-      const totalShares = (lots ?? []).reduce((s, l) => s + Number(l.shares_remaining), 0);
-      const totalCost = (lots ?? []).reduce(
-        (s, l) => s + Number(l.shares_remaining) * Number(l.cost_basis_per_share), 0
-      );
-      const avgCost = totalShares > 0 ? Math.round((totalCost / totalShares) * 10000) / 10000 : 0;
-      const earliest = (lots ?? [])
-        .map((l) => l.purchased_at)
-        .sort()[0] ?? purchasedAt;
-
-      const { error: updErr } = await supabase.from("holdings").update({
-        shares: totalShares,
-        avg_cost_basis: avgCost,
-        date_added: earliest,
-      }).eq("id", existingHolding.id);
-      if (updErr) {
-        toast({ title: "Error", description: updErr.message, variant: "destructive" });
-        return false;
-      }
-
-      await fetchData();
-      toast({ title: `Added new lot to ${tickerUpper}` });
-      return true;
-    }
-
-    const { data: inserted, error } = await supabase.from("holdings").insert({
-      portfolio_id: portfolioId, ticker: tickerUpper,
-      company_name: data.company_name, shares: data.shares,
-      avg_cost_basis: data.avg_cost_basis, conviction_rating: data.conviction_rating,
-      thesis: data.thesis || null, target_allocation_pct: data.target_allocation_pct || null,
-      date_added: data.date_added,
-    }).select("id").single();
-    if (error || !inserted) { toast({ title: "Error", description: error?.message ?? "Insert failed", variant: "destructive" }); return false; }
-
-    // Seed initial tax lot from the holding's shares/cost/date
-    const { error: lotError } = await supabase.from("tax_lots").insert({
-      holding_id: inserted.id,
-      shares: data.shares,
-      shares_remaining: data.shares,
-      cost_basis_per_share: data.avg_cost_basis,
-      purchased_at: purchasedAt,
+    const result = await addHoldingOrLot({
+      portfolioId,
+      existingHoldings: rawHoldingsRef.current.map((h) => ({ id: h.id, ticker: h.ticker })),
+      data,
+      logTradeForUserId: userId ?? undefined,
     });
-    if (lotError) {
-      toast({ title: "Holding added, lot failed", description: lotError.message, variant: "destructive" });
-    } else if (userId) {
-      await supabase.from("trade_journal").insert({
-        user_id: userId,
-        ticker: tickerUpper,
-        action: "BUY",
-        shares: data.shares,
-        price_at_action: data.avg_cost_basis,
-      });
+
+    if (!result.ok) {
+      toast({ title: "Error", description: result.error ?? "Failed", variant: "destructive" });
+      return false;
     }
 
     await fetchData();
-    toast({ title: "Holding added", description: `${tickerUpper} added to portfolio.` });
+    if (result.mode === "lot") {
+      toast({ title: `Added new lot to ${result.ticker}` });
+    } else {
+      if (result.error) {
+        toast({ title: "Holding added, lot failed", description: result.error, variant: "destructive" });
+      } else {
+        toast({ title: "Holding added", description: `${result.ticker} added to portfolio.` });
+      }
+    }
     return true;
   };
 
