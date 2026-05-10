@@ -287,7 +287,7 @@ const AdminTemplates = () => {
             <div className="flex items-center gap-3">
               <LogoMark size={40} />
               <div>
-                <h1 className="text-lg font-semibold text-foreground">Manage Templates</h1>
+                <h1 className="text-lg font-semibold text-foreground">Manage Templates (TB4U+)</h1>
                 <p className="text-xs text-muted-foreground">Signed in as {email}</p>
               </div>
             </div>
