@@ -512,6 +512,7 @@ const AdminTemplates = () => {
         onClose={() => { setHoldingModalOpen(false); setEditingHolding(null); }}
         onSubmit={handleSubmitHolding}
         initial={editingHolding}
+        existingTickers={holdings.map((h) => h.ticker)}
       />
 
       <ConfirmDialog
