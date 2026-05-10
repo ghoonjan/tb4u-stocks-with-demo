@@ -11,6 +11,7 @@ import { HoldingModal } from "@/components/dashboard/HoldingModal";
 import { ConfirmDialog } from "@/components/dashboard/ConfirmDialog";
 import type { HoldingDisplay } from "@/hooks/usePortfolioData";
 import { getCompanyProfile } from "@/services/marketData";
+import { addHoldingOrLot } from "@/lib/holdingMutations";
 
 type PortfolioRow = { id: string; name: string; is_template: boolean; user_id: string; holdings_count: number };
 type HoldingRow = {
@@ -171,25 +172,48 @@ const AdminTemplates = () => {
     date_added: string;
   }) => {
     if (!template) return false;
-    const payload = {
-      portfolio_id: template.id,
-      ticker: data.ticker.toUpperCase(),
-      company_name: data.company_name || null,
-      shares: data.shares,
-      avg_cost_basis: data.avg_cost_basis,
-      conviction_rating: data.conviction_rating,
-      thesis: data.thesis ?? null,
-      target_allocation_pct: data.target_allocation_pct ?? null,
-      date_added: new Date(data.date_added).toISOString(),
-    };
-    const { error } = editingHolding
-      ? await supabase.from("holdings").update(payload).eq("id", editingHolding.id)
-      : await supabase.from("holdings").insert(payload);
-    if (error) {
-      toast.error(error.message);
+
+    if (editingHolding) {
+      const payload = {
+        portfolio_id: template.id,
+        ticker: data.ticker.toUpperCase(),
+        company_name: data.company_name || null,
+        shares: data.shares,
+        avg_cost_basis: data.avg_cost_basis,
+        conviction_rating: data.conviction_rating,
+        thesis: data.thesis ?? null,
+        target_allocation_pct: data.target_allocation_pct ?? null,
+        date_added: new Date(data.date_added).toISOString(),
+      };
+      const { error } = await supabase.from("holdings").update(payload).eq("id", editingHolding.id);
+      if (error) {
+        toast.error(error.message);
+        return false;
+      }
+      toast.success("Holding updated");
+      setHoldingModalOpen(false);
+      setEditingHolding(null);
+      void load();
+      return true;
+    }
+
+    const result = await addHoldingOrLot({
+      portfolioId: template.id,
+      existingHoldings: holdings.map((h) => ({ id: h.id, ticker: h.ticker })),
+      data,
+    });
+
+    if (!result.ok) {
+      toast.error(result.error ?? "Failed to add holding");
       return false;
     }
-    toast.success(editingHolding ? "Holding updated" : "Holding added");
+
+    if (result.mode === "lot") {
+      toast.success(`Added new tax lot for ${result.ticker}`);
+    } else {
+      toast.success(`Added ${result.ticker} to template`);
+      if (result.error) toast.error(result.error);
+    }
     setHoldingModalOpen(false);
     setEditingHolding(null);
     void load();
@@ -488,6 +512,7 @@ const AdminTemplates = () => {
         onClose={() => { setHoldingModalOpen(false); setEditingHolding(null); }}
         onSubmit={handleSubmitHolding}
         initial={editingHolding}
+        existingTickers={holdings.map((h) => h.ticker)}
       />
 
       <ConfirmDialog
