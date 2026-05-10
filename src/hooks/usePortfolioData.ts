@@ -5,6 +5,7 @@ import type { Tables } from "@/integrations/supabase/types";
 import { getBatchQuotes, getBasicFinancials, type StockQuote, type BasicFinancials } from "@/services/marketData";
 import { getMarketStatus } from "@/hooks/useMacroData";
 import { QUOTE_REFRESH_INTERVAL_MARKET, QUOTE_REFRESH_INTERVAL_OFF } from "@/constants";
+import { addHoldingOrLot } from "@/lib/holdingMutations";
 
 export type DbHolding = Tables<"holdings">;
 export type DbWatchlistItem = Tables<"watchlist">;
