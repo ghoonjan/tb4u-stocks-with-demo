@@ -1,52 +1,39 @@
-Update the `handle_new_user()` trigger to populate `full_name` from OAuth/auth metadata while preserving existing behavior.
+Add a new first step in the onboarding flow that collects and validates the user's email and full name before any other onboarding actions.
 
-### Problem
-The current trigger only inserts `id`, `email`, and `has_been_initialized` into `profiles`. When users sign up via Google/Apple OAuth, their display name is lost because it lives in `raw_user_meta_data`.
+### Why
+The DB now requires non-blank `email` and `full_name` on `profiles` (validation trigger). OAuth signups usually fill these, but email/password sign-ups or users with missing metadata could end up with blank fields. We should let the user confirm/correct them at first run.
 
 ### Changes
 
-1. **Modify `handle_new_user()` function**
-   - Extract `full_name` from `NEW.raw_user_meta_data` with cascading fallbacks:
-     - `raw_user_meta_data->>'full_name'`
-     - `raw_user_meta_data->>'name'`
-     - `split_part(NEW.email, '@', 1)` as last resort
-   - Extract `email` with fallback to `raw_user_meta_data->>'email'`.
-   - Keep `has_been_initialized = false`.
-   - Keep automatic portfolio creation (`INSERT INTO portfolios`).
-   - Wrap profiles insert in `ON CONFLICT (id) DO UPDATE SET email = EXCLUDED.email, full_name = COALESCE(EXCLUDED.full_name, profiles.full_name)` for idempotency.
-   - **Note:** `role` is intentionally omitted from the `profiles` insert because the app stores roles in the separate `user_roles` table (not a column on `profiles`).
+**1. `OnboardingFlow.tsx` — add a new step `"profile"` as the first step**
 
-### SQL Migration
+- Update `Step` union: `"profile" | "welcome" | "holdings" | "preferences" | "tour"`.
+- New `ProfileStep` component:
+  - On mount, fetch current `profiles.email` and `profiles.full_name` and prefill inputs. Also fall back to `auth.user.email` and `auth.user.user_metadata.full_name || .name` when profile fields are blank.
+  - Two inputs: Email, Full Name. Both required.
+  - Client-side validation with `zod`:
+    - `email`: `z.string().trim().email().max(255)`
+    - `fullName`: `z.string().trim().min(1, "Full name is required").max(100)`
+  - Inline error messages below each field; submit button disabled until both pass.
+  - On submit: `UPDATE profiles SET email = ..., full_name = ... WHERE id = auth.uid()`. If the DB validation trigger rejects (e.g. blank after trim), surface the Postgres error via toast.
+  - "Continue" advances to `"welcome"`.
+- Update progress dots array to include `"profile"`.
+- Update `OnboardingFlow` initial state: `useState<Step>("profile")`.
 
-```sql
-CREATE OR REPLACE FUNCTION public.handle_new_user()
-RETURNS TRIGGER
-LANGUAGE plpgsql
-SECURITY DEFINER
-SET search_path = public
-AS $$
-BEGIN
-  INSERT INTO public.profiles (id, email, full_name, has_been_initialized)
-  VALUES (
-    NEW.id,
-    COALESCE(NEW.email, NEW.raw_user_meta_data->>'email'),
-    COALESCE(
-      NEW.raw_user_meta_data->>'full_name',
-      NEW.raw_user_meta_data->>'name',
-      split_part(COALESCE(NEW.email, ''), '@', 1)
-    ),
-    false
-  )
-  ON CONFLICT (id) DO UPDATE SET
-    email = EXCLUDED.email,
-    full_name = COALESCE(EXCLUDED.full_name, profiles.full_name);
+**2. Progress dot ordering**
+Change the steps array to `["profile", "welcome", "holdings", "preferences", "tour"]`.
 
-  INSERT INTO public.portfolios (user_id, name)
-  VALUES (NEW.id, 'My Portfolio');
+**3. Skip behavior**
+The profile step has no skip — user must enter valid values. Other steps keep their existing skip behavior.
 
-  RETURN NEW;
-END;
-$$;
-```
+### Out of scope
+- No DB migration. The trigger already enforces non-null/non-empty.
+- No changes to `Dashboard.tsx`'s `onboarding_completed` check — the existing gate still triggers the flow.
+- No changes to sign-up/auth pages.
 
-No application code changes are required — this is a pure backend trigger update.
+### Files to edit
+- `src/components/dashboard/OnboardingFlow.tsx` (only file)
+
+### Verification
+- Build passes (auto by harness).
+- Manually: fresh user opens dashboard → sees Profile step prefilled → cannot continue with blank/invalid → on valid submit, advances to Welcome.
