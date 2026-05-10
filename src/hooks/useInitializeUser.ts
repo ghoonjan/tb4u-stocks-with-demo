@@ -61,7 +61,7 @@ if (cancelled) return;
 success = await attemptClone(user.id);
 if (success || attempt === MAX_RETRIES) break;
 console.warn(
-[useInitializeUser] Attempt ${attempt}/${MAX_RETRIES} failed, retrying in ${RETRY_DELAY_MS}ms...
+`[useInitializeUser] Attempt ${attempt}/${MAX_RETRIES} failed, retrying in ${RETRY_DELAY_MS}ms...`
 );
 await delay(RETRY_DELAY_MS);
 }
