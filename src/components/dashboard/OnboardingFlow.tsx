@@ -1,10 +1,137 @@
 import { useState, useEffect, useRef, useCallback } from "react";
+import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
 import { getCompanyProfile, getQuote } from "@/services/marketData";
-import { Star, ArrowRight, Check, X, Loader2, Plus, BarChart3, Brain, TrendingUp, Target } from "lucide-react";
+import { Star, ArrowRight, Check, X, Loader2, Plus, BarChart3, Brain, TrendingUp, Target, User } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 
-type Step = "welcome" | "holdings" | "preferences" | "tour";
+type Step = "profile" | "welcome" | "holdings" | "preferences" | "tour";
+
+const STEP_ORDER: Step[] = ["profile", "welcome", "holdings", "preferences", "tour"];
+
+const profileSchema = z.object({
+  email: z.string().trim().email({ message: "Enter a valid email address" }).max(255),
+  fullName: z.string().trim().min(1, { message: "Full name is required" }).max(100),
+});
+
+// ─── Step 0: Profile ─────────────────────────────────────────────
+function ProfileStep({ onNext }: { onNext: () => void }) {
+  const [email, setEmail] = useState("");
+  const [fullName, setFullName] = useState("");
+  const [errors, setErrors] = useState<{ email?: string; fullName?: string }>({});
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) { setLoading(false); return; }
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("email, full_name")
+        .eq("id", user.id)
+        .maybeSingle();
+      if (cancelled) return;
+      const meta = (user.user_metadata ?? {}) as Record<string, unknown>;
+      setEmail(
+        (profile?.email && profile.email.trim()) ||
+        user.email ||
+        (typeof meta.email === "string" ? meta.email : "") ||
+        ""
+      );
+      setFullName(
+        (profile?.full_name && profile.full_name.trim()) ||
+        (typeof meta.full_name === "string" ? meta.full_name : "") ||
+        (typeof meta.name === "string" ? meta.name : "") ||
+        ""
+      );
+      setLoading(false);
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
+  const handleSubmit = async () => {
+    const result = profileSchema.safeParse({ email, fullName });
+    if (!result.success) {
+      const fieldErrors: { email?: string; fullName?: string } = {};
+      for (const issue of result.error.issues) {
+        const key = issue.path[0] as "email" | "fullName";
+        if (!fieldErrors[key]) fieldErrors[key] = issue.message;
+      }
+      setErrors(fieldErrors);
+      return;
+    }
+    setErrors({});
+    setSaving(true);
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      setSaving(false);
+      toast({ title: "Not signed in", variant: "destructive" });
+      return;
+    }
+    const { error } = await supabase
+      .from("profiles")
+      .update({ email: result.data.email, full_name: result.data.fullName })
+      .eq("id", user.id);
+    setSaving(false);
+    if (error) {
+      toast({ title: "Couldn't save profile", description: error.message, variant: "destructive" });
+      return;
+    }
+    onNext();
+  };
+
+  return (
+    <div className="flex flex-col items-center text-center animate-fade-in px-4 w-full max-w-md mx-auto">
+      <div className="rounded-2xl bg-primary/10 p-5 mb-5">
+        <User size={40} className="text-primary" />
+      </div>
+      <h2 className="text-2xl font-bold text-foreground mb-2">Tell us about you</h2>
+      <p className="text-sm text-muted-foreground mb-6">
+        We'll use this to personalize your experience.
+      </p>
+
+      <div className="w-full space-y-4 text-left mb-6">
+        <div>
+          <label className="block text-xs font-medium text-muted-foreground mb-1">Full name</label>
+          <input
+            type="text"
+            value={fullName}
+            onChange={(e) => setFullName(e.target.value)}
+            disabled={loading || saving}
+            placeholder="Jane Doe"
+            maxLength={100}
+            className={`w-full rounded-md border ${errors.fullName ? "border-destructive" : "border-border"} bg-secondary px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary disabled:opacity-50`}
+          />
+          {errors.fullName && <p className="mt-1 text-[11px] text-destructive">{errors.fullName}</p>}
+        </div>
+        <div>
+          <label className="block text-xs font-medium text-muted-foreground mb-1">Email</label>
+          <input
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            disabled={loading || saving}
+            placeholder="you@example.com"
+            maxLength={255}
+            className={`w-full rounded-md border ${errors.email ? "border-destructive" : "border-border"} bg-secondary px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary disabled:opacity-50`}
+          />
+          {errors.email && <p className="mt-1 text-[11px] text-destructive">{errors.email}</p>}
+        </div>
+      </div>
+
+      <button
+        onClick={handleSubmit}
+        disabled={loading || saving}
+        className="flex items-center gap-2 rounded-lg bg-primary px-8 py-3 text-sm font-semibold text-primary-foreground hover:bg-primary/90 transition-all hover:scale-105 disabled:opacity-50 disabled:hover:scale-100"
+      >
+        {saving ? <Loader2 size={14} className="animate-spin" /> : null}
+        Continue <ArrowRight size={16} />
+      </button>
+    </div>
+  );
+}
 
 interface AddedHolding {
   ticker: string;
