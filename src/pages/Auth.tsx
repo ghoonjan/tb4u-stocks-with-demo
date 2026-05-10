@@ -122,7 +122,7 @@ const Auth = () => {
               textShadow: "0 0 40px rgba(99,102,241,0.15)",
             }}
           >
-            TB4U
+            TB4U+
           </h1>
           <p className="mt-1 text-xs text-muted-foreground">Stock Portfolio Command Center</p>
         </div>

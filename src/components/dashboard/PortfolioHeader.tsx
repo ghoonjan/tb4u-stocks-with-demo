@@ -92,7 +92,7 @@ export function PortfolioHeader({
           <div className="flex items-center gap-2">
             <LogoMark size={24} />
             <span className="text-base font-extrabold tracking-[-0.02em] uppercase" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
-              TB4U +
+              TB4U+
             </span>
           </div>
           <div className="flex items-center gap-2">
@@ -189,7 +189,7 @@ export function PortfolioHeader({
                 textShadow: "0 0 40px rgba(99,102,241,0.15)",
               }}
             >
-              TB4U +
+              TB4U+
             </span>
             <span className="h-4 w-px bg-border" aria-hidden="true" />
             <span className="text-xs text-muted-foreground">My Portfolio</span>
