@@ -7,11 +7,11 @@ isInitialized: boolean;
 };
 const MAX_RETRIES = 2;
 const RETRY_DELAY_MS = 2000;
-/
-? On first authenticated load, checks the user's profile and clones the
-? template portfolio via the clone_template_for_user RPC if needed.
-? Retries up to MAX_RETRIES times on failure before giving up.
-*/
+/**
+ * On first authenticated load, checks the user's profile and clones the
+ * template portfolio via the clone_template_for_user RPC if needed.
+ * Retries up to MAX_RETRIES times on failure before giving up.
+ */
 export function useInitializeUser(): State {
 const [state, setState] = useState<State>({ isInitializing: true, isInitialized: false });
 const ranRef = useRef(false);
