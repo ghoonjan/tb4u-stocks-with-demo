@@ -89,6 +89,12 @@ export function WelcomeBanner({
       return;
     }
 
+    // Mark profile as initialized so the init hook never tries to re-clone the template.
+    await supabase
+      .from("profiles")
+      .update({ has_been_initialized: true })
+      .eq("id", userId);
+
     dismiss();
     await onCleared();
 
