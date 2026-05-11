@@ -92,7 +92,8 @@ Deno.serve(async (req) => {
 
     return json({ ok: true });
   } catch (e) {
-    return json({ error: (e as Error).message }, 500);
+    console.error("admin-delete-user unexpected error:", e);
+    return json({ error: "An internal error occurred" }, 500);
   }
 });
 
