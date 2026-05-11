@@ -1,17 +1,29 @@
-## Goal
-Show holdings sorted alphabetically by ticker by default, so AAPL sits at the top of the list for new (cloned) users — and for everyone else.
+## Root cause
 
-## Why a UI change, not a database change
-The `clone_template_for_user` RPC already inserts holdings in a defined order, but `HoldingsTable` re-sorts them client-side. Currently the default is `sortKey = "weight"` (descending), which is why AAPL is not at the top after cloning. Changing the insert order in the database would have no visible effect because the table always re-sorts. The fix lives in the UI.
+Two bugs combine to produce the behavior you're seeing:
 
-## Change
-In `src/components/dashboard/HoldingsTable.tsx`:
-- Change the default `useState<SortKey>("weight")` → `useState<SortKey>("ticker")`
-- Change the default `useState<SortDir>("desc")` → `useState<SortDir>("asc")`
+1. **`profiles.has_been_initialized` is never set to `true`.** The signup trigger (`handle_new_user`) clones the template but leaves the flag at `false`. So on **every page load** `useInitializeUser` re-runs and tries to call `clone_template_for_user` via RPC again.
 
-Users can still click any column header to re-sort; only the initial order changes.
+2. **The client RPC call now fails with "permission denied".** In the recent security pass we revoked `EXECUTE` on `clone_template_for_user` from `authenticated`. The trigger still works (it runs as a definer inside the DB), but the client fallback in `useInitializeUser.ts` no longer can call it → it falls through to `toast.error("Setup failed -- you can add holdings manually")` on every refresh.
 
-## Out of scope
-- No database / RPC changes
-- No changes to the mobile card sort dropdown logic (it reads the same state, so it will reflect the new default automatically)
-- No changes to watchlist ordering
+3. **Start Fresh deletes holdings but doesn't mark the profile initialized.** So on the next refresh the clone fallback runs again — and if EXECUTE were granted, it would silently re-insert the 8 template holdings (the function's `IF NOT EXISTS holdings` guard passes once they're deleted). That's why you "have to hit refresh to clear them" — the first refresh's failed clone leaves them gone, but a working clone would bring them back.
+
+## Fix
+
+### 1. Database migration
+- Re-grant `EXECUTE ON FUNCTION public.clone_template_for_user(uuid) TO authenticated` (it's SECURITY DEFINER and only writes for the calling user — safe).
+- Update `handle_new_user()` to set `has_been_initialized = true` after the clone attempt (success or fallback).
+- Backfill: `UPDATE profiles SET has_been_initialized = true WHERE EXISTS (portfolio for that user)` so existing users stop re-running the init flow.
+
+### 2. `src/hooks/useInitializeUser.ts`
+- After a successful clone, write `has_been_initialized = true` to the user's profile so the hook short-circuits on subsequent loads.
+- Only show the "Welcome!" toast on first successful init (it currently fires on every refresh too).
+
+### 3. `src/components/dashboard/WelcomeBanner.tsx` (`handleStartFresh`)
+- Set `has_been_initialized = true` on the user's profile after clearing holdings, so the init hook never tries to re-clone the deleted template.
+- Also call `onCleared()` after the delete completes so the UI reflects the empty portfolio without needing a manual page refresh.
+
+## Result
+- No more "Setup failed" toast on refresh.
+- Start Fresh clears holdings immediately (no second refresh needed).
+- Adding a holding after Start Fresh won't trigger any init logic — the profile is marked initialized.
