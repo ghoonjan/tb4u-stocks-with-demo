@@ -243,8 +243,8 @@ interface HoldingsTableProps {
 }
 
 export function HoldingsTable({ holdings, loading, onAddHolding, onEditHolding, onDeleteHolding, onAddToWatchlist, onLogTrade, analyticsMap }: HoldingsTableProps) {
-  const [sortKey, setSortKey] = useState<SortKey>("weight");
-  const [sortDir, setSortDir] = useState<SortDir>("desc");
+  const [sortKey, setSortKey] = useState<SortKey>("ticker");
+  const [sortDir, setSortDir] = useState<SortDir>("asc");
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const isMobile = useIsMobile();
 
