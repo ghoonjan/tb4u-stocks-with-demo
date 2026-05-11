@@ -25,7 +25,7 @@ if (!cancelled) setState({ isInitializing: false, isInitialized: true });
 const delay = (ms: number) => new Promise((r) => setTimeout(r, ms));
 const attemptClone = async (userId: string): Promise<boolean> => {
 const { error } = await supabase.rpc("clone_template_for_user", {
-target_user_id: userId,
+new_user_id: userId,
 });
 if (error) {
 console.error("[useInitializeUser] clone_template_for_user failed", error);
