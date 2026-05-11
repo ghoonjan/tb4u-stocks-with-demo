@@ -423,6 +423,10 @@ export type Database = {
         Args: { new_user_id: string }
         Returns: undefined
       }
+      clonetemplatefor_user: {
+        Args: { new_user_id: string }
+        Returns: undefined
+      }
       delete_user_completely: {
         Args: { target_user_id: string }
         Returns: undefined
