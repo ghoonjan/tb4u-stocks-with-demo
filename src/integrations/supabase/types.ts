@@ -420,6 +420,10 @@ export type Database = {
       }
       cleanup_stale_finnhub_cache: { Args: never; Returns: undefined }
       clone_template_for_user: {
+        Args: { new_user_id: string }
+        Returns: undefined
+      }
+      delete_user_completely: {
         Args: { target_user_id: string }
         Returns: undefined
       }
