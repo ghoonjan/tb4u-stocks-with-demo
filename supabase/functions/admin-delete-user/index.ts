@@ -74,6 +74,14 @@ Deno.serve(async (req) => {
       .eq("user_id", targetUserId);
     const portfolioIds = (portfolios ?? []).map((p) => p.id);
     if (portfolioIds.length > 0) {
+      const { data: holdingRows } = await admin
+        .from("holdings")
+        .select("id")
+        .in("portfolio_id", portfolioIds);
+      const holdingIds = (holdingRows ?? []).map((h) => h.id);
+      if (holdingIds.length > 0) {
+        await admin.from("tax_lots").delete().in("holding_id", holdingIds);
+      }
       await admin.from("holdings").delete().in("portfolio_id", portfolioIds);
     }
 
