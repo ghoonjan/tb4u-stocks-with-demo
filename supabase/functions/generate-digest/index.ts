@@ -162,7 +162,7 @@ function generateEmailHtml(
       ? `<div style="padding:24px;border-bottom:1px solid #1e1e3a;">
     <h2 style="margin:0 0 12px;font-size:14px;color:#f59e0b;">⚠️ Drift Alert</h2>
     <p style="margin:0;font-size:12px;color:#9ca3af;">These positions have drifted more than 5% from target:</p>
-    ${driftAlerts.map((d) => `<p style="margin:4px 0;font-size:13px;font-family:monospace;">${d}</p>`).join("")}
+    ${driftAlerts.map((d) => `<p style="margin:4px 0;font-size:13px;font-family:monospace;">${esc(d)}</p>`).join("")}
     </div>`
       : ""
   }
