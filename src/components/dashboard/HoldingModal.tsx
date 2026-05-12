@@ -95,8 +95,7 @@ export function HoldingModal({ open, onClose, onSubmit, initial, existingTickers
   if (!open) return null;
 
   const tickerUpper = ticker.trim().toUpperCase();
-  const existingSetRef = useRef<string[]>([]);
-  existingSetRef.current = existingTickers.map((t) => t.toUpperCase());
+  const existingSet = existingTickers.map((t) => t.toUpperCase());
   const isAddingLot = !initial && tickerUpper.length > 0 && existingSet.includes(tickerUpper);
 
   const handleSubmit = async (e: React.FormEvent) => {
