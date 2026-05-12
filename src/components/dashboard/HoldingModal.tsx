@@ -37,63 +37,44 @@ export function HoldingModal({ open, onClose, onSubmit, initial, existingTickers
   const [lookingUp, setLookingUp] = useState(false);
   const [tickerError, setTickerError] = useState<string | null>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout>>();
-  // FIX Bug 2: track companyName via ref so the async callback always sees current value
-  const companyNameRef = useRef(companyName);
-  companyNameRef.current = companyName;
-  // Track modal open state to discard stale lookups
-  const modalOpenRef = useRef(open);
-  modalOpenRef.current = open;
   const today = todayISO();
 
-  // Build the existing tickers set once
-  const existingSet = existingTickers.map((t) => t.toUpperCase());
-
-  const lookupTicker = useCallback(async (symbol: string) => {
-    if (!symbol || symbol.length < 1) return;
-
-    // FIX Bug 1: If this ticker already exists in the portfolio, skip API lookup
-    // It's a tax lot addition — we already know the ticker is valid
-    if (existingSet.includes(symbol.toUpperCase())) {
+  const lookupTicker = useCallback(
+    async (symbol: string) => {
+      if (!symbol || symbol.length < 1) return;
+      setLookingUp(true);
       setTickerError(null);
-      setLookingUp(false);
-      return;
-    }
-
-    setLookingUp(true);
-    setTickerError(null);
-    try {
-      const profile = await getCompanyProfile(symbol.toUpperCase());
-      // FIX Bug 2: discard result if modal was closed/reopened while we were fetching
-      if (!modalOpenRef.current) return;
-      if (profile) {
-        // FIX Bug 2: use ref to check current companyName, not stale closure
-        if (!companyNameRef.current) setCompanyName(profile.name);
-        setLogo(profile.logo || null);
-      } else {
-        setTickerError("Ticker not found");
+      try {
+        const profile = await getCompanyProfile(symbol.toUpperCase());
+        if (profile) {
+          if (!companyName) setCompanyName(profile.name);
+          setLogo(profile.logo || null);
+        } else {
+          setTickerError("Ticker not found");
+        }
+      } catch {
+        setTickerError("Could not look up ticker");
+      } finally {
+        setLookingUp(false);
       }
-    } catch {
-      if (!modalOpenRef.current) return;
-      setTickerError("Could not look up ticker");
-    } finally {
-      setLookingUp(false);
-    }
-  }, [existingSet]);
+    },
+    [companyName],
+  );
 
   // Debounced ticker lookup (300ms)
-  const handleTickerChange = useCallback((value: string) => {
-    setTicker(value.toUpperCase());
-    setTickerError(null);
-    setLogo(null);
-    // FIX Bug 2: clear company name when user changes ticker (unless editing)
-    if (!initial) setCompanyName("");
-    clearTimeout(debounceRef.current);
-    if (value.length >= 1) {
-      debounceRef.current = setTimeout(() => lookupTicker(value), 300);
-    }
-  }, [lookupTicker, initial]);
+  const handleTickerChange = useCallback(
+    (value: string) => {
+      setTicker(value.toUpperCase());
+      setTickerError(null);
+      clearTimeout(debounceRef.current);
+      if (value.length >= 1) {
+        debounceRef.current = setTimeout(() => lookupTicker(value), 300);
+      }
+    },
+    [lookupTicker],
+  );
 
-  // Reset form when modal opens OR closes
+  // Reset form when modal opens
   useEffect(() => {
     if (open) {
       setTicker(initial?.ticker ?? "");
@@ -107,11 +88,6 @@ export function HoldingModal({ open, onClose, onSubmit, initial, existingTickers
       setLogo(null);
       setTickerError(null);
       setSaving(false);
-      setLookingUp(false);
-    }
-    // FIX Bug 2: cancel any in-flight debounced lookups when modal closes
-    if (!open) {
-      clearTimeout(debounceRef.current);
     }
     return () => clearTimeout(debounceRef.current);
   }, [open, initial]);
@@ -119,6 +95,8 @@ export function HoldingModal({ open, onClose, onSubmit, initial, existingTickers
   if (!open) return null;
 
   const tickerUpper = ticker.trim().toUpperCase();
+  const existingSetRef = useRef<string[]>([]);
+  existingSetRef.current = existingTickers.map((t) => t.toUpperCase());
   const isAddingLot = !initial && tickerUpper.length > 0 && existingSet.includes(tickerUpper);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -147,17 +125,29 @@ export function HoldingModal({ open, onClose, onSubmit, initial, existingTickers
     }
   };
 
-  const inputClass = "w-full rounded-md border border-border bg-secondary px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary";
+  const inputClass =
+    "w-full rounded-md border border-border bg-secondary px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary";
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center" role="dialog" aria-modal="true" aria-label={initial ? "Edit Holding" : isAddingLot ? `Add Lot to ${tickerUpper}` : "Add Holding"}>
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center"
+      role="dialog"
+      aria-modal="true"
+      aria-label={initial ? "Edit Holding" : isAddingLot ? `Add Lot to ${tickerUpper}` : "Add Holding"}
+    >
       <div className="absolute inset-0 bg-black/60" onClick={onClose} />
       <div className="relative w-full max-w-md rounded-lg border border-border bg-card p-6 shadow-xl animate-in fade-in zoom-in-95 duration-200">
         <div className="flex items-center justify-between mb-5">
           <h2 className="text-base font-semibold text-foreground">
             {initial ? "Edit Holding" : isAddingLot ? `Add Lot to ${tickerUpper}` : "Add Holding"}
           </h2>
-          <button onClick={onClose} className="text-muted-foreground hover:text-foreground transition-colors" aria-label="Close"><X size={18} /></button>
+          <button
+            onClick={onClose}
+            className="text-muted-foreground hover:text-foreground transition-colors"
+            aria-label="Close"
+          >
+            <X size={18} />
+          </button>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -165,7 +155,13 @@ export function HoldingModal({ open, onClose, onSubmit, initial, existingTickers
             <div>
               <label className="mb-1 block text-xs font-medium text-muted-foreground">Ticker Symbol</label>
               <div className="relative">
-                {logo && <img src={logo} alt={`${ticker} logo`} className="absolute left-2.5 top-1/2 -translate-y-1/2 h-5 w-5 rounded-sm object-contain" />}
+                {logo && (
+                  <img
+                    src={logo}
+                    alt={`${ticker} logo`}
+                    className="absolute left-2.5 top-1/2 -translate-y-1/2 h-5 w-5 rounded-sm object-contain"
+                  />
+                )}
                 <input
                   value={ticker}
                   onChange={(e) => handleTickerChange(e.target.value)}
@@ -175,9 +171,18 @@ export function HoldingModal({ open, onClose, onSubmit, initial, existingTickers
                   aria-invalid={!!tickerError}
                   aria-describedby={tickerError ? "ticker-error" : undefined}
                 />
-                {lookingUp && <Loader2 size={14} className="absolute right-2.5 top-1/2 -translate-y-1/2 animate-spin text-muted-foreground" />}
+                {lookingUp && (
+                  <Loader2
+                    size={14}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 animate-spin text-muted-foreground"
+                  />
+                )}
               </div>
-              {tickerError && <p id="ticker-error" className="mt-1 text-[11px] text-destructive">{tickerError}</p>}
+              {tickerError && (
+                <p id="ticker-error" className="mt-1 text-[11px] text-destructive">
+                  {tickerError}
+                </p>
+              )}
               {isAddingLot && (
                 <p className="mt-1 text-[11px] text-primary">
                   {tickerUpper} is already in your portfolio. This will add a new purchase lot.
@@ -187,7 +192,13 @@ export function HoldingModal({ open, onClose, onSubmit, initial, existingTickers
             {!isAddingLot && (
               <div>
                 <label className="mb-1 block text-xs font-medium text-muted-foreground">Company Name</label>
-                <input value={companyName} onChange={(e) => setCompanyName(e.target.value)} className={inputClass} placeholder="Apple Inc." required />
+                <input
+                  value={companyName}
+                  onChange={(e) => setCompanyName(e.target.value)}
+                  className={inputClass}
+                  placeholder="Apple Inc."
+                  required
+                />
               </div>
             )}
           </div>
@@ -196,24 +207,36 @@ export function HoldingModal({ open, onClose, onSubmit, initial, existingTickers
             <div>
               <label className="mb-1 block text-xs font-medium text-muted-foreground">Shares</label>
               <input
-                type="number" step="any" value={shares}
+                type="number"
+                step="any"
+                value={shares}
                 onChange={(e) => setShares(e.target.value)}
                 className={`${inputClass} ${initial ? "opacity-60 cursor-not-allowed" : ""}`}
-                placeholder="100" required={!initial} min="0.0001"
-                readOnly={!!initial} disabled={!!initial}
+                placeholder="100"
+                required={!initial}
+                min="0.0001"
+                readOnly={!!initial}
+                disabled={!!initial}
               />
               {initial && <p className="mt-1 text-[11px] text-muted-foreground">Calculated from lots</p>}
             </div>
             <div>
-              <label className="mb-1 block text-xs font-medium text-muted-foreground">{isAddingLot ? "Cost / Share" : "Avg Cost / Share"}</label>
+              <label className="mb-1 block text-xs font-medium text-muted-foreground">
+                {isAddingLot ? "Cost / Share" : "Avg Cost / Share"}
+              </label>
               <div className="relative">
                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">$</span>
                 <input
-                  type="number" step="any" value={avgCost}
+                  type="number"
+                  step="any"
+                  value={avgCost}
                   onChange={(e) => setAvgCost(e.target.value)}
                   className={`${inputClass} pl-7 ${initial ? "opacity-60 cursor-not-allowed" : ""}`}
-                  placeholder="150.00" required={!initial} min="0.01"
-                  readOnly={!!initial} disabled={!!initial}
+                  placeholder="150.00"
+                  required={!initial}
+                  min="0.01"
+                  readOnly={!!initial}
+                  disabled={!!initial}
                 />
               </div>
               {initial && <p className="mt-1 text-[11px] text-muted-foreground">Calculated from lots</p>}
@@ -232,7 +255,9 @@ export function HoldingModal({ open, onClose, onSubmit, initial, existingTickers
               disabled={!!initial}
               className={`${inputClass} ${initial ? "opacity-60 cursor-not-allowed" : ""}`}
             />
-            {initial && <p className="mt-1 text-[11px] text-muted-foreground">Earliest lot date — edit lots to change</p>}
+            {initial && (
+              <p className="mt-1 text-[11px] text-muted-foreground">Earliest lot date — edit lots to change</p>
+            )}
           </div>
 
           {!isAddingLot && (
@@ -241,30 +266,69 @@ export function HoldingModal({ open, onClose, onSubmit, initial, existingTickers
                 <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Conviction Rating</label>
                 <div className="flex gap-1" role="group" aria-label="Conviction rating">
                   {[1, 2, 3, 4, 5].map((i) => (
-                    <button key={i} type="button" onClick={() => setConviction(i)} className="transition-transform hover:scale-110" aria-label={`${i} star${i !== 1 ? "s" : ""}`}>
-                      <Star size={20} className={i <= conviction ? "fill-primary text-primary" : "text-muted-foreground/30 hover:text-muted-foreground/60"} />
+                    <button
+                      key={i}
+                      type="button"
+                      onClick={() => setConviction(i)}
+                      className="transition-transform hover:scale-110"
+                      aria-label={`${i} star${i !== 1 ? "s" : ""}`}
+                    >
+                      <Star
+                        size={20}
+                        className={
+                          i <= conviction
+                            ? "fill-primary text-primary"
+                            : "text-muted-foreground/30 hover:text-muted-foreground/60"
+                        }
+                      />
                     </button>
                   ))}
                 </div>
               </div>
 
               <div>
-                <label className="mb-1 block text-xs font-medium text-muted-foreground">Investment Thesis <span className="text-muted-foreground/60">(optional)</span></label>
-                <textarea value={thesis} onChange={(e) => setThesis(e.target.value)} className={`${inputClass} resize-none h-16`} placeholder="Why did you buy this? What's your edge?" />
+                <label className="mb-1 block text-xs font-medium text-muted-foreground">
+                  Investment Thesis <span className="text-muted-foreground/60">(optional)</span>
+                </label>
+                <textarea
+                  value={thesis}
+                  onChange={(e) => setThesis(e.target.value)}
+                  className={`${inputClass} resize-none h-16`}
+                  placeholder="Why did you buy this? What's your edge?"
+                />
               </div>
 
               <div>
-                <label className="mb-1 block text-xs font-medium text-muted-foreground">Target Allocation % <span className="text-muted-foreground/60">(optional)</span></label>
-                <input type="number" step="any" value={targetPct} onChange={(e) => setTargetPct(e.target.value)} className={inputClass} placeholder="What % of your portfolio should this be?" min="0" max="100" />
+                <label className="mb-1 block text-xs font-medium text-muted-foreground">
+                  Target Allocation % <span className="text-muted-foreground/60">(optional)</span>
+                </label>
+                <input
+                  type="number"
+                  step="any"
+                  value={targetPct}
+                  onChange={(e) => setTargetPct(e.target.value)}
+                  className={inputClass}
+                  placeholder="What % of your portfolio should this be?"
+                  min="0"
+                  max="100"
+                />
               </div>
             </>
           )}
 
           <div className="flex gap-3 pt-2">
-            <button type="submit" disabled={saving} className="flex-1 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50">
+            <button
+              type="submit"
+              disabled={saving}
+              className="flex-1 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50"
+            >
               {saving ? "Saving..." : initial ? "Save Changes" : isAddingLot ? "Add Lot" : "Add to Portfolio"}
             </button>
-            <button type="button" onClick={onClose} className="rounded-md border border-border px-4 py-2 text-sm text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground">
+            <button
+              type="button"
+              onClick={onClose}
+              className="rounded-md border border-border px-4 py-2 text-sm text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+            >
               Cancel
             </button>
           </div>
