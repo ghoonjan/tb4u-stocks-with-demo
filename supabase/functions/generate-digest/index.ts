@@ -8,6 +8,15 @@ const corsHeaders = {
 
 const FINNHUB_BASE = "https://finnhub.io/api/v1";
 
+const TICKER_RE = /^[A-Z0-9.\-]{1,10}$/;
+const esc = (s: string) =>
+  String(s ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+
 interface Holding {
   ticker: string;
   company_name: string | null;
@@ -24,9 +33,9 @@ interface Quote {
 
 async function getQuote(symbol: string, apiKey: string): Promise<Quote | null> {
   try {
-    const res = await fetch(
-      `${FINNHUB_BASE}/quote?symbol=${symbol}&token=${apiKey}`
-    );
+    if (!TICKER_RE.test(symbol)) return null;
+    const qs = new URLSearchParams({ symbol, token: apiKey });
+    const res = await fetch(`${FINNHUB_BASE}/quote?${qs.toString()}`);
     const data = await res.json();
     if (!data || data.c === 0) return null;
     return { c: data.c ?? 0, d: data.d ?? 0, dp: data.dp ?? 0 };
@@ -121,7 +130,7 @@ function generateEmailHtml(
     ${topMovers
       .map(
         (h) => `<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #1e1e3a33;">
-        <span style="font-weight:600;font-size:14px;">${h.ticker}</span>
+        <span style="font-weight:600;font-size:14px;">${esc(h.ticker)}</span>
         <span style="color:${gainColor};font-family:monospace;font-size:14px;">▲ +${h.pctChange.toFixed(2)}%</span>
       </div>`
       )
@@ -138,7 +147,7 @@ function generateEmailHtml(
     ${bottomMovers
       .map(
         (h) => `<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #1e1e3a33;">
-        <span style="font-weight:600;font-size:14px;">${h.ticker}</span>
+        <span style="font-weight:600;font-size:14px;">${esc(h.ticker)}</span>
         <span style="color:${lossColor};font-family:monospace;font-size:14px;">▼ ${h.pctChange.toFixed(2)}%</span>
       </div>`
       )
@@ -153,7 +162,7 @@ function generateEmailHtml(
       ? `<div style="padding:24px;border-bottom:1px solid #1e1e3a;">
     <h2 style="margin:0 0 12px;font-size:14px;color:#f59e0b;">⚠️ Drift Alert</h2>
     <p style="margin:0;font-size:12px;color:#9ca3af;">These positions have drifted more than 5% from target:</p>
-    ${driftAlerts.map((d) => `<p style="margin:4px 0;font-size:13px;font-family:monospace;">${d}</p>`).join("")}
+    ${driftAlerts.map((d) => `<p style="margin:4px 0;font-size:13px;font-family:monospace;">${esc(d)}</p>`).join("")}
     </div>`
       : ""
   }
@@ -166,7 +175,7 @@ function generateEmailHtml(
     ${taxLosses
       .map(
         (h) => `<div style="display:flex;justify-content:space-between;padding:8px 0;">
-        <span style="font-size:13px;">${h.ticker}</span>
+        <span style="font-size:13px;">${esc(h.ticker)}</span>
         <span style="color:${lossColor};font-family:monospace;font-size:13px;">-${fmtDollar(h.costBasis - h.posValue)} unrealized loss</span>
       </div>`
       )
