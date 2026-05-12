@@ -175,7 +175,7 @@ function generateEmailHtml(
     ${taxLosses
       .map(
         (h) => `<div style="display:flex;justify-content:space-between;padding:8px 0;">
-        <span style="font-size:13px;">${h.ticker}</span>
+        <span style="font-size:13px;">${esc(h.ticker)}</span>
         <span style="color:${lossColor};font-family:monospace;font-size:13px;">-${fmtDollar(h.costBasis - h.posValue)} unrealized loss</span>
       </div>`
       )
