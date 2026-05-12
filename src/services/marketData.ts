@@ -122,7 +122,7 @@ export async function getCompanyProfile(symbol: string): Promise<CompanyProfile 
   if (cached && Date.now() - cached.ts < PROFILE_TTL) return cached.data;
   // 2. Supabase stock_lookup table (free, ~50ms)
   try {
-    const { data: lookup } = await supabase
+    const { data: lookup } = await (supabase as any)
       .from("stock_lookup")
       .select("ticker, company_name, sector")
       .eq("ticker", symbol.toUpperCase())
