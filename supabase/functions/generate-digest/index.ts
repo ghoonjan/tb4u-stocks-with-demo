@@ -33,9 +33,9 @@ interface Quote {
 
 async function getQuote(symbol: string, apiKey: string): Promise<Quote | null> {
   try {
-    const res = await fetch(
-      `${FINNHUB_BASE}/quote?symbol=${symbol}&token=${apiKey}`
-    );
+    if (!TICKER_RE.test(symbol)) return null;
+    const qs = new URLSearchParams({ symbol, token: apiKey });
+    const res = await fetch(`${FINNHUB_BASE}/quote?${qs.toString()}`);
     const data = await res.json();
     if (!data || data.c === 0) return null;
     return { c: data.c ?? 0, d: data.d ?? 0, dp: data.dp ?? 0 };
