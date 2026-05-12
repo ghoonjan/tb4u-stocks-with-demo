@@ -235,6 +235,33 @@ export type Database = {
         }
         Relationships: []
       }
+      stock_lookup: {
+        Row: {
+          asset_type: string | null
+          company_name: string
+          id: string
+          sector: string | null
+          ticker: string
+          updated_at: string | null
+        }
+        Insert: {
+          asset_type?: string | null
+          company_name: string
+          id?: string
+          sector?: string | null
+          ticker: string
+          updated_at?: string | null
+        }
+        Update: {
+          asset_type?: string | null
+          company_name?: string
+          id?: string
+          sector?: string | null
+          ticker?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       tax_lots: {
         Row: {
           cost_basis_per_share: number
