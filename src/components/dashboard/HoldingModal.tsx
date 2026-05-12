@@ -47,13 +47,19 @@ export function HoldingModal({ open, onClose, onSubmit, initial, existingTickers
   companyNameRef.current = companyName;
   const modalOpenRef = useRef(open);
   modalOpenRef.current = open;
+  const tickerRef = useRef(ticker);
+  tickerRef.current = ticker;
+  const latestLookupRef = useRef(0);
 
   const lookupTicker = useCallback(async (symbol: string) => {
     if (!symbol || symbol.length < 1) return;
+    const myId = ++latestLookupRef.current;
+
+    const symUpper = symbol.toUpperCase();
 
     // If this ticker already exists in the portfolio, skip API lookup —
     // it's a tax-lot addition and we already know the ticker is valid.
-    if (existingSetRef.current.includes(symbol.toUpperCase())) {
+    if (existingSetRef.current.includes(symUpper)) {
       setTickerError(null);
       setLookingUp(false);
       return;
@@ -62,8 +68,16 @@ export function HoldingModal({ open, onClose, onSubmit, initial, existingTickers
     setLookingUp(true);
     setTickerError(null);
     try {
-      const profile = await getCompanyProfile(symbol.toUpperCase());
+      const profile = await getCompanyProfile(symUpper);
+      // Bail if a newer keystroke has superseded this lookup or modal closed
+      if (myId !== latestLookupRef.current) return;
       if (!modalOpenRef.current) return;
+      // Final safety: if the current input is now an existing ticker, don't error
+      const currentUpper = tickerRef.current.trim().toUpperCase();
+      if (existingSetRef.current.includes(currentUpper)) {
+        setTickerError(null);
+        return;
+      }
       if (profile) {
         if (!companyNameRef.current) setCompanyName(profile.name);
         setLogo(profile.logo || null);
@@ -71,10 +85,11 @@ export function HoldingModal({ open, onClose, onSubmit, initial, existingTickers
         setTickerError("Ticker not found");
       }
     } catch {
+      if (myId !== latestLookupRef.current) return;
       if (!modalOpenRef.current) return;
       setTickerError("Could not look up ticker");
     } finally {
-      setLookingUp(false);
+      if (myId === latestLookupRef.current) setLookingUp(false);
     }
   }, []);
 
@@ -83,6 +98,8 @@ export function HoldingModal({ open, onClose, onSubmit, initial, existingTickers
     (value: string) => {
       setTicker(value.toUpperCase());
       setTickerError(null);
+      // Invalidate any in-flight lookup immediately on each keystroke
+      latestLookupRef.current++;
       clearTimeout(debounceRef.current);
       if (value.length >= 1) {
         debounceRef.current = setTimeout(() => lookupTicker(value), 300);
