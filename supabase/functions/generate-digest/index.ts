@@ -8,6 +8,15 @@ const corsHeaders = {
 
 const FINNHUB_BASE = "https://finnhub.io/api/v1";
 
+const TICKER_RE = /^[A-Z0-9.\-]{1,10}$/;
+const esc = (s: string) =>
+  String(s ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+
 interface Holding {
   ticker: string;
   company_name: string | null;
