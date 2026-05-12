@@ -273,11 +273,3 @@ export function HoldingModal({ open, onClose, onSubmit, initial, existingTickers
     </div>
   );
 }
-Summary of Changes
-Bug 1 Fix — Tax Lot "Ticker not found"
-// ADDED at the top of lookupTicker:
-if (existingSet.includes(symbol.toUpperCase())) {
-  setTickerError(null);
-  setLookingUp(false);
-  return;  // ← skip API call entirely, ticker is already valid
-}
