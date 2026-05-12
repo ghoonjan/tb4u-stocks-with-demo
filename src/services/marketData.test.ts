@@ -117,7 +117,9 @@ describe("getCompanyProfile", () => {
 
   it("falls back to Finnhub when stock_lookup returns no row", async () => {
     mocks.maybeSingle.mockResolvedValueOnce({ data: null, error: null });
-    mocks.invoke.mockResolvedValueOnce({
+    // Use persistent mock so any leftover background enrichment from prior
+    // tests (still draining the throttle queue) doesn't consume the response.
+    mocks.invoke.mockResolvedValue({
       data: {
         name: "Foo Corp",
         ticker: "FOO",
