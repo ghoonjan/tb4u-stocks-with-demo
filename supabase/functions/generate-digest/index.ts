@@ -130,7 +130,7 @@ function generateEmailHtml(
     ${topMovers
       .map(
         (h) => `<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #1e1e3a33;">
-        <span style="font-weight:600;font-size:14px;">${h.ticker}</span>
+        <span style="font-weight:600;font-size:14px;">${esc(h.ticker)}</span>
         <span style="color:${gainColor};font-family:monospace;font-size:14px;">▲ +${h.pctChange.toFixed(2)}%</span>
       </div>`
       )
