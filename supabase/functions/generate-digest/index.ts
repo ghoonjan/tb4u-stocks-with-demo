@@ -85,7 +85,7 @@ function generateEmailHtml(
       const diff = Math.abs(actual - Number(h.target_allocation_pct));
       if (diff > 5) {
         driftAlerts.push(
-          `${h.ticker}: target ${Number(h.target_allocation_pct).toFixed(0)}% → actual ${actual.toFixed(1)}%`
+          `${esc(h.ticker)}: target ${Number(h.target_allocation_pct).toFixed(0)}% → actual ${actual.toFixed(1)}%`
         );
       }
     }
