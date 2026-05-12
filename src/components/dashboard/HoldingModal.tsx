@@ -37,38 +37,63 @@ export function HoldingModal({ open, onClose, onSubmit, initial, existingTickers
   const [lookingUp, setLookingUp] = useState(false);
   const [tickerError, setTickerError] = useState<string | null>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout>>();
+  // FIX Bug 2: track companyName via ref so the async callback always sees current value
+  const companyNameRef = useRef(companyName);
+  companyNameRef.current = companyName;
+  // Track modal open state to discard stale lookups
+  const modalOpenRef = useRef(open);
+  modalOpenRef.current = open;
   const today = todayISO();
+
+  // Build the existing tickers set once
+  const existingSet = existingTickers.map((t) => t.toUpperCase());
 
   const lookupTicker = useCallback(async (symbol: string) => {
     if (!symbol || symbol.length < 1) return;
+
+    // FIX Bug 1: If this ticker already exists in the portfolio, skip API lookup
+    // It's a tax lot addition — we already know the ticker is valid
+    if (existingSet.includes(symbol.toUpperCase())) {
+      setTickerError(null);
+      setLookingUp(false);
+      return;
+    }
+
     setLookingUp(true);
     setTickerError(null);
     try {
       const profile = await getCompanyProfile(symbol.toUpperCase());
+      // FIX Bug 2: discard result if modal was closed/reopened while we were fetching
+      if (!modalOpenRef.current) return;
       if (profile) {
-        if (!companyName) setCompanyName(profile.name);
+        // FIX Bug 2: use ref to check current companyName, not stale closure
+        if (!companyNameRef.current) setCompanyName(profile.name);
         setLogo(profile.logo || null);
       } else {
         setTickerError("Ticker not found");
       }
     } catch {
+      if (!modalOpenRef.current) return;
       setTickerError("Could not look up ticker");
     } finally {
       setLookingUp(false);
     }
-  }, [companyName]);
+  }, [existingSet]);
 
   // Debounced ticker lookup (300ms)
   const handleTickerChange = useCallback((value: string) => {
     setTicker(value.toUpperCase());
     setTickerError(null);
+    setLogo(null);
+    // FIX Bug 2: clear company name when user changes ticker (unless editing)
+    if (!initial) setCompanyName("");
     clearTimeout(debounceRef.current);
     if (value.length >= 1) {
       debounceRef.current = setTimeout(() => lookupTicker(value), 300);
     }
-  }, [lookupTicker]);
+  }, [lookupTicker, initial]);
 
-  // Reset form when modal opens
+  // Reset form when modal opens OR closes
   useEffect(() => {
     if (open) {
       setTicker(initial?.ticker ?? "");
@@ -82,6 +107,11 @@ export function HoldingModal({ open, onClose, onSubmit, initial, existingTickers
       setLogo(null);
       setTickerError(null);
       setSaving(false);
+      setLookingUp(false);
+    }
+    // FIX Bug 2: cancel any in-flight debounced lookups when modal closes
+    if (!open) {
+      clearTimeout(debounceRef.current);
     }
     return () => clearTimeout(debounceRef.current);
   }, [open, initial]);
@@ -89,9 +119,7 @@ export function HoldingModal({ open, onClose, onSubmit, initial, existingTickers
   if (!open) return null;
 
   const tickerUpper = ticker.trim().toUpperCase();
-  const existingSet = existingTickers.map((t) => t.toUpperCase());
   const isAddingLot = !initial && tickerUpper.length > 0 && existingSet.includes(tickerUpper);
-
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -244,4 +272,12 @@ export function HoldingModal({ open, onClose, onSubmit, initial, existingTickers
       </div>
     </div>
   );
+}
+Summary of Changes
+Bug 1 Fix — Tax Lot "Ticker not found"
+// ADDED at the top of lookupTicker:
+if (existingSet.includes(symbol.toUpperCase())) {
+  setTickerError(null);
+  setLookingUp(false);
+  return;  // ← skip API call entirely, ticker is already valid
 }
