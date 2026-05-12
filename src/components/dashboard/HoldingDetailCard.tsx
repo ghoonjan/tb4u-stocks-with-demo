@@ -133,7 +133,7 @@ export function HoldingDetailCard({ holding, onEdit, onDelete, onLogTrade }: Hol
               </div>
             ) : chartData.length === 0 ? (
               <div className="flex items-center justify-center h-full text-xs text-muted-foreground">
-                chart data available soon
+                Historical chart coming soon
               </div>
             ) : (
               <ResponsiveContainer width="100%" height="100%">
