@@ -1,12 +1,12 @@
 import { supabase } from "@/integrations/supabase/client";
 
 export interface StockQuote {
-  c: number;  // current price
-  d: number;  // change
+  c: number; // current price
+  d: number; // change
   dp: number; // change percent
-  h: number;  // high
-  l: number;  // low
-  o: number;  // open
+  h: number; // high
+  l: number; // low
+  o: number; // open
   pc: number; // previous close
 }
 
@@ -29,13 +29,13 @@ export interface BasicFinancials {
 }
 
 export interface CandleData {
-  t: number[];  // timestamps
-  c: number[];  // close prices
-  o: number[];  // open prices
-  h: number[];  // high prices
-  l: number[];  // low prices
-  v: number[];  // volumes
-  s: string;    // status
+  t: number[]; // timestamps
+  c: number[]; // close prices
+  o: number[]; // open prices
+  h: number[]; // high prices
+  l: number[]; // low prices
+  v: number[]; // volumes
+  s: string; // status
 }
 
 export interface NewsArticle {
@@ -53,7 +53,7 @@ const quoteCache = new Map<string, { data: StockQuote; ts: number }>();
 const profileCache = new Map<string, { data: CompanyProfile; ts: number }>();
 const metricsCache = new Map<string, { data: BasicFinancials; ts: number }>();
 
-const QUOTE_TTL = 55_000;   // ~55s (we refresh every 60s)
+const QUOTE_TTL = 55_000; // ~55s (we refresh every 60s)
 const PROFILE_TTL = 3600_000; // 1 hour
 const METRICS_TTL = 3600_000;
 
@@ -67,8 +67,11 @@ function throttled<T>(fn: () => Promise<T>): Promise<T> {
       const wait = Math.max(0, lastCallTs + 350 - Date.now());
       if (wait > 0) await new Promise((r) => setTimeout(r, wait));
       lastCallTs = Date.now();
-      try { resolve(await fn()); }
-      catch (e) { reject(e); }
+      try {
+        resolve(await fn());
+      } catch (e) {
+        reject(e);
+      }
     });
   });
 }
@@ -77,7 +80,9 @@ async function callFinnhub(endpoint: string, params: Record<string, string>) {
   return throttled(async () => {
     // Require a real user session — the edge function rejects anon-key requests
     // with 401 ("missing sub claim"), which would surface as a blank screen.
-    const { data: { session } } = await supabase.auth.getSession();
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
     if (!session?.access_token) throw new Error("NOT_AUTHENTICATED");
 
     const { data, error } = await supabase.functions.invoke("finnhub", {
@@ -99,26 +104,69 @@ export async function getQuote(symbol: string): Promise<StockQuote> {
   if (!data || data.c === 0) throw new Error("INVALID_TICKER");
 
   const quote: StockQuote = {
-    c: data.c ?? 0, d: data.d ?? 0, dp: data.dp ?? 0,
-    h: data.h ?? 0, l: data.l ?? 0, o: data.o ?? 0, pc: data.pc ?? 0,
+    c: data.c ?? 0,
+    d: data.d ?? 0,
+    dp: data.dp ?? 0,
+    h: data.h ?? 0,
+    l: data.l ?? 0,
+    o: data.o ?? 0,
+    pc: data.pc ?? 0,
   };
   quoteCache.set(symbol, { data: quote, ts: Date.now() });
   return quote;
 }
 
 export async function getCompanyProfile(symbol: string): Promise<CompanyProfile | null> {
+  // 1. In-memory cache
   const cached = profileCache.get(symbol);
   if (cached && Date.now() - cached.ts < PROFILE_TTL) return cached.data;
-
-  const data = await callFinnhub("/stock/profile2", { symbol });
-  if (!data || !data.name) return null;
-
-  const profile: CompanyProfile = {
-    name: data.name, ticker: data.ticker, logo: data.logo,
-    finnhubIndustry: data.finnhubIndustry, marketCapitalization: data.marketCapitalization,
-  };
-  profileCache.set(symbol, { data: profile, ts: Date.now() });
-  return profile;
+  // 2. Supabase stock_lookup table (free, ~50ms)
+  try {
+    const { data: lookup } = await supabase
+      .from("stock_lookup")
+      .select("ticker, company_name, sector")
+      .eq("ticker", symbol.toUpperCase())
+      .maybeSingle();
+    if (lookup) {
+      const profile: CompanyProfile = {
+        name: lookup.company_name,
+        ticker: lookup.ticker,
+        logo: "",
+        finnhubIndustry: lookup.sector || "",
+        marketCapitalization: 0,
+      };
+      profileCache.set(symbol, { data: profile, ts: Date.now() });
+      // Fire-and-forget: enrich with logo from Finnhub in background
+      callFinnhub("/stock/profile2", { symbol })
+        .then((data) => {
+          if (data?.logo) {
+            profile.logo = data.logo;
+            if (data.marketCapitalization) profile.marketCapitalization = data.marketCapitalization;
+            profileCache.set(symbol, { data: profile, ts: Date.now() });
+          }
+        })
+        .catch(() => {});
+      return profile;
+    }
+  } catch {
+    // stock_lookup query failed -- fall through to Finnhub
+  }
+  // 3. Finnhub API fallback (for tickers not in stock_lookup)
+  try {
+    const data = await callFinnhub("/stock/profile2", { symbol });
+    if (!data || !data.name) return null;
+    const profile: CompanyProfile = {
+      name: data.name,
+      ticker: data.ticker,
+      logo: data.logo,
+      finnhubIndustry: data.finnhubIndustry,
+      marketCapitalization: data.marketCapitalization,
+    };
+    profileCache.set(symbol, { data: profile, ts: Date.now() });
+    return profile;
+  } catch {
+    return null;
+  }
 }
 
 export async function getBasicFinancials(symbol: string): Promise<BasicFinancials> {
@@ -159,7 +207,9 @@ export async function getBatchQuotes(
         try {
           const quote = await getQuote(symbols[i]);
           results.set(symbols[i], quote);
-        } catch { /* skip */ }
+        } catch {
+          /* skip */
+        }
       }
     }
     onProgress?.(i + 1, symbols.length);
