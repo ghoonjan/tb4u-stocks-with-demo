@@ -1,25 +1,34 @@
-## Fix orphaned tax_lots on user delete
+## Problem
 
-### 1. `supabase/functions/admin-delete-user/index.ts`
-Before deleting holdings, fetch their IDs and delete matching `tax_lots`:
+When opening "Add Holding" and typing a ticker that already exists in the portfolio (e.g. `GOOG`), the modal shows both:
+- "Ticker not found" (red error)
+- "GOOG is already in your portfolio. This will add a new purchase lot." (blue hint)
 
-```ts
-if (portfolioIds.length > 0) {
-  const { data: holdingRows } = await admin
-    .from("holdings").select("id").in("portfolio_id", portfolioIds);
-  const holdingIds = (holdingRows ?? []).map((h) => h.id);
-  if (holdingIds.length > 0) {
-    await admin.from("tax_lots").delete().in("holding_id", holdingIds);
-  }
-  await admin.from("holdings").delete().in("portfolio_id", portfolioIds);
-}
-```
+Root cause: `lookupTicker` always calls the Finnhub profile API, even when the ticker is already a known holding. If the lookup misses (rate-limit / cache miss / unknown to Finnhub), `setTickerError("Ticker not found")` fires even though the ticker is clearly valid (we own it).
 
-### 2. Migration — add ON DELETE CASCADE foreign keys
-- `tax_lots.holding_id` → `holdings(id) ON DELETE CASCADE`
-- `holdings.portfolio_id` → `portfolios(id) ON DELETE CASCADE`
+A secondary issue: `companyName` is captured in the `lookupTicker` closure, so when the user types fast the wrong stale value is used.
 
-This prevents orphans on any future delete path, not just the admin one.
+## Fix (in `src/components/dashboard/HoldingModal.tsx`)
 
-### 3. Cleanup — remove existing orphaned tax_lots
-One-time delete of `tax_lots` rows whose `holding_id` no longer exists in `holdings`.
+1. Add refs that always reflect the latest `existingTickers`, `companyName`, and modal-open state:
+   - `existingSetRef` — uppercase set of existing tickers, refreshed on every render.
+   - `companyNameRef` — current company name.
+   - `modalOpenRef` — current `open` value, so an in-flight lookup that resolves after the modal closes/reopens is discarded.
+
+2. In `lookupTicker`:
+   - Short-circuit before the API call when `existingSetRef.current.includes(symbol.toUpperCase())` — clear error, stop spinner, return.
+   - Read `companyNameRef.current` instead of the closed-over `companyName`.
+   - Bail out of `setState` calls if `!modalOpenRef.current`.
+   - Drop the `[companyName]` dependency so the callback identity is stable.
+
+3. Compute `isAddingLot` from `existingSetRef.current` (keeps the banner consistent with the lookup short-circuit).
+
+4. Update `handleTickerChange` deps to `[lookupTicker]` only (already correct, but confirm after refactor).
+
+## Result
+
+- Adding a lot to an existing ticker (`GOOG`, `AAPL`, etc.) skips the API entirely → no false "Ticker not found".
+- Stale-closure race between debounce + company name autofill is gone.
+- New tickers still get full Finnhub validation.
+
+No backend, schema, or styling changes.

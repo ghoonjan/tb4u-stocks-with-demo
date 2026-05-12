@@ -39,27 +39,44 @@ export function HoldingModal({ open, onClose, onSubmit, initial, existingTickers
   const debounceRef = useRef<ReturnType<typeof setTimeout>>();
   const today = todayISO();
 
-  const lookupTicker = useCallback(
-    async (symbol: string) => {
-      if (!symbol || symbol.length < 1) return;
-      setLookingUp(true);
+  // Refs that always reflect the latest values, so the async lookupTicker
+  // never sees a stale closure from when the debounce was scheduled.
+  const existingSetRef = useRef<string[]>([]);
+  existingSetRef.current = existingTickers.map((t) => t.toUpperCase());
+  const companyNameRef = useRef(companyName);
+  companyNameRef.current = companyName;
+  const modalOpenRef = useRef(open);
+  modalOpenRef.current = open;
+
+  const lookupTicker = useCallback(async (symbol: string) => {
+    if (!symbol || symbol.length < 1) return;
+
+    // If this ticker already exists in the portfolio, skip API lookup —
+    // it's a tax-lot addition and we already know the ticker is valid.
+    if (existingSetRef.current.includes(symbol.toUpperCase())) {
       setTickerError(null);
-      try {
-        const profile = await getCompanyProfile(symbol.toUpperCase());
-        if (profile) {
-          if (!companyName) setCompanyName(profile.name);
-          setLogo(profile.logo || null);
-        } else {
-          setTickerError("Ticker not found");
-        }
-      } catch {
-        setTickerError("Could not look up ticker");
-      } finally {
-        setLookingUp(false);
+      setLookingUp(false);
+      return;
+    }
+
+    setLookingUp(true);
+    setTickerError(null);
+    try {
+      const profile = await getCompanyProfile(symbol.toUpperCase());
+      if (!modalOpenRef.current) return;
+      if (profile) {
+        if (!companyNameRef.current) setCompanyName(profile.name);
+        setLogo(profile.logo || null);
+      } else {
+        setTickerError("Ticker not found");
       }
-    },
-    [companyName],
-  );
+    } catch {
+      if (!modalOpenRef.current) return;
+      setTickerError("Could not look up ticker");
+    } finally {
+      setLookingUp(false);
+    }
+  }, []);
 
   // Debounced ticker lookup (300ms)
   const handleTickerChange = useCallback(
