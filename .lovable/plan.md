@@ -1,90 +1,104 @@
-# Expand CompanyProfile and Capture Extra Fields
+# Portfolio Insights Utility
 
-Scope: `src/services/marketData.ts` only. No other files change.
+Create `src/utils/portfolioInsights.ts` — pure TypeScript, no deps.
 
-## 1. Expand the interface
-
-Add 6 fields to `CompanyProfile` (lines 13–19):
+## Exports
 
 ```ts
-export interface CompanyProfile {
-  name: string;
+import type { CompanyProfile } from "@/services/marketData";
+
+export interface HoldingInput {
   ticker: string;
-  logo: string;
-  finnhubIndustry: string;
-  marketCapitalization: number;
-  country: string;
-  currency: string;
-  exchange: string;
-  ipo: string;
-  shareOutstanding: number;
-  weburl: string;
+  companyName: string;
+  currentValue: number;
+  profile: CompanyProfile | null;
 }
+
+export interface BreakdownEntry {
+  category: string;
+  percentage: number;
+  holdings: string[];
+}
+export interface GeoEntry { country: string; percentage: number; holdings: string[]; }
+export interface SectorEntry { sector: string; percentage: number; holdings: string[]; }
+
+export interface PortfolioAlert {
+  level: "red" | "yellow" | "green";
+  title: string;
+  description: string;
+}
+
+export interface PortfolioInsights {
+  marketCapBreakdown: BreakdownEntry[];
+  geographicBreakdown: GeoEntry[];
+  sectorBreakdown: SectorEntry[];
+  maturityBreakdown: BreakdownEntry[];
+  alerts: PortfolioAlert[];
+}
+
+export function analyzePortfolio(holdings: HoldingInput[]): PortfolioInsights;
 ```
 
-## 2. stock_lookup fallback path (lines 130–138)
+## Logic
 
-Initialize the new fields with safe defaults (empty strings, `0`) so the object is type-complete before the background Finnhub enrichment fills them in:
+**Total weight basis:** `total = sum(currentValue)` across ALL holdings (including ones missing profile data). Each breakdown excludes only the rows missing the relevant field, but percentages are still computed as `bucketValue / total * 100`.
 
-```ts
-const profile: CompanyProfile = {
-  name: lookup.company_name,
-  ticker: lookup.ticker,
-  logo: "",
-  finnhubIndustry: lookup.sector || "",
-  marketCapitalization: 0,
-  country: "",
-  currency: "",
-  exchange: "",
-  ipo: "",
-  shareOutstanding: 0,
-  weburl: "",
-};
-```
+**Helper** `bucketize(rows, keyFn, orderedCategories?)`:
+- Group `{ticker, currentValue}` by `keyFn(row)` (skip if `null`/empty).
+- For each bucket emit `{ category|country|sector, percentage: sum/total*100, holdings: [tickers] }`.
+- If `orderedCategories` supplied → return in that order, including zero-value buckets omitted (only emit buckets with ≥1 holding). Otherwise sort by percentage desc.
 
-## 3. Background enrichment (lines 140–148)
+### 1. marketCapBreakdown
+Categorize by `profile.marketCapitalization` (millions, must be > 0):
+- `> 200000` → "Mega Cap"
+- `10000–200000` → "Large Cap"
+- `2000–10000` → "Mid Cap"
+- `300–2000` → "Small Cap"
+- `> 0 && < 300` → "Micro Cap"
 
-After the fire-and-forget `/stock/profile2` call resolves, copy every new field from the Finnhub response (with `??` defaults), then re-cache:
+Output in this fixed order, omit empty buckets.
 
-```ts
-callFinnhub("/stock/profile2", { symbol })
-  .then((data) => {
-    if (data?.logo) {
-      profile.logo = data.logo;
-      if (data.marketCapitalization) profile.marketCapitalization = data.marketCapitalization;
-      profile.country = data.country ?? "";
-      profile.currency = data.currency ?? "";
-      profile.exchange = data.exchange ?? "";
-      profile.ipo = data.ipo ?? "";
-      profile.shareOutstanding = data.shareOutstanding ?? 0;
-      profile.weburl = data.weburl ?? "";
-      profileCache.set(symbol, { data: profile, ts: Date.now() });
-    }
-  })
-  .catch(() => {});
-```
+### 2. geographicBreakdown
+Group by `profile.country` (skip empty). Sort by percentage desc.
 
-## 4. Direct Finnhub fallback path (lines 158–164)
+### 3. sectorBreakdown
+Group by `profile.finnhubIndustry` (skip empty). Sort by percentage desc.
 
-When `stock_lookup` has no row and we go straight to Finnhub, capture all new fields too:
+### 4. maturityBreakdown
+Compute age from `profile.ipo` (YYYY-MM-DD; skip if empty/invalid):
+`ageYears = (Date.now() - new Date(ipo).getTime()) / (365.25 * 86_400_000)`
+- `>= 20` → "Established (20+ yrs)"
+- `>= 10` → "Mature (10-20 yrs)"
+- `>= 5` → "Growth (5-10 yrs)"
+- `< 5` → "Young (< 5 yrs)"
 
-```ts
-const profile: CompanyProfile = {
-  name: data.name,
-  ticker: data.ticker,
-  logo: data.logo,
-  finnhubIndustry: data.finnhubIndustry,
-  marketCapitalization: data.marketCapitalization,
-  country: data.country ?? "",
-  currency: data.currency ?? "",
-  exchange: data.exchange ?? "",
-  ipo: data.ipo ?? "",
-  shareOutstanding: data.shareOutstanding ?? 0,
-  weburl: data.weburl ?? "",
-};
-```
+Output in this fixed order, omit empty buckets.
+
+### 5. alerts
+
+Compute three alerts (always emitted, exactly one per rule). Use the **max** percentage from the relevant breakdown.
+
+- **Sector:** max sector pct
+  - `> 40` → red, title `"High sector concentration"`, desc names the sector + percentage
+  - `> 30` → yellow, title `"Elevated sector concentration"`, desc same
+  - else → green, title `"Good sector diversification"`, desc summarizes top sector
+
+- **Country:** max country pct
+  - `> 85` → red `"Heavy geographic concentration"`
+  - `> 70` → yellow `"Elevated geographic concentration"`
+  - else → green `"Good geographic spread"`
+
+- **Mega cap:** percentage of "Mega Cap" bucket (0 if none)
+  - `> 80` → red `"Heavy mega-cap concentration"`
+  - `> 60` → yellow `"Elevated mega-cap concentration"`
+  - else → green `"Good market cap spread"`
+
+If a breakdown is empty (no profile data anywhere), still emit a green alert with a neutral description ("No data available yet").
+
+## Edge cases
+- `total === 0` → return all empty arrays + 3 green "no data" alerts.
+- `holdings.length === 0` → same.
+- Percentages stored as numbers (not rounded) — UI handles display formatting.
 
 ## Out of scope
-
-- No changes to other functions, caches, TTLs, or consumers of `CompanyProfile`.
-- No UI changes (existing components ignore the new optional-feeling fields).
+No UI, no tests in this step, no changes to other files.
