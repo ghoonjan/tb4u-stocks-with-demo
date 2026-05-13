@@ -16,6 +16,12 @@ export interface CompanyProfile {
   logo: string;
   finnhubIndustry: string;
   marketCapitalization: number;
+  country: string;
+  currency: string;
+  exchange: string;
+  ipo: string;
+  shareOutstanding: number;
+  weburl: string;
 }
 
 export interface BasicFinancials {
@@ -134,6 +140,12 @@ export async function getCompanyProfile(symbol: string): Promise<CompanyProfile 
         logo: "",
         finnhubIndustry: lookup.sector || "",
         marketCapitalization: 0,
+        country: "",
+        currency: "",
+        exchange: "",
+        ipo: "",
+        shareOutstanding: 0,
+        weburl: "",
       };
       profileCache.set(symbol, { data: profile, ts: Date.now() });
       // Fire-and-forget: enrich with logo from Finnhub in background
@@ -142,6 +154,12 @@ export async function getCompanyProfile(symbol: string): Promise<CompanyProfile 
           if (data?.logo) {
             profile.logo = data.logo;
             if (data.marketCapitalization) profile.marketCapitalization = data.marketCapitalization;
+            profile.country = data.country ?? "";
+            profile.currency = data.currency ?? "";
+            profile.exchange = data.exchange ?? "";
+            profile.ipo = data.ipo ?? "";
+            profile.shareOutstanding = data.shareOutstanding ?? 0;
+            profile.weburl = data.weburl ?? "";
             profileCache.set(symbol, { data: profile, ts: Date.now() });
           }
         })
@@ -161,6 +179,12 @@ export async function getCompanyProfile(symbol: string): Promise<CompanyProfile 
       logo: data.logo,
       finnhubIndustry: data.finnhubIndustry,
       marketCapitalization: data.marketCapitalization,
+      country: data.country ?? "",
+      currency: data.currency ?? "",
+      exchange: data.exchange ?? "",
+      ipo: data.ipo ?? "",
+      shareOutstanding: data.shareOutstanding ?? 0,
+      weburl: data.weburl ?? "",
     };
     profileCache.set(symbol, { data: profile, ts: Date.now() });
     return profile;

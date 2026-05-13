@@ -1,28 +1,90 @@
-## Problem
+# Expand CompanyProfile and Capture Extra Fields
 
-"Ticker not found" still appears for existing holdings (e.g. `GOOG`) because of a race between debounced lookups, not the short-circuit itself.
+Scope: `src/services/marketData.ts` only. No other files change.
 
-When the user types `G-O-O-G`:
-1. Debounce fires `lookupTicker("G")` after 300ms of pause — `"G"` is not in `existingTickers`, so it calls Finnhub.
-2. The user finishes typing `GOOG`. `clearTimeout` cancels future debounces, but the in-flight `getCompanyProfile("G")` is still running.
-3. That call resolves with `null` → `setTickerError("Ticker not found")` — overwriting the cleared error, even though the current input is a valid existing ticker.
+## 1. Expand the interface
 
-The short-circuit added previously only protects calls that *start* with the existing symbol. Partial-input calls already in flight bypass it.
+Add 6 fields to `CompanyProfile` (lines 13–19):
 
-## Fix (in `src/components/dashboard/HoldingModal.tsx`)
+```ts
+export interface CompanyProfile {
+  name: string;
+  ticker: string;
+  logo: string;
+  finnhubIndustry: string;
+  marketCapitalization: number;
+  country: string;
+  currency: string;
+  exchange: string;
+  ipo: string;
+  shareOutstanding: number;
+  weburl: string;
+}
+```
 
-1. Add a `latestLookupRef = useRef(0)` request-sequence counter.
-2. In `lookupTicker(symbol)`:
-   - Increment the counter and capture `myId = ++latestLookupRef.current` at the top.
-   - After every `await`, bail out if `myId !== latestLookupRef.current` (a newer keystroke has superseded this lookup) — do not touch state.
-   - Also bail out if `symbol.toUpperCase() !== ticker.trim().toUpperCase()` via a `tickerRef` (latest typed value), so a stale partial never sets an error for a value the user has moved past.
-3. Add `tickerRef` mirroring `ticker` (same pattern as the existing `companyNameRef`), and re-check `existingSetRef.current.includes(tickerRef.current.toUpperCase())` before setting the "not found" error — final safety net.
-4. In `handleTickerChange`, also bump `latestLookupRef.current++` so any in-flight call is invalidated immediately on keystroke (not only on debounce schedule).
+## 2. stock_lookup fallback path (lines 130–138)
 
-## Result
+Initialize the new fields with safe defaults (empty strings, `0`) so the object is type-complete before the background Finnhub enrichment fills them in:
 
-- Stale partial-ticker lookups can no longer overwrite the error state for the current (valid) ticker.
-- Adding a tax lot for an existing holding never shows "Ticker not found", even with fast typing or slow Finnhub responses.
-- New, unknown tickers still surface the error correctly because their lookup is the latest one.
+```ts
+const profile: CompanyProfile = {
+  name: lookup.company_name,
+  ticker: lookup.ticker,
+  logo: "",
+  finnhubIndustry: lookup.sector || "",
+  marketCapitalization: 0,
+  country: "",
+  currency: "",
+  exchange: "",
+  ipo: "",
+  shareOutstanding: 0,
+  weburl: "",
+};
+```
 
-No backend, schema, or styling changes.
+## 3. Background enrichment (lines 140–148)
+
+After the fire-and-forget `/stock/profile2` call resolves, copy every new field from the Finnhub response (with `??` defaults), then re-cache:
+
+```ts
+callFinnhub("/stock/profile2", { symbol })
+  .then((data) => {
+    if (data?.logo) {
+      profile.logo = data.logo;
+      if (data.marketCapitalization) profile.marketCapitalization = data.marketCapitalization;
+      profile.country = data.country ?? "";
+      profile.currency = data.currency ?? "";
+      profile.exchange = data.exchange ?? "";
+      profile.ipo = data.ipo ?? "";
+      profile.shareOutstanding = data.shareOutstanding ?? 0;
+      profile.weburl = data.weburl ?? "";
+      profileCache.set(symbol, { data: profile, ts: Date.now() });
+    }
+  })
+  .catch(() => {});
+```
+
+## 4. Direct Finnhub fallback path (lines 158–164)
+
+When `stock_lookup` has no row and we go straight to Finnhub, capture all new fields too:
+
+```ts
+const profile: CompanyProfile = {
+  name: data.name,
+  ticker: data.ticker,
+  logo: data.logo,
+  finnhubIndustry: data.finnhubIndustry,
+  marketCapitalization: data.marketCapitalization,
+  country: data.country ?? "",
+  currency: data.currency ?? "",
+  exchange: data.exchange ?? "",
+  ipo: data.ipo ?? "",
+  shareOutstanding: data.shareOutstanding ?? 0,
+  weburl: data.weburl ?? "",
+};
+```
+
+## Out of scope
+
+- No changes to other functions, caches, TTLs, or consumers of `CompanyProfile`.
+- No UI changes (existing components ignore the new optional-feeling fields).
