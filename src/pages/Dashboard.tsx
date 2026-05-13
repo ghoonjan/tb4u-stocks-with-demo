@@ -23,7 +23,10 @@ import CopyrightFooter from "@/components/CopyrightFooter";
 import { usePerformanceMetrics } from "@/hooks/usePerformanceMetrics";
 import { useAnalyticsData } from "@/hooks/useAnalyticsData";
 import { toast } from "@/hooks/use-toast";
-import { BookOpen, Loader2 } from "lucide-react";
+import { BookOpen, Loader2, Lightbulb } from "lucide-react";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import PortfolioInsights from "@/components/dashboard/PortfolioInsights";
+import type { StockQuote } from "@/services/marketData";
 import { useInitializeUser } from "@/hooks/useInitializeUser";
 import { OfflineBanner } from "@/components/dashboard/OfflineBanner";
 import { OnboardingFlow } from "@/components/dashboard/OnboardingFlow";
@@ -140,18 +143,57 @@ function DashboardContent({ user, onLogout }: { user: AuthenticatedUser; onLogou
       />
       <div className="flex-1 flex flex-col lg:flex-row gap-3 sm:gap-4 p-2 sm:p-4 max-w-[1600px] mx-auto w-full">
         <div ref={holdingsSectionRef} className="flex-1 lg:w-[62%] min-w-0 layer-surface" data-tour="holdings">
-          <HoldingsTable
-            holdings={portfolio.holdings}
-            loading={portfolio.loading}
-            onAddHolding={() => { setEditingHolding(null); setHoldingModalOpen(true); }}
-            onEditHolding={(h) => { setEditingHolding(h); setHoldingModalOpen(true); }}
-            onDeleteHolding={(h) => setDeletingHolding(h)}
-            onAddToWatchlist={(ticker, companyName) => {
-              portfolio.addToWatchlist({ ticker, company_name: companyName });
-            }}
-            onLogTrade={openTradeModal}
-            analyticsMap={analyticsMap}
-          />
+          {portfolio.holdings.length >= 2 ? (
+            <Tabs defaultValue="holdings" className="w-full">
+              <TabsList>
+                <TabsTrigger value="holdings">Holdings</TabsTrigger>
+                <TabsTrigger value="insights" className="gap-1.5">
+                  <Lightbulb className="h-4 w-4" />
+                  Insights
+                </TabsTrigger>
+              </TabsList>
+              <TabsContent value="holdings" className="mt-3">
+                <HoldingsTable
+                  holdings={portfolio.holdings}
+                  loading={portfolio.loading}
+                  onAddHolding={() => { setEditingHolding(null); setHoldingModalOpen(true); }}
+                  onEditHolding={(h) => { setEditingHolding(h); setHoldingModalOpen(true); }}
+                  onDeleteHolding={(h) => setDeletingHolding(h)}
+                  onAddToWatchlist={(ticker, companyName) => {
+                    portfolio.addToWatchlist({ ticker, company_name: companyName });
+                  }}
+                  onLogTrade={openTradeModal}
+                  analyticsMap={analyticsMap}
+                />
+              </TabsContent>
+              <TabsContent value="insights" className="mt-3">
+                <PortfolioInsights
+                  holdings={portfolio.holdings}
+                  quotes={
+                    new Map<string, StockQuote>(
+                      portfolio.holdings.map((h) => [
+                        h.ticker,
+                        { c: h.currentPrice, d: 0, dp: 0, h: 0, l: 0, o: 0, pc: 0 },
+                      ]),
+                    )
+                  }
+                />
+              </TabsContent>
+            </Tabs>
+          ) : (
+            <HoldingsTable
+              holdings={portfolio.holdings}
+              loading={portfolio.loading}
+              onAddHolding={() => { setEditingHolding(null); setHoldingModalOpen(true); }}
+              onEditHolding={(h) => { setEditingHolding(h); setHoldingModalOpen(true); }}
+              onDeleteHolding={(h) => setDeletingHolding(h)}
+              onAddToWatchlist={(ticker, companyName) => {
+                portfolio.addToWatchlist({ ticker, company_name: companyName });
+              }}
+              onLogTrade={openTradeModal}
+              analyticsMap={analyticsMap}
+            />
+          )}
         </div>
         <div className="lg:w-[38%] lg:max-w-[480px] layer-surface" data-tour="sidebar">
           <IntelligenceSidebar
