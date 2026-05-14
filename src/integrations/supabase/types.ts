@@ -239,26 +239,47 @@ export type Database = {
         Row: {
           asset_type: string | null
           company_name: string
+          country: string | null
+          currency: string | null
+          exchange: string | null
           id: string
+          ipo: string | null
+          market_cap: number | null
           sector: string | null
+          share_outstanding: number | null
           ticker: string
           updated_at: string | null
+          weburl: string | null
         }
         Insert: {
           asset_type?: string | null
           company_name: string
+          country?: string | null
+          currency?: string | null
+          exchange?: string | null
           id?: string
+          ipo?: string | null
+          market_cap?: number | null
           sector?: string | null
+          share_outstanding?: number | null
           ticker: string
           updated_at?: string | null
+          weburl?: string | null
         }
         Update: {
           asset_type?: string | null
           company_name?: string
+          country?: string | null
+          currency?: string | null
+          exchange?: string | null
           id?: string
+          ipo?: string | null
+          market_cap?: number | null
           sector?: string | null
+          share_outstanding?: number | null
           ticker?: string
           updated_at?: string | null
+          weburl?: string | null
         }
         Relationships: []
       }
