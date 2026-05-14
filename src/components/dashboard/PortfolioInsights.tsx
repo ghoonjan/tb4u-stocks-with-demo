@@ -8,6 +8,7 @@ import {
   type BreakdownEntry,
 } from "@/utils/portfolioInsights";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Loader2, RefreshCw } from "lucide-react";
 
 interface Props {
   holdings: HoldingDisplay[];
@@ -87,9 +88,25 @@ function BarRow({
   );
 }
 
-function BarList({ entries, prefixes }: { entries: BreakdownEntry[]; prefixes?: string[] }) {
+function BarList({
+  entries,
+  prefixes,
+  enriching,
+}: {
+  entries: BreakdownEntry[];
+  prefixes?: string[];
+  enriching?: boolean;
+}) {
   if (entries.length === 0) {
-    return <p className="text-sm text-muted-foreground">No data available yet.</p>;
+    if (enriching) {
+      return (
+        <div className="flex items-center gap-2 text-sm text-muted-foreground animate-pulse">
+          <Loader2 className="h-4 w-4 animate-spin" />
+          <span>No data available yet…</span>
+        </div>
+      );
+    }
+    return <p className="text-sm text-muted-foreground">Data unavailable.</p>;
   }
   return (
     <div className="space-y-3">
@@ -108,6 +125,8 @@ function BarList({ entries, prefixes }: { entries: BreakdownEntry[]; prefixes?: 
 export default function PortfolioInsights({ holdings, quotes }: Props) {
   const [profiles, setProfiles] = useState<Map<string, CompanyProfile | null>>(new Map());
   const [loading, setLoading] = useState(true);
+  const [enriching, setEnriching] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
 
   const tickerKey = useMemo(
     () => holdings.map((h) => h.ticker).sort().join(","),
@@ -116,33 +135,65 @@ export default function PortfolioInsights({ holdings, quotes }: Props) {
 
   useEffect(() => {
     let cancelled = false;
+    let timer: ReturnType<typeof setTimeout> | null = null;
     if (holdings.length === 0) {
       setProfiles(new Map());
       setLoading(false);
+      setEnriching(false);
       return;
     }
     setLoading(true);
-    (async () => {
+    setEnriching(false);
+
+    const isIncomplete = (p: CompanyProfile | null | undefined) =>
+      !p || p.country === "" || p.marketCapitalization === 0;
+
+    const fetchAll = async () => {
       const next = new Map<string, CompanyProfile | null>();
       await Promise.all(
         holdings.map(async (h) => {
           try {
-            const p = await getCompanyProfile(h.ticker);
-            next.set(h.ticker, p);
+            next.set(h.ticker, await getCompanyProfile(h.ticker));
           } catch {
             next.set(h.ticker, null);
           }
         }),
       );
-      if (!cancelled) {
-        setProfiles(next);
-        setLoading(false);
-      }
+      return next;
+    };
+
+    (async () => {
+      const next = await fetchAll();
+      if (cancelled) return;
+      setProfiles(next);
+      setLoading(false);
+
+      const missing = holdings.filter((h) => isIncomplete(next.get(h.ticker)));
+      if (missing.length === 0) return;
+
+      setEnriching(true);
+      timer = setTimeout(async () => {
+        const updated = new Map(next);
+        await Promise.all(
+          missing.map(async (h) => {
+            try {
+              updated.set(h.ticker, await getCompanyProfile(h.ticker));
+            } catch {
+              /* keep prior */
+            }
+          }),
+        );
+        if (cancelled) return;
+        setProfiles(updated);
+        setEnriching(false);
+      }, 4000);
     })();
+
     return () => {
       cancelled = true;
+      if (timer) clearTimeout(timer);
     };
-  }, [tickerKey]);
+  }, [tickerKey, refreshKey]);
 
   const insights: Insights = useMemo(() => {
     const inputs: HoldingInput[] = holdings.map((h) => {
@@ -213,7 +264,18 @@ export default function PortfolioInsights({ holdings, quotes }: Props) {
 
   return (
     <section className="space-y-4">
-      <h2 className="text-xl font-semibold text-foreground">Portfolio Insights</h2>
+      <div className="flex items-center justify-between">
+        <h2 className="text-xl font-semibold text-foreground">Portfolio Insights</h2>
+        <button
+          type="button"
+          onClick={() => setRefreshKey((k) => k + 1)}
+          className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors p-1.5 rounded-md hover:bg-muted"
+          aria-label="Refresh insights"
+          title="Refresh insights"
+        >
+          <RefreshCw className={`h-4 w-4 ${enriching ? "animate-spin" : ""}`} />
+        </button>
+      </div>
 
       {/* Smart Alerts Banner */}
       <Card icon="🛎️" title="Smart Alerts">
@@ -241,22 +303,23 @@ export default function PortfolioInsights({ holdings, quotes }: Props) {
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <Card icon="🏛️" title="Market Cap Distribution">
-          <BarList entries={insights.marketCapBreakdown} />
+          <BarList entries={insights.marketCapBreakdown} enriching={enriching} />
         </Card>
 
         <Card icon="🌐" title="Geographic Exposure">
           <BarList
             entries={geoEntries}
             prefixes={geoEntries.map((g) => flagFor(g.category))}
+            enriching={enriching}
           />
         </Card>
 
         <Card icon="📊" title="Sector Allocation">
-          <BarList entries={sectorEntries} />
+          <BarList entries={sectorEntries} enriching={enriching} />
         </Card>
 
         <Card icon="⏳" title="Company Maturity">
-          <BarList entries={insights.maturityBreakdown} />
+          <BarList entries={insights.maturityBreakdown} enriching={enriching} />
           {avgAge !== null && (
             <p className="mt-4 text-xs text-muted-foreground">
               Avg company age: {avgAge.toFixed(1)} years
