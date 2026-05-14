@@ -277,7 +277,16 @@ Deno.serve(async (req) => {
     let sent = 0;
 
     for (const user of users) {
-      if (!user.email) continue;
+      // SECURITY: Use the verified auth.users email, not the user-editable profiles.email,
+      // to prevent users from directing digest emails to arbitrary third-party addresses.
+      let verifiedEmail: string | null = null;
+      try {
+        const { data: authUser } = await supabase.auth.admin.getUserById(user.id);
+        verifiedEmail = authUser?.user?.email ?? null;
+      } catch {
+        verifiedEmail = null;
+      }
+      if (!verifiedEmail) continue;
 
       // Get user's portfolio
       const { data: portfolios } = await supabase
