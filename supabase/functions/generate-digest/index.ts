@@ -325,7 +325,7 @@ Deno.serve(async (req) => {
         },
         body: JSON.stringify({
           from: "TB4U <digest@resend.dev>",
-          to: [user.email],
+          to: [verifiedEmail],
           subject,
           html,
         }),
@@ -335,7 +335,7 @@ Deno.serve(async (req) => {
         sent++;
       } else {
         const errBody = await resendRes.text();
-        console.error(`Failed to send to ${user.email}: ${errBody}`);
+        console.error(`Failed to send to ${verifiedEmail}: ${errBody}`);
       }
 
       // Small delay between users
