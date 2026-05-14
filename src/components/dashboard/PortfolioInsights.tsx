@@ -303,22 +303,23 @@ export default function PortfolioInsights({ holdings, quotes }: Props) {
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <Card icon="🏛️" title="Market Cap Distribution">
-          <BarList entries={insights.marketCapBreakdown} />
+          <BarList entries={insights.marketCapBreakdown} enriching={enriching} />
         </Card>
 
         <Card icon="🌐" title="Geographic Exposure">
           <BarList
             entries={geoEntries}
             prefixes={geoEntries.map((g) => flagFor(g.category))}
+            enriching={enriching}
           />
         </Card>
 
         <Card icon="📊" title="Sector Allocation">
-          <BarList entries={sectorEntries} />
+          <BarList entries={sectorEntries} enriching={enriching} />
         </Card>
 
         <Card icon="⏳" title="Company Maturity">
-          <BarList entries={insights.maturityBreakdown} />
+          <BarList entries={insights.maturityBreakdown} enriching={enriching} />
           {avgAge !== null && (
             <p className="mt-4 text-xs text-muted-foreground">
               Avg company age: {avgAge.toFixed(1)} years
