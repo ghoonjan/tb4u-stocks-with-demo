@@ -162,19 +162,22 @@ export async function getCompanyProfile(symbol: string): Promise<CompanyProfile 
             profile.weburl = data.weburl ?? "";
             profileCache.set(symbol, { data: profile, ts: Date.now() });
           }
-          (supabase as any).from("stock_lookup").upsert({
-            ticker: symbol.toUpperCase(),
-            company_name: data.name || profile.name,
-            sector: data.finnhubIndustry || profile.finnhubIndustry,
-            country: data.country || "",
-            currency: data.currency || "",
-            exchange: data.exchange || "",
-            ipo: data.ipo || "",
-            market_cap: data.marketCapitalization || 0,
-            share_outstanding: data.shareOutstanding || 0,
-            weburl: data.weburl || "",
-            updated_at: new Date().toISOString(),
-          }, { onConflict: "ticker" }).then(() => {}, () => {});
+          if (data?.country) {
+            (supabase as any)
+              .from("stock_lookup")
+              .update({
+                country: data.country,
+                currency: data.currency,
+                exchange: data.exchange,
+                ipo: data.ipo,
+                market_cap: data.marketCapitalization,
+                share_outstanding: data.shareOutstanding,
+                weburl: data.weburl,
+                updated_at: new Date().toISOString(),
+              })
+              .eq("ticker", symbol.toUpperCase())
+              .then(() => {}, () => {});
+          }
         })
         .catch(() => {});
       return profile;
