@@ -264,7 +264,18 @@ export default function PortfolioInsights({ holdings, quotes }: Props) {
 
   return (
     <section className="space-y-4">
-      <h2 className="text-xl font-semibold text-foreground">Portfolio Insights</h2>
+      <div className="flex items-center justify-between">
+        <h2 className="text-xl font-semibold text-foreground">Portfolio Insights</h2>
+        <button
+          type="button"
+          onClick={() => setRefreshKey((k) => k + 1)}
+          className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors p-1.5 rounded-md hover:bg-muted"
+          aria-label="Refresh insights"
+          title="Refresh insights"
+        >
+          <RefreshCw className={`h-4 w-4 ${enriching ? "animate-spin" : ""}`} />
+        </button>
+      </div>
 
       {/* Smart Alerts Banner */}
       <Card icon="🛎️" title="Smart Alerts">
