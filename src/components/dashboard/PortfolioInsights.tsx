@@ -125,6 +125,8 @@ function BarList({
 export default function PortfolioInsights({ holdings, quotes }: Props) {
   const [profiles, setProfiles] = useState<Map<string, CompanyProfile | null>>(new Map());
   const [loading, setLoading] = useState(true);
+  const [enriching, setEnriching] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
 
   const tickerKey = useMemo(
     () => holdings.map((h) => h.ticker).sort().join(","),
@@ -133,33 +135,65 @@ export default function PortfolioInsights({ holdings, quotes }: Props) {
 
   useEffect(() => {
     let cancelled = false;
+    let timer: ReturnType<typeof setTimeout> | null = null;
     if (holdings.length === 0) {
       setProfiles(new Map());
       setLoading(false);
+      setEnriching(false);
       return;
     }
     setLoading(true);
-    (async () => {
+    setEnriching(false);
+
+    const isIncomplete = (p: CompanyProfile | null | undefined) =>
+      !p || p.country === "" || p.marketCapitalization === 0;
+
+    const fetchAll = async () => {
       const next = new Map<string, CompanyProfile | null>();
       await Promise.all(
         holdings.map(async (h) => {
           try {
-            const p = await getCompanyProfile(h.ticker);
-            next.set(h.ticker, p);
+            next.set(h.ticker, await getCompanyProfile(h.ticker));
           } catch {
             next.set(h.ticker, null);
           }
         }),
       );
-      if (!cancelled) {
-        setProfiles(next);
-        setLoading(false);
-      }
+      return next;
+    };
+
+    (async () => {
+      const next = await fetchAll();
+      if (cancelled) return;
+      setProfiles(next);
+      setLoading(false);
+
+      const missing = holdings.filter((h) => isIncomplete(next.get(h.ticker)));
+      if (missing.length === 0) return;
+
+      setEnriching(true);
+      timer = setTimeout(async () => {
+        const updated = new Map(next);
+        await Promise.all(
+          missing.map(async (h) => {
+            try {
+              updated.set(h.ticker, await getCompanyProfile(h.ticker));
+            } catch {
+              /* keep prior */
+            }
+          }),
+        );
+        if (cancelled) return;
+        setProfiles(updated);
+        setEnriching(false);
+      }, 4000);
     })();
+
     return () => {
       cancelled = true;
+      if (timer) clearTimeout(timer);
     };
-  }, [tickerKey]);
+  }, [tickerKey, refreshKey]);
 
   const insights: Insights = useMemo(() => {
     const inputs: HoldingInput[] = holdings.map((h) => {
