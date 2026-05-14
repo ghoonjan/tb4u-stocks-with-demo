@@ -8,6 +8,7 @@ import {
   type BreakdownEntry,
 } from "@/utils/portfolioInsights";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Loader2, RefreshCw } from "lucide-react";
 
 interface Props {
   holdings: HoldingDisplay[];
