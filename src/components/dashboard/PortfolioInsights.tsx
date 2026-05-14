@@ -88,9 +88,25 @@ function BarRow({
   );
 }
 
-function BarList({ entries, prefixes }: { entries: BreakdownEntry[]; prefixes?: string[] }) {
+function BarList({
+  entries,
+  prefixes,
+  enriching,
+}: {
+  entries: BreakdownEntry[];
+  prefixes?: string[];
+  enriching?: boolean;
+}) {
   if (entries.length === 0) {
-    return <p className="text-sm text-muted-foreground">No data available yet.</p>;
+    if (enriching) {
+      return (
+        <div className="flex items-center gap-2 text-sm text-muted-foreground animate-pulse">
+          <Loader2 className="h-4 w-4 animate-spin" />
+          <span>No data available yet…</span>
+        </div>
+      );
+    }
+    return <p className="text-sm text-muted-foreground">Data unavailable.</p>;
   }
   return (
     <div className="space-y-3">
