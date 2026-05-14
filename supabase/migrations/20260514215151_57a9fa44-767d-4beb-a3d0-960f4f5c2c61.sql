@@ -1,0 +1,2 @@
+REVOKE EXECUTE ON FUNCTION public.enrich_stock_lookup(text, text, text, text, text, double precision, double precision, text) FROM anon, public;
+GRANT EXECUTE ON FUNCTION public.enrich_stock_lookup(text, text, text, text, text, double precision, double precision, text) TO authenticated;
