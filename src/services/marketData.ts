@@ -164,18 +164,16 @@ export async function getCompanyProfile(symbol: string): Promise<CompanyProfile 
           }
           if (data?.country) {
             (supabase as any)
-              .from("stock_lookup")
-              .update({
-                country: data.country,
-                currency: data.currency,
-                exchange: data.exchange,
-                ipo: data.ipo,
-                market_cap: data.marketCapitalization,
-                share_outstanding: data.shareOutstanding,
-                weburl: data.weburl,
-                updated_at: new Date().toISOString(),
+              .rpc("enrich_stock_lookup", {
+                _ticker: symbol.toUpperCase(),
+                _country: data.country ?? "",
+                _currency: data.currency ?? "",
+                _exchange: data.exchange ?? "",
+                _ipo: data.ipo ?? "",
+                _market_cap: data.marketCapitalization ?? null,
+                _share_outstanding: data.shareOutstanding ?? null,
+                _weburl: data.weburl ?? "",
               })
-              .eq("ticker", symbol.toUpperCase())
               .then(() => {}, () => {});
           }
         })

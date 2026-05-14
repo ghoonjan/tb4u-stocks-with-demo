@@ -277,7 +277,16 @@ Deno.serve(async (req) => {
     let sent = 0;
 
     for (const user of users) {
-      if (!user.email) continue;
+      // SECURITY: Use the verified auth.users email, not the user-editable profiles.email,
+      // to prevent users from directing digest emails to arbitrary third-party addresses.
+      let verifiedEmail: string | null = null;
+      try {
+        const { data: authUser } = await supabase.auth.admin.getUserById(user.id);
+        verifiedEmail = authUser?.user?.email ?? null;
+      } catch {
+        verifiedEmail = null;
+      }
+      if (!verifiedEmail) continue;
 
       // Get user's portfolio
       const { data: portfolios } = await supabase
@@ -316,7 +325,7 @@ Deno.serve(async (req) => {
         },
         body: JSON.stringify({
           from: "TB4U <digest@resend.dev>",
-          to: [user.email],
+          to: [verifiedEmail],
           subject,
           html,
         }),
@@ -326,7 +335,7 @@ Deno.serve(async (req) => {
         sent++;
       } else {
         const errBody = await resendRes.text();
-        console.error(`Failed to send to ${user.email}: ${errBody}`);
+        console.error(`Failed to send to ${verifiedEmail}: ${errBody}`);
       }
 
       // Small delay between users

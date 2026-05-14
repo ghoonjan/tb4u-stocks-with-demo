@@ -479,6 +479,19 @@ export type Database = {
         Args: { target_user_id: string }
         Returns: undefined
       }
+      enrich_stock_lookup: {
+        Args: {
+          _country: string
+          _currency: string
+          _exchange: string
+          _ipo: string
+          _market_cap: number
+          _share_outstanding: number
+          _ticker: string
+          _weburl: string
+        }
+        Returns: undefined
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
