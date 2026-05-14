@@ -1,47 +1,24 @@
-## Plan: Persist Finnhub enrichment back to stock_lookup
+# Debug Finnhub 401
 
-Single file change: `src/services/marketData.ts`, inside `getCompanyProfile`.
+## Findings
+`supabase/functions/finnhub/index.ts` line 68 reads the key with `Deno.env.get('FINNHUB_API_KEY')` on every request — no hardcoding, no module-level capture. So a stale value can only mean the deployed function predates the secret update, or the secret value itself differs from what you're testing in the browser.
 
-### Change 1 — Read new columns from stock_lookup (lines 133, 141–148)
+The L2 DB cache (`finnhub_cache`) could also be masking success/failure for `/stock/profile2?symbol=COST` if a prior bad response was stored — but only successful responses are written, so this is unlikely the cause. Worth clearing if needed.
 
-Expand the select to include the new columns and populate the profile from them:
+## Plan
 
-```ts
-.select("ticker, company_name, sector, country, currency, exchange, ipo, market_cap, share_outstanding, weburl")
-```
+1. **Edit `supabase/functions/finnhub/index.ts`**: right after reading `apiKey`, add:
+   ```ts
+   console.log(`Using Finnhub key: ${apiKey?.slice(0, 4)}... (len=${apiKey?.length})`);
+   ```
+   Also log endpoint + Finnhub status when `!response.ok` (already logs status+body — fine).
 
-Profile build:
-```ts
-finnhubIndustry: lookup.sector || "",
-country: lookup.country || "",
-currency: lookup.currency || "",
-exchange: lookup.exchange || "",
-ipo: lookup.ipo || "",
-marketCapitalization: lookup.market_cap || 0,
-shareOutstanding: lookup.share_outstanding || 0,
-weburl: lookup.weburl || "",
-```
+2. **Redeploy** the `finnhub` edge function so it picks up the latest secret value.
 
-### Change 2 — Upsert Finnhub data back into stock_lookup (lines 152–166)
+3. **Test** by calling the function with `endpoint=/stock/profile2`, `params={symbol:"COST"}` via `curl_edge_functions`, then fetch `edge_function_logs` for `finnhub` and show you:
+   - the "Using Finnhub key: xxxx..." prefix line
+   - the response body / any 401 error from Finnhub
 
-In the fire-and-forget `.then()` after updating cache, add a background upsert:
+4. If the prefix doesn't match the key you're testing in the browser → secret needs to be re-set. If it matches but Finnhub still returns 401 → the key itself is the problem (wrong tier/revoked).
 
-```ts
-(supabase as any).from("stock_lookup").upsert({
-  ticker: symbol.toUpperCase(),
-  company_name: data.name || profile.name,
-  sector: data.finnhubIndustry || profile.finnhubIndustry,
-  country: data.country || "",
-  currency: data.currency || "",
-  exchange: data.exchange || "",
-  ipo: data.ipo || "",
-  market_cap: data.marketCapitalization || 0,
-  share_outstanding: data.shareOutstanding || 0,
-  weburl: data.weburl || "",
-  updated_at: new Date().toISOString(),
-}, { onConflict: "ticker" }).then(() => {}, () => {});
-```
-
-### Note on RLS
-
-The `stock_lookup` table currently only has a public SELECT policy — no INSERT/UPDATE policy exists. The upsert will silently fail for authenticated users until a write policy is added. Will proceed as instructed; flagging so you can decide whether to add an RLS policy in a follow-up. Nothing else in the file changes.
+No other files change. Only one log line added; removed after debugging if you want.

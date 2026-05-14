@@ -66,6 +66,7 @@ Deno.serve(async (req) => {
     }
 
     const apiKey = Deno.env.get('FINNHUB_API_KEY');
+    console.log(`Using Finnhub key: ${apiKey?.slice(0, 4)}... (len=${apiKey?.length ?? 0})`);
     if (!apiKey) {
       return new Response(JSON.stringify({ error: 'FINNHUB_API_KEY not configured' }), {
         status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
