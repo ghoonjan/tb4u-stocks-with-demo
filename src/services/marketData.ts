@@ -130,7 +130,7 @@ export async function getCompanyProfile(symbol: string): Promise<CompanyProfile 
   try {
     const { data: lookup } = await (supabase as any)
       .from("stock_lookup")
-      .select("ticker, company_name, sector")
+      .select("ticker, company_name, sector, country, currency, exchange, ipo, market_cap, share_outstanding, weburl")
       .eq("ticker", symbol.toUpperCase())
       .maybeSingle();
     if (lookup) {
@@ -139,13 +139,13 @@ export async function getCompanyProfile(symbol: string): Promise<CompanyProfile 
         ticker: lookup.ticker,
         logo: "",
         finnhubIndustry: lookup.sector || "",
-        marketCapitalization: 0,
-        country: "",
-        currency: "",
-        exchange: "",
-        ipo: "",
-        shareOutstanding: 0,
-        weburl: "",
+        country: lookup.country || "",
+        currency: lookup.currency || "",
+        exchange: lookup.exchange || "",
+        ipo: lookup.ipo || "",
+        marketCapitalization: lookup.market_cap || 0,
+        shareOutstanding: lookup.share_outstanding || 0,
+        weburl: lookup.weburl || "",
       };
       profileCache.set(symbol, { data: profile, ts: Date.now() });
       // Fire-and-forget: enrich with logo from Finnhub in background
@@ -162,6 +162,19 @@ export async function getCompanyProfile(symbol: string): Promise<CompanyProfile 
             profile.weburl = data.weburl ?? "";
             profileCache.set(symbol, { data: profile, ts: Date.now() });
           }
+          (supabase as any).from("stock_lookup").upsert({
+            ticker: symbol.toUpperCase(),
+            company_name: data.name || profile.name,
+            sector: data.finnhubIndustry || profile.finnhubIndustry,
+            country: data.country || "",
+            currency: data.currency || "",
+            exchange: data.exchange || "",
+            ipo: data.ipo || "",
+            market_cap: data.marketCapitalization || 0,
+            share_outstanding: data.shareOutstanding || 0,
+            weburl: data.weburl || "",
+            updated_at: new Date().toISOString(),
+          }, { onConflict: "ticker" }).then(() => {}, () => {});
         })
         .catch(() => {});
       return profile;
