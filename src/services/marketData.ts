@@ -130,7 +130,7 @@ export async function getCompanyProfile(symbol: string): Promise<CompanyProfile 
   try {
     const { data: lookup } = await (supabase as any)
       .from("stock_lookup")
-      .select("ticker, company_name, sector")
+      .select("ticker, company_name, sector, country, currency, exchange, ipo, market_cap, share_outstanding, weburl")
       .eq("ticker", symbol.toUpperCase())
       .maybeSingle();
     if (lookup) {
@@ -139,13 +139,13 @@ export async function getCompanyProfile(symbol: string): Promise<CompanyProfile 
         ticker: lookup.ticker,
         logo: "",
         finnhubIndustry: lookup.sector || "",
-        marketCapitalization: 0,
-        country: "",
-        currency: "",
-        exchange: "",
-        ipo: "",
-        shareOutstanding: 0,
-        weburl: "",
+        country: lookup.country || "",
+        currency: lookup.currency || "",
+        exchange: lookup.exchange || "",
+        ipo: lookup.ipo || "",
+        marketCapitalization: lookup.market_cap || 0,
+        shareOutstanding: lookup.share_outstanding || 0,
+        weburl: lookup.weburl || "",
       };
       profileCache.set(symbol, { data: profile, ts: Date.now() });
       // Fire-and-forget: enrich with logo from Finnhub in background
