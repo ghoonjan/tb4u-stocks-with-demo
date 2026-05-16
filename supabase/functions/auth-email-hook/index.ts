@@ -37,9 +37,33 @@ const EMAIL_TEMPLATES: Record<string, React.ComponentType<any>> = {
 
 // Configuration
 const SITE_NAME = "tb4u-folios"
+const SITE_URL = "https://tb4u-folios.lovable.app"
 const SENDER_DOMAIN = "notify.techbargains4you.com"
 const ROOT_DOMAIN = "techbargains4you.com"
 const FROM_DOMAIN = "techbargains4you.com" // Domain shown in From address (may be root or sender subdomain)
+
+// Where to land users after a successful verifyOtp, per email type
+const NEXT_PATH: Record<string, string> = {
+  signup: "/",
+  invite: "/",
+  magiclink: "/",
+  recovery: "/reset-password",
+  email_change: "/",
+  reauthentication: "/",
+}
+
+function buildConfirmationUrl(emailType: string, data: any): string {
+  const tokenHash = data.token_hash
+  // Fallback to GoTrue's URL if token_hash isn't present (older payloads)
+  if (!tokenHash) return data.url
+  const next = NEXT_PATH[emailType] || "/"
+  const params = new URLSearchParams({
+    token_hash: tokenHash,
+    type: emailType,
+    next,
+  })
+  return `${SITE_URL}/auth/confirm?${params.toString()}`
+}
 
 // Sample data for preview mode ONLY (not used in actual email sending).
 // URLs are baked in at scaffold time from the project's real data.
