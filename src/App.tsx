@@ -7,6 +7,7 @@ import { ThemeProvider } from "next-themes";
 import Dashboard from "./pages/Dashboard";
 import Auth from "./pages/Auth";
 import ResetPassword from "./pages/ResetPassword";
+import AuthConfirm from "./pages/AuthConfirm";
 import Admin from "./pages/Admin";
 import AdminTemplates from "./pages/AdminTemplates";
 import ProtectedAdminRoute from "./components/ProtectedAdminRoute";
@@ -27,6 +28,7 @@ const App = () => (
               <Route path="/" element={<Dashboard />} />
               <Route path="/auth" element={<Auth />} />
               <Route path="/reset-password" element={<ResetPassword />} />
+              <Route path="/auth/confirm" element={<AuthConfirm />} />
               <Route path="/admin" element={<ProtectedAdminRoute><Admin /></ProtectedAdminRoute>} />
               <Route path="/admin/templates" element={<ProtectedAdminRoute><AdminTemplates /></ProtectedAdminRoute>} />
               <Route path="*" element={<NotFound />} />
