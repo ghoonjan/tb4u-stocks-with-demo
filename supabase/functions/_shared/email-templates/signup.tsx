@@ -70,7 +70,7 @@ const container = { padding: '32px 28px', maxWidth: '560px' }
 const brand = {
   fontSize: '20px',
   fontWeight: 'bold' as const,
-  color: 'hsl(217, 91%, 55%)',
+  color: '#2f7bf6',
   letterSpacing: '0.05em',
   margin: '0 0 24px',
 }
@@ -86,9 +86,9 @@ const text = {
   lineHeight: '1.6',
   margin: '0 0 16px',
 }
-const link = { color: 'hsl(217, 91%, 55%)', textDecoration: 'underline' }
+const link = { color: '#2f7bf6', textDecoration: 'underline' }
 const button = {
-  backgroundColor: 'hsl(217, 91%, 55%)',
+  backgroundColor: '#2f7bf6',
   color: '#ffffff',
   fontSize: '16px',
   fontWeight: 'bold' as const,
