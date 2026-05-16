@@ -245,9 +245,9 @@ async function handleWebhook(req: Request): Promise<Response> {
   // Build template props from payload.data (HookData structure)
   const templateProps = {
     siteName: SITE_NAME,
-    siteUrl: `https://${ROOT_DOMAIN}`,
+    siteUrl: SITE_URL,
     recipient: payload.data.email,
-    confirmationUrl: payload.data.url,
+    confirmationUrl: buildConfirmationUrl(emailType, payload.data),
     token: payload.data.token,
     email: payload.data.email,
     oldEmail: payload.data.old_email,
