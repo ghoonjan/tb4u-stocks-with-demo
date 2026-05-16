@@ -7,6 +7,7 @@ import { ThemeProvider } from "next-themes";
 import Dashboard from "./pages/Dashboard";
 import Auth from "./pages/Auth";
 import ResetPassword from "./pages/ResetPassword";
+import AuthConfirm from "./pages/AuthConfirm";
 import Admin from "./pages/Admin";
 import AdminTemplates from "./pages/AdminTemplates";
 import ProtectedAdminRoute from "./components/ProtectedAdminRoute";
