@@ -34,10 +34,10 @@ const fmtPct = (n: number) =>
   `${n >= 0 ? "+" : ""}${n.toFixed(2)}%`;
 
 const fmtDate = (iso: string) =>
-  new Date(iso).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" });
+  new Date(iso + 'T00:00:00Z').toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric", timeZone: "UTC" });
 
 const daysBetween = (iso: string) => {
-  const ms = Date.now() - new Date(iso).getTime();
+  const ms = Date.now() - new Date(iso + 'T00:00:00Z').getTime();
   return Math.max(0, Math.floor(ms / (1000 * 60 * 60 * 24)));
 };
 
