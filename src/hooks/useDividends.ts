@@ -143,35 +143,34 @@ export function useDividends(holdingId?: string) {
   const getSummary = useCallback((): DividendSummary => {
     const now = new Date();
     const currentYear = now.getFullYear();
-
-    const ytdDividends = dividends.filter(d => {
-      const payDate = new Date(d.pay_date || d.ex_date);
-      return payDate.getFullYear() === currentYear;
-    });
-    const totalYTD = ytdDividends.reduce((sum, d) => sum + Number(d.total_amount), 0);
+    const currentMonth = now.getMonth() + 1; // 1-12
 
     const totalAllTime = dividends.reduce((sum, d) => sum + Number(d.total_amount), 0);
 
-    const monthlyMap = new Map<string, number>();
-    const twelveMonthsAgo = new Date();
-    twelveMonthsAgo.setMonth(twelveMonthsAgo.getMonth() - 12);
+    const totalYTD = dividends
+      .filter(d => {
+        const payDate = new Date(d.pay_date || d.ex_date);
+        return payDate.getFullYear() === currentYear;
+      })
+      .reduce((sum, d) => sum + Number(d.total_amount), 0);
 
+    const monthsElapsed = Math.max(currentMonth, 1);
+    const projectedAnnual = (totalYTD / monthsElapsed) * 12;
+
+    const monthlyMap = new Map<string, number>();
     dividends.forEach(d => {
       const payDate = new Date(d.pay_date || d.ex_date);
-      if (payDate >= twelveMonthsAgo) {
-        const key = `${payDate.getFullYear()}-${String(payDate.getMonth() + 1).padStart(2, '0')}`;
-        monthlyMap.set(key, (monthlyMap.get(key) || 0) + Number(d.total_amount));
-      }
+      const key = `${payDate.getFullYear()}-${String(payDate.getMonth() + 1).padStart(2, '0')}`;
+      monthlyMap.set(key, (monthlyMap.get(key) || 0) + Number(d.total_amount));
     });
 
     const monthlyBreakdown = Array.from(monthlyMap.entries())
       .map(([month, total]) => ({ month, total }))
-      .sort((a, b) => a.month.localeCompare(b.month));
+      .sort((a, b) => a.month.localeCompare(b.month))
+      .slice(-12);
 
-    const monthsWithData = monthlyBreakdown.length || 1;
-    const last12Total = monthlyBreakdown.reduce((sum, m) => sum + m.total, 0);
-    const averageMonthly = last12Total / monthsWithData;
-    const projectedAnnual = averageMonthly * 12;
+    const distinctMonths = Math.max(monthlyMap.size, 1);
+    const averageMonthly = totalAllTime / distinctMonths;
 
     const holdingMap = new Map<string, { total: number; count: number }>();
     dividends.forEach(d => {
