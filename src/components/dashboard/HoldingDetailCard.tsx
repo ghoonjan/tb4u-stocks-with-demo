@@ -13,6 +13,7 @@ import {
 } from "@/services/marketData";
 import { calcDivSafety, DivSafetyBadge } from "@/components/dashboard/DivSafety";
 import { TaxLotsPanel } from "@/components/dashboard/TaxLotsPanel";
+import { DividendSection } from "@/components/dividends/DividendSection";
 
 type TimeRange = "1D" | "1W" | "1M" | "3M" | "1Y";
 const RANGES: TimeRange[] = ["1D", "1W", "1M", "3M", "1Y"];
@@ -301,6 +302,14 @@ export function HoldingDetailCard({ holding, onEdit, onDelete, onLogTrade }: Hol
             <ActionBtn icon={Trash2} label="Remove" onClick={onDelete} destructive />
           </div>
         </div>
+      </div>
+
+      <div className="px-3 sm:px-5 pb-4">
+        <DividendSection
+          holdingId={holding.id}
+          ticker={holding.ticker}
+          currentShares={holding.shares}
+        />
       </div>
 
       <div className="px-3 sm:px-5 pb-4">
