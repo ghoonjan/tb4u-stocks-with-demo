@@ -102,14 +102,6 @@ Deno.serve(async (req) => {
       { status: 403, headers: { 'Content-Type': 'application/json' } }
     )
   }
-  const token = authHeader.slice('Bearer '.length).trim()
-  const claims = parseJwtClaims(token)
-  if (claims?.role !== 'service_role') {
-    return new Response(
-      JSON.stringify({ error: 'Forbidden' }),
-      { status: 403, headers: { 'Content-Type': 'application/json' } }
-    )
-  }
 
   const supabase = createClient(supabaseUrl, supabaseServiceKey)
 
