@@ -31,6 +31,7 @@ import { useInitializeUser } from "@/hooks/useInitializeUser";
 import { OfflineBanner } from "@/components/dashboard/OfflineBanner";
 import { OnboardingFlow } from "@/components/dashboard/OnboardingFlow";
 import { GradientMeshBackground } from "@/components/GradientMeshBackground";
+import { DividendSummaryWidget } from "@/components/dividends/DividendSummaryWidget";
 import { useScrollReveal } from "@/hooks/useScrollReveal";
 
 type AuthenticatedUser = {
@@ -230,6 +231,10 @@ function DashboardContent({ user, onLogout }: { user: AuthenticatedUser; onLogou
             setHoldingModalOpen(true);
           }}
         />
+      </div>
+
+      <div className="px-2 sm:px-4 pb-4 max-w-[1600px] mx-auto w-full">
+        <DividendSummaryWidget />
       </div>
 
       <div className="px-2 sm:px-4 pb-2 max-w-[1600px] mx-auto w-full">
