@@ -48,7 +48,7 @@ export function DividendDashboard() {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         <KPICard
           icon={<DollarSign className="h-4 w-4" />}
-          label="YTD Income"
+          label="Last 12 Months"
           value={`$${summary.totalYTD.toFixed(2)}`}
           color="text-emerald-500"
         />
