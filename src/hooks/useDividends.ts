@@ -157,15 +157,25 @@ export function useDividends(holdingId?: string) {
 
     const totalAllTime = dividends.reduce((sum, d) => sum + Number(d.total_amount), 0);
 
+    // Trailing 12 months
+    const twelveMonthsAgo = new Date();
+    twelveMonthsAgo.setMonth(twelveMonthsAgo.getMonth() - 12);
+    const cutoffYear = twelveMonthsAgo.getFullYear();
+    const cutoffMonth = twelveMonthsAgo.getMonth() + 1;
+    const cutoffDay = twelveMonthsAgo.getDate();
+
     const totalYTD = dividends
       .filter(d => {
         const parsed = parseDate(d.pay_date || d.ex_date);
-        return parsed.year === currentYear;
+        if (parsed.year > cutoffYear) return true;
+        if (parsed.year === cutoffYear && parsed.month > cutoffMonth) return true;
+        if (parsed.year === cutoffYear && parsed.month === cutoffMonth && parsed.day >= cutoffDay) return true;
+        return false;
       })
       .reduce((sum, d) => sum + Number(d.total_amount), 0);
 
-    const monthsElapsed = Math.max(currentMonth, 1);
-    const projectedAnnual = (totalYTD / monthsElapsed) * 12;
+    // Projected annual = trailing 12 months (already a full year of data)
+    const projectedAnnual = totalYTD;
 
     const monthlyMap = new Map<string, number>();
     dividends.forEach(d => {
