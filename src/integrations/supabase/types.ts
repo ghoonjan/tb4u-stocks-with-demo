@@ -87,6 +87,65 @@ export type Database = {
           },
         ]
       }
+      dividends: {
+        Row: {
+          amount_per_share: number
+          created_at: string | null
+          ex_date: string
+          frequency: string | null
+          holding_id: string
+          id: string
+          is_reinvested: boolean | null
+          notes: string | null
+          pay_date: string | null
+          shares_at_time: number
+          ticker: string
+          total_amount: number | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          amount_per_share: number
+          created_at?: string | null
+          ex_date: string
+          frequency?: string | null
+          holding_id: string
+          id?: string
+          is_reinvested?: boolean | null
+          notes?: string | null
+          pay_date?: string | null
+          shares_at_time: number
+          ticker: string
+          total_amount?: number | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          amount_per_share?: number
+          created_at?: string | null
+          ex_date?: string
+          frequency?: string | null
+          holding_id?: string
+          id?: string
+          is_reinvested?: boolean | null
+          notes?: string | null
+          pay_date?: string | null
+          shares_at_time?: number
+          ticker?: string
+          total_amount?: number | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dividends_holding_id_fkey"
+            columns: ["holding_id"]
+            isOneToOne: false
+            referencedRelation: "holdings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       email_send_log: {
         Row: {
           created_at: string
