@@ -205,21 +205,6 @@ export function useDividends(holdingId?: string) {
       .map(([ticker, data]) => ({ ticker, ...data }))
       .sort((a, b) => b.total - a.total);
 
-    console.log('DIVIDEND DEBUG:', {
-      totalDividends: dividends.length,
-      dividends: dividends.map(d => ({
-        ticker: d.ticker,
-        pay_date: d.pay_date,
-        total_amount: d.total_amount,
-      })),
-      currentYear,
-      currentMonth,
-      totalAllTime,
-      totalYTD,
-      projectedAnnual,
-      monthlyBreakdown,
-    });
-
     return {
       totalYTD,
       totalAllTime,
