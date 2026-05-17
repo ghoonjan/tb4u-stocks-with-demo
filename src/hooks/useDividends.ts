@@ -143,14 +143,24 @@ export function useDividends(holdingId?: string) {
   const getSummary = useCallback((): DividendSummary => {
     const now = new Date();
     const currentYear = now.getFullYear();
-    const currentMonth = now.getMonth() + 1; // 1-12
+    const currentMonth = now.getMonth() + 1;
+
+    // Safe date parser — avoids timezone issues with YYYY-MM-DD strings
+    const parseDate = (dateStr: string) => {
+      const parts = dateStr.split('-');
+      return {
+        year: parseInt(parts[0], 10),
+        month: parseInt(parts[1], 10),
+        day: parseInt(parts[2], 10),
+      };
+    };
 
     const totalAllTime = dividends.reduce((sum, d) => sum + Number(d.total_amount), 0);
 
     const totalYTD = dividends
       .filter(d => {
-        const payDate = new Date(d.pay_date || d.ex_date);
-        return payDate.getFullYear() === currentYear;
+        const parsed = parseDate(d.pay_date || d.ex_date);
+        return parsed.year === currentYear;
       })
       .reduce((sum, d) => sum + Number(d.total_amount), 0);
 
@@ -159,8 +169,8 @@ export function useDividends(holdingId?: string) {
 
     const monthlyMap = new Map<string, number>();
     dividends.forEach(d => {
-      const payDate = new Date(d.pay_date || d.ex_date);
-      const key = `${payDate.getFullYear()}-${String(payDate.getMonth() + 1).padStart(2, '0')}`;
+      const parsed = parseDate(d.pay_date || d.ex_date);
+      const key = `${parsed.year}-${String(parsed.month).padStart(2, '0')}`;
       monthlyMap.set(key, (monthlyMap.get(key) || 0) + Number(d.total_amount));
     });
 
