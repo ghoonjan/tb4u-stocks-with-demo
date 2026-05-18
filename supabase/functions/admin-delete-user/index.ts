@@ -86,6 +86,7 @@ Deno.serve(async (req) => {
     }
 
     await Promise.all([
+      admin.from("dividends").delete().eq("user_id", targetUserId),
       admin.from("trade_journal").delete().eq("user_id", targetUserId),
       admin.from("daily_briefings").delete().eq("user_id", targetUserId),
       admin.from("alerts").delete().eq("user_id", targetUserId),
