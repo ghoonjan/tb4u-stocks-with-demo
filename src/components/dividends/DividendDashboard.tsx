@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useDividends } from '@/hooks/useDividends';
 import { usePortfolioData } from '@/hooks/usePortfolioData';
 import { useAnalyticsData } from '@/hooks/useAnalyticsData';
@@ -11,7 +11,40 @@ import {
   ArrowUpDown,
   AlertTriangle,
   CheckCircle2,
+  ArrowUp,
+  ArrowDown,
 } from 'lucide-react';
+
+type SortKey =
+  | 'ticker'
+  | 'shares'
+  | 'divPerShare'
+  | 'yieldPct'
+  | 'projectedAnnual'
+  | 'actualReceived'
+  | 'payoutHealth'
+  | 'growth5Y';
+
+type SortDir = 'asc' | 'desc';
+
+function healthTier(ratio: number | null): number {
+  if (ratio === null) return 4;
+  if (ratio < 60) return 0;
+  if (ratio < 80) return 1;
+  if (ratio <= 100) return 2;
+  return 3;
+}
+
+function formatRelativeTime(ts: number): string {
+  const diffMs = Date.now() - ts;
+  const mins = Math.floor(diffMs / 60000);
+  if (mins < 1) return 'just now';
+  if (mins < 60) return `${mins} minute${mins === 1 ? '' : 's'} ago`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return `${hours} hour${hours === 1 ? '' : 's'} ago`;
+  const days = Math.floor(hours / 24);
+  return `${days} day${days === 1 ? '' : 's'} ago`;
+}
 
 const fmtUSD = (n: number) =>
   `${n < 0 ? '-' : ''}$${Math.abs(n).toFixed(2)}`;
@@ -30,12 +63,14 @@ interface Row {
 export function DividendDashboard() {
   const { dividends, loading: divLoading, getSummary } = useDividends();
   const { holdings, loading: portfolioLoading } = usePortfolioData();
-  const { analytics, loading: analyticsLoading } = useAnalyticsData(holdings);
+  const { analytics, loading: analyticsLoading, lastUpdated } = useAnalyticsData(holdings);
+  const [sortKey, setSortKey] = useState<SortKey>('payoutHealth');
+  const [sortDir, setSortDir] = useState<SortDir>('asc'); // asc = healthy first
 
   const summary = useMemo(() => getSummary(), [getSummary]);
 
   // Build per-holding rows combining Finnhub projection + actual logged divs
-  const { rows, totalProjectedAnnual } = useMemo(() => {
+  const { rows: unsortedRows, totalProjectedAnnual } = useMemo(() => {
     // Actual received in last 12 months by ticker
     const now = new Date();
     const cutoff = new Date();
@@ -73,9 +108,71 @@ export function DividendDashboard() {
         growth5Y: a?.divGrowth5Y ?? null,
       });
     }
-    built.sort((a, b) => b.projectedAnnual - a.projectedAnnual);
     return { rows: built, totalProjectedAnnual: totalProj };
   }, [holdings, analytics, dividends]);
+
+  const rows = useMemo(() => {
+    const arr = [...unsortedRows];
+    const dirMul = sortDir === 'asc' ? 1 : -1;
+    arr.sort((a, b) => {
+      let primary = 0;
+      switch (sortKey) {
+        case 'ticker':
+          primary = a.ticker.localeCompare(b.ticker) * dirMul;
+          break;
+        case 'shares':
+          primary = (a.shares - b.shares) * dirMul;
+          break;
+        case 'divPerShare':
+          primary = (a.divPerShare - b.divPerShare) * dirMul;
+          break;
+        case 'yieldPct':
+          primary = (a.yieldPct - b.yieldPct) * dirMul;
+          break;
+        case 'projectedAnnual':
+          primary = (a.projectedAnnual - b.projectedAnnual) * dirMul;
+          break;
+        case 'actualReceived':
+          primary = (a.actualReceived - b.actualReceived) * dirMul;
+          break;
+        case 'growth5Y': {
+          const ag = a.growth5Y;
+          const bg = b.growth5Y;
+          if (ag === null && bg === null) primary = 0;
+          else if (ag === null) primary = 1; // nulls last
+          else if (bg === null) primary = -1;
+          else primary = (ag - bg) * dirMul;
+          break;
+        }
+        case 'payoutHealth':
+        default: {
+          const at = healthTier(a.payoutRatio);
+          const bt = healthTier(b.payoutRatio);
+          // N/A always last regardless of dir
+          if (at === 4 && bt === 4) primary = 0;
+          else if (at === 4) primary = 1;
+          else if (bt === 4) primary = -1;
+          else primary = (at - bt) * dirMul;
+          break;
+        }
+      }
+      if (primary !== 0) return primary;
+      // Tiebreaker: projected annual desc
+      return b.projectedAnnual - a.projectedAnnual;
+    });
+    return arr;
+  }, [unsortedRows, sortKey, sortDir]);
+
+  const handleSort = (key: SortKey) => {
+    if (sortKey === key) {
+      setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'));
+    } else {
+      setSortKey(key);
+      // Default direction per column: payoutHealth=asc (healthy first), others=desc
+      setSortDir(key === 'ticker' || key === 'payoutHealth' ? 'asc' : 'desc');
+    }
+  };
+
 
   const loading = divLoading || portfolioLoading || analyticsLoading;
 
@@ -180,14 +277,14 @@ export function DividendDashboard() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="text-xs text-muted-foreground border-b border-border">
-                  <th className="text-left py-2 pr-3">Ticker</th>
-                  <th className="text-right py-2 px-3">Shares</th>
-                  <th className="text-right py-2 px-3">Div/Share</th>
-                  <th className="text-right py-2 px-3">Yield</th>
-                  <th className="text-right py-2 px-3">Projected Annual</th>
-                  <th className="text-right py-2 px-3">Actual (12M)</th>
-                  <th className="text-center py-2 px-3">Payout Health</th>
-                  <th className="text-right py-2 pl-3">5Y Growth</th>
+                  <SortableTh sortKey="ticker" current={sortKey} dir={sortDir} onSort={handleSort} align="left" className="pr-3">Ticker</SortableTh>
+                  <SortableTh sortKey="shares" current={sortKey} dir={sortDir} onSort={handleSort} align="right" className="px-3">Shares</SortableTh>
+                  <SortableTh sortKey="divPerShare" current={sortKey} dir={sortDir} onSort={handleSort} align="right" className="px-3">Div/Share</SortableTh>
+                  <SortableTh sortKey="yieldPct" current={sortKey} dir={sortDir} onSort={handleSort} align="right" className="px-3">Yield</SortableTh>
+                  <SortableTh sortKey="projectedAnnual" current={sortKey} dir={sortDir} onSort={handleSort} align="right" className="px-3">Projected Annual</SortableTh>
+                  <SortableTh sortKey="actualReceived" current={sortKey} dir={sortDir} onSort={handleSort} align="right" className="px-3">Actual (12M)</SortableTh>
+                  <SortableTh sortKey="payoutHealth" current={sortKey} dir={sortDir} onSort={handleSort} align="center" className="px-3">Payout Health</SortableTh>
+                  <SortableTh sortKey="growth5Y" current={sortKey} dir={sortDir} onSort={handleSort} align="right" className="pl-3">5Y Growth</SortableTh>
                 </tr>
               </thead>
               <tbody>
@@ -268,10 +365,13 @@ export function DividendDashboard() {
               </div>
             ))}
           </div>
+          {lastUpdated && (
+            <p className="text-xs text-muted-foreground mt-3">
+              Last updated: {formatRelativeTime(lastUpdated)}
+            </p>
+          )}
         </section>
       )}
-
-      {/* Monthly Income Chart */}
       <section className="rounded-2xl border border-border bg-card p-5">
         <h3 className="text-sm font-semibold text-foreground mb-4">
           Monthly Dividend Income (Last 12 Months)
@@ -449,5 +549,55 @@ function KPICard({
       </div>
       <p className={`mt-2 text-lg font-semibold ${color}`}>{value}</p>
     </div>
+  );
+}
+
+function SortableTh({
+  sortKey,
+  current,
+  dir,
+  onSort,
+  align,
+  className,
+  children,
+}: {
+  sortKey: SortKey;
+  current: SortKey;
+  dir: SortDir;
+  onSort: (key: SortKey) => void;
+  align: 'left' | 'right' | 'center';
+  className?: string;
+  children: React.ReactNode;
+}) {
+  const active = current === sortKey;
+  const alignClass =
+    align === 'left' ? 'text-left' : align === 'right' ? 'text-right' : 'text-center';
+  const flexJustify =
+    align === 'left'
+      ? 'justify-start'
+      : align === 'right'
+        ? 'justify-end'
+        : 'justify-center';
+  return (
+    <th className={`${alignClass} py-2 ${className ?? ''}`}>
+      <button
+        type="button"
+        onClick={() => onSort(sortKey)}
+        className={`inline-flex items-center gap-1 ${flexJustify} w-full hover:text-foreground transition-colors ${
+          active ? 'text-foreground' : ''
+        }`}
+      >
+        <span>{children}</span>
+        {active ? (
+          dir === 'asc' ? (
+            <ArrowUp className="h-3 w-3" />
+          ) : (
+            <ArrowDown className="h-3 w-3" />
+          )
+        ) : (
+          <ArrowUpDown className="h-3 w-3 opacity-40" />
+        )}
+      </button>
+    </th>
   );
 }
