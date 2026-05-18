@@ -67,8 +67,10 @@ export function DividendDashboard() {
   const [sortKey, setSortKey] = useState<SortKey>('payoutHealth');
   const [sortDir, setSortDir] = useState<SortDir>('asc'); // asc = healthy first
 
+  const summary = useMemo(() => getSummary(), [getSummary]);
+
   // Build per-holding rows combining Finnhub projection + actual logged divs
-  const { rows, totalProjectedAnnual } = useMemo(() => {
+  const { rows: unsortedRows, totalProjectedAnnual } = useMemo(() => {
     // Actual received in last 12 months by ticker
     const now = new Date();
     const cutoff = new Date();
