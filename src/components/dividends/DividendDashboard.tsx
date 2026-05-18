@@ -277,14 +277,14 @@ export function DividendDashboard() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="text-xs text-muted-foreground border-b border-border">
-                  <th className="text-left py-2 pr-3">Ticker</th>
-                  <th className="text-right py-2 px-3">Shares</th>
-                  <th className="text-right py-2 px-3">Div/Share</th>
-                  <th className="text-right py-2 px-3">Yield</th>
-                  <th className="text-right py-2 px-3">Projected Annual</th>
-                  <th className="text-right py-2 px-3">Actual (12M)</th>
-                  <th className="text-center py-2 px-3">Payout Health</th>
-                  <th className="text-right py-2 pl-3">5Y Growth</th>
+                  <SortableTh sortKey="ticker" current={sortKey} dir={sortDir} onSort={handleSort} align="left" className="pr-3">Ticker</SortableTh>
+                  <SortableTh sortKey="shares" current={sortKey} dir={sortDir} onSort={handleSort} align="right" className="px-3">Shares</SortableTh>
+                  <SortableTh sortKey="divPerShare" current={sortKey} dir={sortDir} onSort={handleSort} align="right" className="px-3">Div/Share</SortableTh>
+                  <SortableTh sortKey="yieldPct" current={sortKey} dir={sortDir} onSort={handleSort} align="right" className="px-3">Yield</SortableTh>
+                  <SortableTh sortKey="projectedAnnual" current={sortKey} dir={sortDir} onSort={handleSort} align="right" className="px-3">Projected Annual</SortableTh>
+                  <SortableTh sortKey="actualReceived" current={sortKey} dir={sortDir} onSort={handleSort} align="right" className="px-3">Actual (12M)</SortableTh>
+                  <SortableTh sortKey="payoutHealth" current={sortKey} dir={sortDir} onSort={handleSort} align="center" className="px-3">Payout Health</SortableTh>
+                  <SortableTh sortKey="growth5Y" current={sortKey} dir={sortDir} onSort={handleSort} align="right" className="pl-3">5Y Growth</SortableTh>
                 </tr>
               </thead>
               <tbody>
