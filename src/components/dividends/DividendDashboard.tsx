@@ -63,9 +63,9 @@ interface Row {
 export function DividendDashboard() {
   const { dividends, loading: divLoading, getSummary } = useDividends();
   const { holdings, loading: portfolioLoading } = usePortfolioData();
-  const { analytics, loading: analyticsLoading } = useAnalyticsData(holdings);
-
-  const summary = useMemo(() => getSummary(), [getSummary]);
+  const { analytics, loading: analyticsLoading, lastUpdated } = useAnalyticsData(holdings);
+  const [sortKey, setSortKey] = useState<SortKey>('payoutHealth');
+  const [sortDir, setSortDir] = useState<SortDir>('asc'); // asc = healthy first
 
   // Build per-holding rows combining Finnhub projection + actual logged divs
   const { rows, totalProjectedAnnual } = useMemo(() => {
