@@ -80,6 +80,55 @@ Deno.serve(async (req) => {
       });
     }
 
+    // --- Validate params ---
+    const TICKER_RE = /^[A-Z0-9.\-:^]{1,12}$/i;
+    const RESOLUTION_ALLOWED = new Set(['1', '5', '15', '30', '60', 'D', 'W', 'M']);
+    const METRIC_ALLOWED = new Set(['all', 'price', 'valuation', 'margin', 'growth', 'financialsReported']);
+    const MAX_VAL_LEN = 64;
+    const ALLOWED_KEYS = new Set(['symbol', 'from', 'to', 'resolution', 'metric', 'category', 'minId']);
+    const nowSec = Math.floor(Date.now() / 1000);
+    const MIN_TS = 0;
+    const MAX_TS = nowSec + 86400 * 365; // up to 1 year in future
+
+    if (params && typeof params === 'object') {
+      for (const [k, rawV] of Object.entries(params)) {
+        if (!ALLOWED_KEYS.has(k)) {
+          return new Response(JSON.stringify({ error: `Param not allowed: ${k}` }), {
+            status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
+        }
+        const v = String(rawV ?? '');
+        if (v.length > MAX_VAL_LEN) {
+          return new Response(JSON.stringify({ error: `Param too long: ${k}` }), {
+            status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
+        }
+        if (k === 'symbol' && !TICKER_RE.test(v)) {
+          return new Response(JSON.stringify({ error: 'Invalid symbol' }), {
+            status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
+        }
+        if ((k === 'from' || k === 'to')) {
+          const n = Number(v);
+          if (!Number.isFinite(n) || !Number.isInteger(n) || n < MIN_TS || n > MAX_TS) {
+            return new Response(JSON.stringify({ error: `Invalid ${k} timestamp` }), {
+              status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            });
+          }
+        }
+        if (k === 'resolution' && !RESOLUTION_ALLOWED.has(v)) {
+          return new Response(JSON.stringify({ error: 'Invalid resolution' }), {
+            status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
+        }
+        if (k === 'metric' && !METRIC_ALLOWED.has(v)) {
+          return new Response(JSON.stringify({ error: 'Invalid metric' }), {
+            status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
+        }
+      }
+    }
+
     const sortedParams = new URLSearchParams(
       (Object.entries(params || {}) as [string, unknown][])
         .sort(([a], [b]) => a.localeCompare(b))
