@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useDividends } from '@/hooks/useDividends';
 import { usePortfolioData } from '@/hooks/usePortfolioData';
 import { useAnalyticsData } from '@/hooks/useAnalyticsData';
@@ -11,7 +11,40 @@ import {
   ArrowUpDown,
   AlertTriangle,
   CheckCircle2,
+  ArrowUp,
+  ArrowDown,
 } from 'lucide-react';
+
+type SortKey =
+  | 'ticker'
+  | 'shares'
+  | 'divPerShare'
+  | 'yieldPct'
+  | 'projectedAnnual'
+  | 'actualReceived'
+  | 'payoutHealth'
+  | 'growth5Y';
+
+type SortDir = 'asc' | 'desc';
+
+function healthTier(ratio: number | null): number {
+  if (ratio === null) return 4;
+  if (ratio < 60) return 0;
+  if (ratio < 80) return 1;
+  if (ratio <= 100) return 2;
+  return 3;
+}
+
+function formatRelativeTime(ts: number): string {
+  const diffMs = Date.now() - ts;
+  const mins = Math.floor(diffMs / 60000);
+  if (mins < 1) return 'just now';
+  if (mins < 60) return `${mins} minute${mins === 1 ? '' : 's'} ago`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return `${hours} hour${hours === 1 ? '' : 's'} ago`;
+  const days = Math.floor(hours / 24);
+  return `${days} day${days === 1 ? '' : 's'} ago`;
+}
 
 const fmtUSD = (n: number) =>
   `${n < 0 ? '-' : ''}$${Math.abs(n).toFixed(2)}`;
