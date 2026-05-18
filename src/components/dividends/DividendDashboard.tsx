@@ -551,3 +551,53 @@ function KPICard({
     </div>
   );
 }
+
+function SortableTh({
+  sortKey,
+  current,
+  dir,
+  onSort,
+  align,
+  className,
+  children,
+}: {
+  sortKey: SortKey;
+  current: SortKey;
+  dir: SortDir;
+  onSort: (key: SortKey) => void;
+  align: 'left' | 'right' | 'center';
+  className?: string;
+  children: React.ReactNode;
+}) {
+  const active = current === sortKey;
+  const alignClass =
+    align === 'left' ? 'text-left' : align === 'right' ? 'text-right' : 'text-center';
+  const flexJustify =
+    align === 'left'
+      ? 'justify-start'
+      : align === 'right'
+        ? 'justify-end'
+        : 'justify-center';
+  return (
+    <th className={`${alignClass} py-2 ${className ?? ''}`}>
+      <button
+        type="button"
+        onClick={() => onSort(sortKey)}
+        className={`inline-flex items-center gap-1 ${flexJustify} w-full hover:text-foreground transition-colors ${
+          active ? 'text-foreground' : ''
+        }`}
+      >
+        <span>{children}</span>
+        {active ? (
+          dir === 'asc' ? (
+            <ArrowUp className="h-3 w-3" />
+          ) : (
+            <ArrowDown className="h-3 w-3" />
+          )
+        ) : (
+          <ArrowUpDown className="h-3 w-3 opacity-40" />
+        )}
+      </button>
+    </th>
+  );
+}
