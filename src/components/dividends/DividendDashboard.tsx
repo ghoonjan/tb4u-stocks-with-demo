@@ -108,9 +108,71 @@ export function DividendDashboard() {
         growth5Y: a?.divGrowth5Y ?? null,
       });
     }
-    built.sort((a, b) => b.projectedAnnual - a.projectedAnnual);
     return { rows: built, totalProjectedAnnual: totalProj };
   }, [holdings, analytics, dividends]);
+
+  const rows = useMemo(() => {
+    const arr = [...unsortedRows];
+    const dirMul = sortDir === 'asc' ? 1 : -1;
+    arr.sort((a, b) => {
+      let primary = 0;
+      switch (sortKey) {
+        case 'ticker':
+          primary = a.ticker.localeCompare(b.ticker) * dirMul;
+          break;
+        case 'shares':
+          primary = (a.shares - b.shares) * dirMul;
+          break;
+        case 'divPerShare':
+          primary = (a.divPerShare - b.divPerShare) * dirMul;
+          break;
+        case 'yieldPct':
+          primary = (a.yieldPct - b.yieldPct) * dirMul;
+          break;
+        case 'projectedAnnual':
+          primary = (a.projectedAnnual - b.projectedAnnual) * dirMul;
+          break;
+        case 'actualReceived':
+          primary = (a.actualReceived - b.actualReceived) * dirMul;
+          break;
+        case 'growth5Y': {
+          const ag = a.growth5Y;
+          const bg = b.growth5Y;
+          if (ag === null && bg === null) primary = 0;
+          else if (ag === null) primary = 1; // nulls last
+          else if (bg === null) primary = -1;
+          else primary = (ag - bg) * dirMul;
+          break;
+        }
+        case 'payoutHealth':
+        default: {
+          const at = healthTier(a.payoutRatio);
+          const bt = healthTier(b.payoutRatio);
+          // N/A always last regardless of dir
+          if (at === 4 && bt === 4) primary = 0;
+          else if (at === 4) primary = 1;
+          else if (bt === 4) primary = -1;
+          else primary = (at - bt) * dirMul;
+          break;
+        }
+      }
+      if (primary !== 0) return primary;
+      // Tiebreaker: projected annual desc
+      return b.projectedAnnual - a.projectedAnnual;
+    });
+    return arr;
+  }, [unsortedRows, sortKey, sortDir]);
+
+  const handleSort = (key: SortKey) => {
+    if (sortKey === key) {
+      setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'));
+    } else {
+      setSortKey(key);
+      // Default direction per column: payoutHealth=asc (healthy first), others=desc
+      setSortDir(key === 'ticker' || key === 'payoutHealth' ? 'asc' : 'desc');
+    }
+  };
+
 
   const loading = divLoading || portfolioLoading || analyticsLoading;
 
