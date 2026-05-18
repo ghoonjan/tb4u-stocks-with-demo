@@ -365,10 +365,13 @@ export function DividendDashboard() {
               </div>
             ))}
           </div>
+          {lastUpdated && (
+            <p className="text-xs text-muted-foreground mt-3">
+              Last updated: {formatRelativeTime(lastUpdated)}
+            </p>
+          )}
         </section>
       )}
-
-      {/* Monthly Income Chart */}
       <section className="rounded-2xl border border-border bg-card p-5">
         <h3 className="text-sm font-semibold text-foreground mb-4">
           Monthly Dividend Income (Last 12 Months)
