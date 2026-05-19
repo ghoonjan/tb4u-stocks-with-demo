@@ -670,6 +670,14 @@ export type Database = {
         }
         Returns: undefined
       }
+      get_email_queue_health: {
+        Args: never
+        Returns: {
+          oldest_age_seconds: number
+          oldest_pending_at: string
+          stuck_count: number
+        }[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]

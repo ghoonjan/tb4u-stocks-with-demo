@@ -7,6 +7,7 @@ import { LogoMark } from "@/components/LogoMark";
 import { GradientMeshBackground } from "@/components/GradientMeshBackground";
 import CopyrightFooter from "@/components/CopyrightFooter";
 import { ConfirmDialog } from "@/components/dashboard/ConfirmDialog";
+import { EmailQueueHealth } from "@/components/dashboard/EmailQueueHealth";
 
 interface ProfileRow {
   id: string;
@@ -178,6 +179,9 @@ const Admin = () => {
               </button>
             </div>
           </header>
+
+          {/* Email queue health */}
+          <EmailQueueHealth />
 
           {/* Change password */}
           <section className="layer-modal mb-6 p-6">
