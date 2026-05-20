@@ -109,8 +109,11 @@ Deno.serve(async (req) => {
           });
         }
         if ((k === 'from' || k === 'to')) {
+          // Accept either Unix seconds (integer) or ISO date YYYY-MM-DD
+          const isIsoDate = /^\d{4}-\d{2}-\d{2}$/.test(v);
           const n = Number(v);
-          if (!Number.isFinite(n) || !Number.isInteger(n) || n < MIN_TS || n > MAX_TS) {
+          const isValidTs = Number.isFinite(n) && Number.isInteger(n) && n >= MIN_TS && n <= MAX_TS;
+          if (!isIsoDate && !isValidTs) {
             return new Response(JSON.stringify({ error: `Invalid ${k} timestamp` }), {
               status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
             });
