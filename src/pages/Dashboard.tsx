@@ -33,6 +33,7 @@ import { OnboardingFlow } from "@/components/dashboard/OnboardingFlow";
 import { GradientMeshBackground } from "@/components/GradientMeshBackground";
 import { DividendSummaryWidget } from "@/components/dividends/DividendSummaryWidget";
 import { useScrollReveal } from "@/hooks/useScrollReveal";
+import { PortfolioImportExport } from "@/components/dashboard/PortfolioImportExport";
 
 type AuthenticatedUser = {
   id: string;
@@ -144,6 +145,18 @@ function DashboardContent({ user, onLogout }: { user: AuthenticatedUser; onLogou
       />
       <div className="flex-1 flex flex-col lg:flex-row gap-3 sm:gap-4 p-2 sm:p-4 max-w-[1600px] mx-auto w-full">
         <div ref={holdingsSectionRef} className="flex-1 lg:w-[62%] min-w-0 layer-surface" data-tour="holdings">
+          <div className="flex items-center justify-end mb-2">
+            <PortfolioImportExport
+              portfolioId={portfolio.portfolioId}
+              existingHoldings={portfolio.holdings.map((h) => ({
+                id: h.id,
+                ticker: h.ticker,
+                shares: h.shares,
+                avg_cost_basis: h.avgCostBasis,
+              }))}
+              onImported={() => portfolio.refetch()}
+            />
+          </div>
           {portfolio.holdings.length >= 2 ? (
             <Tabs defaultValue="holdings" className="w-full">
               <TabsList>
