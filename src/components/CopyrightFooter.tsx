@@ -16,7 +16,7 @@ const formattedBuildTime = (() => {
 
 const CopyrightFooter = () => (
   <footer className="w-full py-4 px-4 text-center text-xs text-muted-foreground border-t border-border sticky bottom-0 bg-background/80 backdrop-blur-sm z-50">
-    <span>© {new Date().getFullYear()} tb4u. All rights reserved.</span>
+    <span>© {new Date().getFullYear()} TechBargains4You. All rights reserved.</span>
     <span className="mx-2 opacity-50">·</span>
     <span
       title={`Built ${formattedBuildTime}`}
