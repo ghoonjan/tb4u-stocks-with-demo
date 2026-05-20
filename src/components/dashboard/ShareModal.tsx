@@ -277,7 +277,7 @@ export function ShareModal({ open, onClose, holdings, simpleReturn, twr, twrAvai
                     display: "flex", justifyContent: "space-between", alignItems: "center",
                   }}>
                     <span style={{ fontSize: 9, color: "#475569", fontWeight: 500 }}>Built with TB4U</span>
-                    <span style={{ fontSize: 9, color: "#475569" }}>tb4u.app</span>
+                    
                   </div>
                 </div>
               </div>
