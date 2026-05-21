@@ -5,6 +5,7 @@ import { toast } from "sonner";
 type State = {
   isInitializing: boolean;
   isInitialized: boolean;
+  isFirstTimeSetup: boolean;
 };
 
 const MAX_RETRIES = 2;
@@ -16,7 +17,7 @@ const RETRY_DELAY_MS = 2000;
  * Retries up to MAX_RETRIES times on failure before giving up.
  */
 export function useInitializeUser(): State {
-  const [state, setState] = useState<State>({ isInitializing: true, isInitialized: false });
+  const [state, setState] = useState<State>({ isInitializing: true, isInitialized: false, isFirstTimeSetup: false });
   const ranRef = useRef(false);
 
   useEffect(() => {
