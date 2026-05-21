@@ -75,7 +75,7 @@ Deno.serve(async (req) => {
     }
 
     const { endpoint, params } = await req.json();
-    const allowedEndpoints = ['/quote', '/stock/profile2', '/stock/metric', '/stock/candle', '/company-news', '/calendar/earnings', '/stock/earnings'];
+    const allowedEndpoints = ['/quote', '/stock/profile2', '/stock/metric', '/stock/candle', '/company-news', '/calendar/earnings', '/stock/earnings', '/stock/dividend2'];
     if (!allowedEndpoints.includes(endpoint)) {
       return new Response(JSON.stringify({ error: 'Endpoint not allowed' }), {
         status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
