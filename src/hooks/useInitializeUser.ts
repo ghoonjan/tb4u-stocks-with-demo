@@ -88,6 +88,14 @@ export function useInitializeUser(): State {
             .update({ has_been_initialized: true })
             .eq("id", user.id);
 
+          // Fetch fresh dividend history from API for each cloned holding
+          // so the Income page is populated on first login.
+          try {
+            await syncDividendsForUser(user.id);
+          } catch (e) {
+            console.warn("[useInitializeUser] dividend sync failed", e);
+          }
+
           toast("Welcome!", {
             description:
               "We've set up a sample portfolio for you to explore. Feel free to make it your own!",
