@@ -25,8 +25,11 @@ export function useInitializeUser(): State {
     ranRef.current = true;
     let cancelled = false;
 
-    const finish = () => {
-      if (!cancelled) setState({ isInitializing: false, isInitialized: true });
+    const finish = (isFirstTimeSetup = false) => {
+      if (!cancelled) setState({ isInitializing: false, isInitialized: true, isFirstTimeSetup });
+    };
+    const markFirstTime = () => {
+      if (!cancelled) setState((s) => ({ ...s, isFirstTimeSetup: true }));
     };
     const delay = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
