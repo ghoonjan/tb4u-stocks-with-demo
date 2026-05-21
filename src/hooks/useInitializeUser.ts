@@ -5,6 +5,7 @@ import { toast } from "sonner";
 type State = {
   isInitializing: boolean;
   isInitialized: boolean;
+  isFirstTimeSetup: boolean;
 };
 
 const MAX_RETRIES = 2;
@@ -16,7 +17,7 @@ const RETRY_DELAY_MS = 2000;
  * Retries up to MAX_RETRIES times on failure before giving up.
  */
 export function useInitializeUser(): State {
-  const [state, setState] = useState<State>({ isInitializing: true, isInitialized: false });
+  const [state, setState] = useState<State>({ isInitializing: true, isInitialized: false, isFirstTimeSetup: false });
   const ranRef = useRef(false);
 
   useEffect(() => {
@@ -24,8 +25,11 @@ export function useInitializeUser(): State {
     ranRef.current = true;
     let cancelled = false;
 
-    const finish = () => {
-      if (!cancelled) setState({ isInitializing: false, isInitialized: true });
+    const finish = (isFirstTimeSetup = false) => {
+      if (!cancelled) setState({ isInitializing: false, isInitialized: true, isFirstTimeSetup });
+    };
+    const markFirstTime = () => {
+      if (!cancelled) setState((s) => ({ ...s, isFirstTimeSetup: true }));
     };
     const delay = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
@@ -63,6 +67,7 @@ export function useInitializeUser(): State {
           return;
         }
 
+        markFirstTime();
         let success = false;
         for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
           if (cancelled) return;

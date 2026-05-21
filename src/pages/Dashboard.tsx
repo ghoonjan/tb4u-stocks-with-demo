@@ -426,19 +426,23 @@ const Dashboard = () => {
   return <DashboardGate user={user} onLogout={handleLogout} />;
 };
 
-function InitializingOverlay() {
+function InitializingOverlay({ firstTime }: { firstTime: boolean }) {
   return (
     <div className="min-h-screen bg-background flex flex-col items-center justify-center gap-4 px-4 text-center">
       <Loader2 className="h-10 w-10 animate-spin text-primary" />
-      <p className="text-foreground font-medium">Setting up your portfolio…</p>
-      <p className="text-sm text-muted-foreground">This only happens once</p>
+      <p className="text-foreground font-medium">
+        {firstTime ? "Setting up your portfolio…" : "Loading your portfolio…"}
+      </p>
+      <p className="text-sm text-muted-foreground">
+        {firstTime ? "This only happens once" : "Refreshing your data"}
+      </p>
     </div>
   );
 }
 
 function DashboardGate({ user, onLogout }: { user: AuthenticatedUser; onLogout: () => Promise<void> }) {
-  const { isInitializing } = useInitializeUser();
-  if (isInitializing) return <InitializingOverlay />;
+  const { isInitializing, isFirstTimeSetup } = useInitializeUser();
+  if (isInitializing) return <InitializingOverlay firstTime={isFirstTimeSetup} />;
   return <DashboardContent user={user} onLogout={onLogout} />;
 }
 
