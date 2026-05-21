@@ -67,6 +67,7 @@ export function useInitializeUser(): State {
           return;
         }
 
+        markFirstTime();
         let success = false;
         for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
           if (cancelled) return;
