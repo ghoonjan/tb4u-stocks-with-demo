@@ -19,7 +19,9 @@ const TTL: Record<string, number> = {
   '/company-news': 600_000,
   '/calendar/earnings': 3_600_000,
   '/stock/earnings': 3_600_000,
+  '/stock/dividend2': 86_400_000,
 };
+
 
 function evictIfNeeded() {
   if (cache.size <= MAX_CACHE_SIZE) return;
