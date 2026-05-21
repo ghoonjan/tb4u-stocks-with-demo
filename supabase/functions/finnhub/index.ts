@@ -19,7 +19,9 @@ const TTL: Record<string, number> = {
   '/company-news': 600_000,
   '/calendar/earnings': 3_600_000,
   '/stock/earnings': 3_600_000,
+  '/stock/dividend2': 86_400_000,
 };
+
 
 function evictIfNeeded() {
   if (cache.size <= MAX_CACHE_SIZE) return;
@@ -73,7 +75,7 @@ Deno.serve(async (req) => {
     }
 
     const { endpoint, params } = await req.json();
-    const allowedEndpoints = ['/quote', '/stock/profile2', '/stock/metric', '/stock/candle', '/company-news', '/calendar/earnings', '/stock/earnings'];
+    const allowedEndpoints = ['/quote', '/stock/profile2', '/stock/metric', '/stock/candle', '/company-news', '/calendar/earnings', '/stock/earnings', '/stock/dividend2'];
     if (!allowedEndpoints.includes(endpoint)) {
       return new Response(JSON.stringify({ error: 'Endpoint not allowed' }), {
         status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { syncDividendsForUser } from "@/lib/dividendSync";
 
 type State = {
   isInitializing: boolean;
@@ -86,6 +87,14 @@ export function useInitializeUser(): State {
             .from("profiles")
             .update({ has_been_initialized: true })
             .eq("id", user.id);
+
+          // Fetch fresh dividend history from API for each cloned holding
+          // so the Income page is populated on first login.
+          try {
+            await syncDividendsForUser(user.id);
+          } catch (e) {
+            console.warn("[useInitializeUser] dividend sync failed", e);
+          }
 
           toast("Welcome!", {
             description:
