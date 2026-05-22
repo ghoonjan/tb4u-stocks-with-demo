@@ -227,6 +227,40 @@ export async function getBasicFinancials(symbol: string): Promise<BasicFinancial
 }
 
 /**
+ * Compute trailing-12-month dividend yield (%) by summing recent dividend
+ * payments from /stock/dividend2 and dividing by the current price. Returns
+ * null when no dividend data is available. Useful as a fallback for ETFs
+ * where /stock/metric leaves `dividendYieldIndicatedAnnual` empty.
+ */
+const trailingYieldCache = new Map<string, { value: number | null; ts: number }>();
+export async function getTrailingDividendYield(
+  symbol: string,
+  currentPrice: number,
+): Promise<number | null> {
+  if (!currentPrice || currentPrice <= 0) return null;
+  const cached = trailingYieldCache.get(symbol);
+  if (cached && Date.now() - cached.ts < METRICS_TTL) return cached.value;
+  try {
+    const to = new Date().toISOString().slice(0, 10);
+    const from = new Date(Date.now() - 365 * 86400 * 1000).toISOString().slice(0, 10);
+    const data = await callFinnhub("/stock/dividend2", { symbol, from, to });
+    if (!Array.isArray(data) || data.length === 0) {
+      trailingYieldCache.set(symbol, { value: null, ts: Date.now() });
+      return null;
+    }
+    const sum = data.reduce(
+      (acc: number, r: { amount?: number }) => acc + (Number(r.amount) || 0),
+      0,
+    );
+    const value = sum > 0 ? (sum / currentPrice) * 100 : null;
+    trailingYieldCache.set(symbol, { value, ts: Date.now() });
+    return value;
+  } catch {
+    return null;
+  }
+}
+
+/**
  * Fetch quotes for multiple tickers.
  * Global throttle queue handles rate-limit pacing automatically.
  */
