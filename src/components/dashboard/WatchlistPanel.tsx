@@ -3,8 +3,9 @@ import { ChevronDown, ChevronUp, Plus, Trash2, ChevronsUpDown, Target, Pencil, C
 import { EmptyWatchlist } from "@/components/dashboard/EmptyStates";
 import type { DbWatchlistItem } from "@/hooks/usePortfolioData";
 import type { StockQuote, BasicFinancials, NewsArticle } from "@/services/marketData";
-import { getCandles, getCompanyNews, getBasicFinancials } from "@/services/marketData";
+import { getCandles, getCompanyNews, getBasicFinancials, getTrailingDividendYield } from "@/services/marketData";
 import { AreaChart, Area, XAxis, YAxis, Tooltip as ReTooltip, ResponsiveContainer } from "recharts";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 const fmt = (n: number, d = 2) =>
   n.toLocaleString("en-US", { minimumFractionDigits: d, maximumFractionDigits: d });
@@ -77,14 +78,20 @@ function WatchlistDetailCard({ item, quote }: { item: DbWatchlistItem; quote: St
     Promise.all([
       getCompanyNews(item.ticker).catch(() => []),
       getBasicFinancials(item.ticker).catch(() => null),
-    ]).then(([n, f]) => {
+    ]).then(async ([n, f]) => {
       if (cancelled) return;
       setNews(n);
-      setFinancials(f);
-      setNewsLoading(false);
+      if (f && f.dividendYieldIndicatedAnnual == null && quote?.c) {
+        const trailing = await getTrailingDividendYield(item.ticker, quote.c);
+        if (!cancelled && trailing != null) f.dividendYieldIndicatedAnnual = trailing;
+      }
+      if (!cancelled) {
+        setFinancials(f);
+        setNewsLoading(false);
+      }
     });
     return () => { cancelled = true; };
-  }, [item.ticker]);
+  }, [item.ticker, quote?.c]);
 
   const firstPrice = chartData[0]?.price ?? (quote?.c ?? 0);
   const lastPrice = chartData[chartData.length - 1]?.price ?? (quote?.c ?? 0);
@@ -135,8 +142,8 @@ function WatchlistDetailCard({ item, quote }: { item: DbWatchlistItem; quote: St
           <div><p className="text-[10px] text-muted-foreground">Open</p><p className="font-mono text-xs text-foreground">${quote?.o?.toFixed(2) ?? "—"}</p></div>
           <div><p className="text-[10px] text-muted-foreground">High</p><p className="font-mono text-xs text-foreground">${quote?.h?.toFixed(2) ?? "—"}</p></div>
           <div><p className="text-[10px] text-muted-foreground">Low</p><p className="font-mono text-xs text-foreground">${quote?.l?.toFixed(2) ?? "—"}</p></div>
-          <div><p className="text-[10px] text-muted-foreground">P/E</p><p className="font-mono text-xs text-foreground">{financials?.peNormalizedAnnual?.toFixed(1) ?? "—"}</p></div>
-          <div><p className="text-[10px] text-muted-foreground">Div Yield</p><p className="font-mono text-xs text-foreground">{financials?.dividendYieldIndicatedAnnual ? financials.dividendYieldIndicatedAnnual.toFixed(2) + "%" : "—"}</p></div>
+          <div><p className="text-[10px] text-muted-foreground">P/E</p><p className="font-mono text-xs text-foreground">{financials?.peNormalizedAnnual != null ? financials.peNormalizedAnnual.toFixed(1) : financials ? <Tooltip><TooltipTrigger className="cursor-help underline decoration-dotted decoration-muted-foreground/40 underline-offset-2">N/A</TooltipTrigger><TooltipContent>P/E not available for ETFs</TooltipContent></Tooltip> : "—"}</p></div>
+          <div><p className="text-[10px] text-muted-foreground">Div Yield</p><p className="font-mono text-xs text-foreground">{financials?.dividendYieldIndicatedAnnual != null && financials.dividendYieldIndicatedAnnual > 0 ? financials.dividendYieldIndicatedAnnual.toFixed(2) + "%" : financials ? <Tooltip><TooltipTrigger className="cursor-help underline decoration-dotted decoration-muted-foreground/40 underline-offset-2">N/A</TooltipTrigger><TooltipContent>Yield data not available for this ETF</TooltipContent></Tooltip> : "—"}</p></div>
           <div><p className="text-[10px] text-muted-foreground">Prev Close</p><p className="font-mono text-xs text-foreground">${quote?.pc?.toFixed(2) ?? "—"}</p></div>
         </div>
         {w52Range > 0 && (
@@ -388,10 +395,24 @@ export function WatchlistPanel({ items, quotes, financialsMap, loading, onAdd, o
                           ) : <span className="text-muted-foreground/40 text-[10px]">—</span>}
                         </td>
                         <td className="py-2.5 px-3 text-right font-mono text-xs text-muted-foreground">
-                          {fin?.peNormalizedAnnual?.toFixed(1) ?? "—"}
+                          {fin?.peNormalizedAnnual != null ? (
+                            fin.peNormalizedAnnual.toFixed(1)
+                          ) : fin ? (
+                            <Tooltip>
+                              <TooltipTrigger className="cursor-help underline decoration-dotted decoration-muted-foreground/40 underline-offset-2">N/A</TooltipTrigger>
+                              <TooltipContent>P/E not available for ETFs</TooltipContent>
+                            </Tooltip>
+                          ) : "—"}
                         </td>
                         <td className="py-2.5 px-3 text-right font-mono text-xs text-muted-foreground">
-                          {fin?.dividendYieldIndicatedAnnual ? `${fin.dividendYieldIndicatedAnnual.toFixed(2)}%` : "—"}
+                          {fin?.dividendYieldIndicatedAnnual != null && fin.dividendYieldIndicatedAnnual > 0 ? (
+                            `${fin.dividendYieldIndicatedAnnual.toFixed(2)}%`
+                          ) : fin ? (
+                            <Tooltip>
+                              <TooltipTrigger className="cursor-help underline decoration-dotted decoration-muted-foreground/40 underline-offset-2">N/A</TooltipTrigger>
+                              <TooltipContent>Yield data not available for this ETF</TooltipContent>
+                            </Tooltip>
+                          ) : "—"}
                         </td>
                         <td className="py-2.5 px-3">
                           <div className="flex items-center gap-1 justify-end">
