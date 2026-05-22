@@ -5,6 +5,7 @@ import type { DbWatchlistItem } from "@/hooks/usePortfolioData";
 import type { StockQuote, BasicFinancials, NewsArticle } from "@/services/marketData";
 import { getCandles, getCompanyNews, getBasicFinancials } from "@/services/marketData";
 import { AreaChart, Area, XAxis, YAxis, Tooltip as ReTooltip, ResponsiveContainer } from "recharts";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 const fmt = (n: number, d = 2) =>
   n.toLocaleString("en-US", { minimumFractionDigits: d, maximumFractionDigits: d });
