@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import type { Tables } from "@/integrations/supabase/types";
-import { getBatchQuotes, getBasicFinancials, type StockQuote, type BasicFinancials } from "@/services/marketData";
+import { getBatchQuotes, getBasicFinancials, getTrailingDividendYield, type StockQuote, type BasicFinancials } from "@/services/marketData";
 import { getMarketStatus } from "@/hooks/useMacroData";
 import { QUOTE_REFRESH_INTERVAL_MARKET, QUOTE_REFRESH_INTERVAL_OFF } from "@/constants";
 import { addHoldingOrLot } from "@/lib/holdingMutations";
