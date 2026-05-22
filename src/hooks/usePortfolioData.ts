@@ -68,9 +68,11 @@ export function usePortfolioData() {
     if (wl.length === 0) { setWatchlistQuotes(new Map()); setWatchlistFinancials(new Map()); return; }
     const holdingTickers = new Set(rawHoldingsRef.current.map((h) => h.ticker));
     const wlOnlyTickers = [...new Set(wl.map((w) => w.ticker).filter((t) => !holdingTickers.has(t)))];
+    const freshQuotes = new Map<string, StockQuote>();
     if (wlOnlyTickers.length > 0) {
       try {
         const q = await getBatchQuotes(wlOnlyTickers);
+        q.forEach((v, k) => freshQuotes.set(k, v));
         setWatchlistQuotes((prev) => { const n = new Map(prev); q.forEach((v, k) => n.set(k, v)); return n; });
       } catch { /* skip */ }
     }
@@ -78,6 +80,15 @@ export function usePortfolioData() {
     for (const w of wl) {
       try {
         const f = await getBasicFinancials(w.ticker);
+        // Fallback for ETFs: if /stock/metric didn't return an indicated yield,
+        // try to compute trailing-12mo yield from /stock/dividend2.
+        if (f.dividendYieldIndicatedAnnual == null) {
+          const price = freshQuotes.get(w.ticker)?.c ?? watchlistQuotesRef.current.get(w.ticker)?.c ?? 0;
+          if (price > 0) {
+            const trailing = await getTrailingDividendYield(w.ticker, price);
+            if (trailing != null) f.dividendYieldIndicatedAnnual = trailing;
+          }
+        }
         finMap.set(w.ticker, f);
       } catch { /* skip */ }
     }
