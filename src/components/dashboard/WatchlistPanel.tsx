@@ -78,14 +78,20 @@ function WatchlistDetailCard({ item, quote }: { item: DbWatchlistItem; quote: St
     Promise.all([
       getCompanyNews(item.ticker).catch(() => []),
       getBasicFinancials(item.ticker).catch(() => null),
-    ]).then(([n, f]) => {
+    ]).then(async ([n, f]) => {
       if (cancelled) return;
       setNews(n);
-      setFinancials(f);
-      setNewsLoading(false);
+      if (f && f.dividendYieldIndicatedAnnual == null && quote?.c) {
+        const trailing = await getTrailingDividendYield(item.ticker, quote.c);
+        if (!cancelled && trailing != null) f.dividendYieldIndicatedAnnual = trailing;
+      }
+      if (!cancelled) {
+        setFinancials(f);
+        setNewsLoading(false);
+      }
     });
     return () => { cancelled = true; };
-  }, [item.ticker]);
+  }, [item.ticker, quote?.c]);
 
   const firstPrice = chartData[0]?.price ?? (quote?.c ?? 0);
   const lastPrice = chartData[chartData.length - 1]?.price ?? (quote?.c ?? 0);
