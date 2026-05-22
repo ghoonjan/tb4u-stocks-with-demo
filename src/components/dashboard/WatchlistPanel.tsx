@@ -389,10 +389,24 @@ export function WatchlistPanel({ items, quotes, financialsMap, loading, onAdd, o
                           ) : <span className="text-muted-foreground/40 text-[10px]">—</span>}
                         </td>
                         <td className="py-2.5 px-3 text-right font-mono text-xs text-muted-foreground">
-                          {fin?.peNormalizedAnnual?.toFixed(1) ?? "—"}
+                          {fin?.peNormalizedAnnual != null ? (
+                            fin.peNormalizedAnnual.toFixed(1)
+                          ) : fin ? (
+                            <Tooltip>
+                              <TooltipTrigger className="cursor-help underline decoration-dotted decoration-muted-foreground/40 underline-offset-2">N/A</TooltipTrigger>
+                              <TooltipContent>P/E not available for ETFs</TooltipContent>
+                            </Tooltip>
+                          ) : "—"}
                         </td>
                         <td className="py-2.5 px-3 text-right font-mono text-xs text-muted-foreground">
-                          {fin?.dividendYieldIndicatedAnnual ? `${fin.dividendYieldIndicatedAnnual.toFixed(2)}%` : "—"}
+                          {fin?.dividendYieldIndicatedAnnual != null && fin.dividendYieldIndicatedAnnual > 0 ? (
+                            `${fin.dividendYieldIndicatedAnnual.toFixed(2)}%`
+                          ) : fin ? (
+                            <Tooltip>
+                              <TooltipTrigger className="cursor-help underline decoration-dotted decoration-muted-foreground/40 underline-offset-2">N/A</TooltipTrigger>
+                              <TooltipContent>Yield data not available for this ETF</TooltipContent>
+                            </Tooltip>
+                          ) : "—"}
                         </td>
                         <td className="py-2.5 px-3">
                           <div className="flex items-center gap-1 justify-end">
