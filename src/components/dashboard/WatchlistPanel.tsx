@@ -3,7 +3,7 @@ import { ChevronDown, ChevronUp, Plus, Trash2, ChevronsUpDown, Target, Pencil, C
 import { EmptyWatchlist } from "@/components/dashboard/EmptyStates";
 import type { DbWatchlistItem } from "@/hooks/usePortfolioData";
 import type { StockQuote, BasicFinancials, NewsArticle } from "@/services/marketData";
-import { getCandles, getCompanyNews, getBasicFinancials } from "@/services/marketData";
+import { getCandles, getCompanyNews, getBasicFinancials, getTrailingDividendYield } from "@/services/marketData";
 import { AreaChart, Area, XAxis, YAxis, Tooltip as ReTooltip, ResponsiveContainer } from "recharts";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
