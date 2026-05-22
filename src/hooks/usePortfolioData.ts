@@ -83,7 +83,7 @@ export function usePortfolioData() {
         // Fallback for ETFs: if /stock/metric didn't return an indicated yield,
         // try to compute trailing-12mo yield from /stock/dividend2.
         if (f.dividendYieldIndicatedAnnual == null) {
-          const price = freshQuotes.get(w.ticker)?.c ?? watchlistQuotesRef.current.get(w.ticker)?.c ?? 0;
+          const price = freshQuotes.get(w.ticker)?.c ?? 0;
           if (price > 0) {
             const trailing = await getTrailingDividendYield(w.ticker, price);
             if (trailing != null) f.dividendYieldIndicatedAnnual = trailing;
