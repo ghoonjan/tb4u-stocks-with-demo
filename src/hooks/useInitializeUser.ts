@@ -45,6 +45,28 @@ export function useInitializeUser(): State {
       return true;
     };
 
+    const maybeRunDividendSync = async (userId: string) => {
+      const { data: existingDividend, error: dividendError } = await supabase
+        .from("dividends")
+        .select("id")
+        .eq("user_id", userId)
+        .limit(1)
+        .maybeSingle();
+
+      if (dividendError) {
+        console.warn("[useInitializeUser] dividend existence check failed", dividendError);
+        return;
+      }
+
+      if (existingDividend) return;
+
+      try {
+        await syncDividendsForUser(userId);
+      } catch (e) {
+        console.warn("[useInitializeUser] dividend sync failed", e);
+      }
+    };
+
     const run = async () => {
       try {
         const { data: { user } } = await supabase.auth.getUser();
@@ -64,6 +86,7 @@ export function useInitializeUser(): State {
           return;
         }
         if (profile?.has_been_initialized) {
+          await maybeRunDividendSync(user.id);
           finish();
           return;
         }
@@ -88,13 +111,7 @@ export function useInitializeUser(): State {
             .update({ has_been_initialized: true })
             .eq("id", user.id);
 
-          // Fetch fresh dividend history from API for each cloned holding
-          // so the Income page is populated on first login.
-          try {
-            await syncDividendsForUser(user.id);
-          } catch (e) {
-            console.warn("[useInitializeUser] dividend sync failed", e);
-          }
+          await maybeRunDividendSync(user.id);
 
           toast("Welcome!", {
             description:
