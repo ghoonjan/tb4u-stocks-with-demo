@@ -60,16 +60,9 @@ export function TaxOpportunitiesSection({ holdings }: { holdings: HoldingDisplay
             .gte("created_at", windowStart)
         : Promise.resolve({ data: [] as { ticker: string; created_at: string; action: string }[] });
 
-      // Any trade history at all? Used to decide "Review needed" vs "Safe".
-      const anyTradePromise = supabase
-        .from("trade_journal")
-        .select("id", { count: "exact", head: true })
-        .eq("user_id", session.user.id);
-
-      const [{ data: lots }, { data: trades }, anyTradeRes] = await Promise.all([
+      const [{ data: lots }, { data: trades }] = await Promise.all([
         lotsPromise,
         tradesPromise,
-        anyTradePromise,
       ]);
 
       if (cancelled) return;
@@ -83,6 +76,7 @@ export function TaxOpportunitiesSection({ holdings }: { holdings: HoldingDisplay
 
       const tm = new Map<string, { date: Date; action: string }>();
       (trades ?? []).forEach((t) => {
+        if (t.action?.toLowerCase() !== "buy") return;
         const d = new Date(t.created_at);
         const cur = tm.get(t.ticker);
         if (!cur || d > cur.date) tm.set(t.ticker, { date: d, action: t.action });
@@ -90,7 +84,6 @@ export function TaxOpportunitiesSection({ holdings }: { holdings: HoldingDisplay
 
       setLotDates(lm);
       setRecentTrades(tm);
-      setHasTradeHistory(((anyTradeRes as { count?: number | null }).count ?? 0) > 0);
       setLoading(false);
     })();
     return () => { cancelled = true; };
