@@ -23,7 +23,6 @@ export function TaxOpportunitiesSection({ holdings }: { holdings: HoldingDisplay
   const [lotDates, setLotDates] = useState<Map<string, Date>>(new Map());
   // Most-recent BUY or SELL in trade_journal within last 30 days, keyed by ticker
   const [recentTrades, setRecentTrades] = useState<Map<string, { date: Date; action: string }>>(new Map());
-  const [hasTradeHistory, setHasTradeHistory] = useState(false);
   const [loading, setLoading] = useState(true);
 
   const losingHoldings = useMemo(
