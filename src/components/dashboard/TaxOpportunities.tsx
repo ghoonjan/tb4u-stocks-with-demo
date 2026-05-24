@@ -23,7 +23,6 @@ export function TaxOpportunitiesSection({ holdings }: { holdings: HoldingDisplay
   const [lotDates, setLotDates] = useState<Map<string, Date>>(new Map());
   // Most-recent BUY or SELL in trade_journal within last 30 days, keyed by ticker
   const [recentTrades, setRecentTrades] = useState<Map<string, { date: Date; action: string }>>(new Map());
-  const [hasTradeHistory, setHasTradeHistory] = useState(false);
   const [loading, setLoading] = useState(true);
 
   const losingHoldings = useMemo(
@@ -61,16 +60,9 @@ export function TaxOpportunitiesSection({ holdings }: { holdings: HoldingDisplay
             .gte("created_at", windowStart)
         : Promise.resolve({ data: [] as { ticker: string; created_at: string; action: string }[] });
 
-      // Any trade history at all? Used to decide "Review needed" vs "Safe".
-      const anyTradePromise = supabase
-        .from("trade_journal")
-        .select("id", { count: "exact", head: true })
-        .eq("user_id", session.user.id);
-
-      const [{ data: lots }, { data: trades }, anyTradeRes] = await Promise.all([
+      const [{ data: lots }, { data: trades }] = await Promise.all([
         lotsPromise,
         tradesPromise,
-        anyTradePromise,
       ]);
 
       if (cancelled) return;
@@ -84,6 +76,7 @@ export function TaxOpportunitiesSection({ holdings }: { holdings: HoldingDisplay
 
       const tm = new Map<string, { date: Date; action: string }>();
       (trades ?? []).forEach((t) => {
+        if (t.action?.toLowerCase() !== "buy") return;
         const d = new Date(t.created_at);
         const cur = tm.get(t.ticker);
         if (!cur || d > cur.date) tm.set(t.ticker, { date: d, action: t.action });
@@ -91,7 +84,6 @@ export function TaxOpportunitiesSection({ holdings }: { holdings: HoldingDisplay
 
       setLotDates(lm);
       setRecentTrades(tm);
-      setHasTradeHistory(((anyTradeRes as { count?: number | null }).count ?? 0) > 0);
       setLoading(false);
     })();
     return () => { cancelled = true; };
@@ -125,9 +117,6 @@ export function TaxOpportunitiesSection({ holdings }: { holdings: HoldingDisplay
         } else if (recent) {
           status = "wash_risk";
           reason = `Wash sale risk — ${recent.action} ${Math.floor((now - recent.date.getTime()) / DAY_MS)}d ago`;
-        } else if (!hasTradeHistory) {
-          status = "review";
-          reason = "Review needed — insufficient trade history to confirm wash sale";
         } else {
           status = "safe";
           reason = "Safe to harvest";
@@ -143,7 +132,7 @@ export function TaxOpportunitiesSection({ holdings }: { holdings: HoldingDisplay
         };
       })
       .sort((a, b) => b.unrealizedLoss - a.unrealizedLoss);
-  }, [losingHoldings, lotDates, recentTrades, hasTradeHistory]);
+  }, [losingHoldings, lotDates, recentTrades]);
 
   const safeOpps = opportunities.filter((o) => o.status === "safe");
   const totalLoss = safeOpps.reduce((s, o) => s + o.unrealizedLoss, 0);
