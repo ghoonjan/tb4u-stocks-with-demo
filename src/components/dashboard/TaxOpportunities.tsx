@@ -117,9 +117,6 @@ export function TaxOpportunitiesSection({ holdings }: { holdings: HoldingDisplay
         } else if (recent) {
           status = "wash_risk";
           reason = `Wash sale risk — ${recent.action} ${Math.floor((now - recent.date.getTime()) / DAY_MS)}d ago`;
-        } else if (!hasTradeHistory) {
-          status = "review";
-          reason = "Review needed — insufficient trade history to confirm wash sale";
         } else {
           status = "safe";
           reason = "Safe to harvest";
@@ -135,7 +132,7 @@ export function TaxOpportunitiesSection({ holdings }: { holdings: HoldingDisplay
         };
       })
       .sort((a, b) => b.unrealizedLoss - a.unrealizedLoss);
-  }, [losingHoldings, lotDates, recentTrades, hasTradeHistory]);
+  }, [losingHoldings, lotDates, recentTrades]);
 
   const safeOpps = opportunities.filter((o) => o.status === "safe");
   const totalLoss = safeOpps.reduce((s, o) => s + o.unrealizedLoss, 0);
