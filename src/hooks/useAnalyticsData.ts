@@ -50,18 +50,39 @@ export function useAnalyticsData(holdings: HoldingDisplay[]) {
 
   const fetchFresh = useCallback(async (): Promise<Map<string, HoldingAnalytics>> => {
     const result = new Map<string, HoldingAnalytics>();
+    if (holdings.length === 0) return result;
+
+    // 1) Bulk-load sectors from stock_lookup (authoritative source)
+    const upperTickers = Array.from(new Set(holdings.map((h) => h.ticker.toUpperCase())));
+    const sectorByTicker = new Map<string, string>();
+    try {
+      const { data: lookups } = await supabase
+        .from("stock_lookup")
+        .select("ticker, sector")
+        .in("ticker", upperTickers);
+      for (const row of lookups || []) {
+        const t = String(row.ticker || "").toUpperCase();
+        if (row.sector && String(row.sector).trim()) {
+          sectorByTicker.set(t, String(row.sector));
+        }
+      }
+    } catch { /* ignore lookup errors, fallback below */ }
+
+    // 2) Fetch dividend financials per ticker (Finnhub) — sector comes from DB, profile only as fallback
     for (let i = 0; i < holdings.length; i++) {
       const h = holdings[i];
+      const upper = h.ticker.toUpperCase();
       try {
         const [profile, financials] = await Promise.all([
-          getCompanyProfile(h.ticker).catch(() => null),
+          sectorByTicker.has(upper) ? Promise.resolve(null as CompanyProfile | null) : getCompanyProfile(h.ticker).catch(() => null),
           getBasicFinancials(h.ticker).catch(() => ({} as BasicFinancials)),
         ]);
         const divYield = financials.dividendYieldIndicatedAnnual ?? 0;
         const divPerShare = divYield > 0 ? (h.currentPrice * divYield) / 100 : 0;
+        const sector = sectorByTicker.get(upper) || profile?.finnhubIndustry || "ETF/Fund";
         result.set(h.ticker, {
           ticker: h.ticker,
-          sector: profile?.finnhubIndustry || "ETF/Fund",
+          sector,
           divYield,
           divPerShare,
           payoutRatio: financials.payoutRatioAnnual ?? null,
