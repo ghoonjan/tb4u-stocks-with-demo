@@ -116,6 +116,29 @@ export function ImportPortfolioModal({ open, onClose, portfolioId, existingHoldi
     toast.success(`Imported ${inserted_holdings} positions with ${inserted_lots} tax lots`, {
       description: skipped_tickers.length > 0 ? `Skipped: ${skipped_tickers.join(", ")}` : undefined,
     });
+
+    // Post-import enrichment: seed dividend history for new tickers and warm
+    // the sector/yield cache so the donut chart and Income page populate
+    // immediately — mirroring what the template-clone path provides.
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const newTickers = Array.from(
+          new Set(groups.filter((g) => resolutions[g.ticker] !== "skip").map((g) => g.ticker)),
+        );
+        // Warm sector/financials cache (also populates stock_lookup via background enrich)
+        await Promise.allSettled(
+          newTickers.flatMap((t) => [getCompanyProfile(t), getBasicFinancials(t)]),
+        );
+        // Invalidate the localStorage analytics cache so the next render refetches
+        try { localStorage.removeItem("dividend_analytics_cache"); } catch { /* ignore */ }
+        // Seed dividend history rows for all current holdings (idempotent)
+        await syncDividendsForUser(user.id);
+      }
+    } catch (err) {
+      console.warn("[ImportPortfolioModal] post-import enrichment failed", err);
+    }
+
     onImported();
     reset();
     onClose();
