@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { getCompanyProfile, getBasicFinancials, type CompanyProfile, type BasicFinancials } from "@/services/marketData";
+import { supabase } from "@/integrations/supabase/client";
 import type { HoldingDisplay } from "@/hooks/usePortfolioData";
 
 export interface HoldingAnalytics {
