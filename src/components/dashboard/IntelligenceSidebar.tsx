@@ -295,7 +295,7 @@ function AnalyticsTab({ holdings }: { holdings: HoldingDisplay[] }) {
   const sectorData = useMemo(() => {
     const sectorMap = new Map<string, number>();
     holdings.forEach((h) => {
-      const sector = analytics.get(h.ticker)?.sector ?? "Other";
+      const sector = analytics.get(h.ticker)?.sector ?? "ETF/Fund";
       sectorMap.set(sector, (sectorMap.get(sector) ?? 0) + h.weight);
     });
     return [...sectorMap.entries()]

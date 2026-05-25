@@ -150,7 +150,7 @@ export function analyzePortfolio(holdings: HoldingInput[]): PortfolioInsights {
     h.profile && h.profile.country ? h.profile.country : null,
   );
   const sectorBuckets = bucketize(holdings, total, (h) =>
-    h.profile && h.profile.finnhubIndustry ? h.profile.finnhubIndustry : null,
+    h.profile && h.profile.finnhubIndustry ? h.profile.finnhubIndustry : "ETF/Fund",
   );
   const maturityBuckets = bucketize(holdings, total, (h) =>
     h.profile ? classifyMaturity(h.profile.ipo) : null,
