@@ -15,6 +15,9 @@ import {
   type ParsedRow,
   type DuplicateResolution,
 } from "@/lib/portfolioCsv";
+import { syncDividendsForUser } from "@/lib/dividendSync";
+import { supabase } from "@/integrations/supabase/client";
+import { getCompanyProfile, getBasicFinancials } from "@/services/marketData";
 
 interface Props {
   open: boolean;
