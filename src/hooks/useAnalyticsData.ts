@@ -121,8 +121,9 @@ export function useAnalyticsData(holdings: HoldingDisplay[]) {
 
     const cached = readCache();
     if (cached) {
-      // Cache hit: show immediately
-      setAnalytics(cached.map);
+      // Cache hit: merge dividends from DB (not cached, per-user) then show
+      const merged = await mergeDividends(new Map(cached.map));
+      setAnalytics(merged);
       setLastUpdated(cached.timestamp);
       setLoading(false);
 
@@ -132,7 +133,8 @@ export function useAnalyticsData(holdings: HoldingDisplay[]) {
         try {
           const fresh = await fetchFresh();
           writeCache(fresh);
-          setAnalytics(fresh);
+          const freshMerged = await mergeDividends(new Map(fresh));
+          setAnalytics(freshMerged);
           setLastUpdated(Date.now());
         } finally {
           inflight.current = false;
@@ -147,13 +149,14 @@ export function useAnalyticsData(holdings: HoldingDisplay[]) {
     try {
       const fresh = await fetchFresh();
       writeCache(fresh);
-      setAnalytics(fresh);
+      const merged = await mergeDividends(new Map(fresh));
+      setAnalytics(merged);
       setLastUpdated(Date.now());
     } finally {
       inflight.current = false;
       setLoading(false);
     }
-  }, [tickersKey, fetchFresh]);
+  }, [tickersKey, fetchFresh, mergeDividends]);
 
   useEffect(() => { run(); }, [run]);
 
