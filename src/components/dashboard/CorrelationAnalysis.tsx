@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { ChevronDown, ChevronUp, AlertTriangle, Shield, Search } from "lucide-react";
 import type { HoldingDisplay } from "@/hooks/usePortfolioData";
 import type { HoldingAnalytics } from "@/hooks/useAnalyticsData";
+import { useSectorLookup, resolveSector } from "@/hooks/useSectorLookup";
 
 // ============ ETF TOP HOLDINGS (hardcoded, approximate weights %) ============
 const ETF_HOLDINGS: Record<string, { ticker: string; weight: number }[]> = {
@@ -49,14 +50,16 @@ interface DiversificationProps {
 
 export function DiversificationSection({ holdings, analytics, loading }: DiversificationProps) {
   const [expanded, setExpanded] = useState(false);
+  const tickerList = useMemo(() => holdings.map((h) => h.ticker), [holdings]);
+  const { lookup: sectorLookup, loading: sectorLoading } = useSectorLookup(tickerList);
 
   const { score, label, colorClass, bgClass, matrix, sectorConcentration } = useMemo(() => {
-    if (holdings.length < 2 || loading) {
+    if (holdings.length < 2 || sectorLoading) {
       return { score: 100, label: "N/A", colorClass: "text-muted-foreground", bgClass: "bg-muted", matrix: [], sectorConcentration: null };
     }
 
     const tickers = holdings.map((h) => h.ticker);
-    const sectors = tickers.map((t) => analytics.get(t)?.sector ?? "ETF/Fund");
+    const sectors = tickers.map((t) => resolveSector(t, sectorLookup));
 
     // Pairwise correlation
     let totalCorr = 0;
@@ -81,14 +84,11 @@ export function DiversificationSection({ holdings, analytics, loading }: Diversi
     else if (rawScore >= 40) { lbl = "Moderate — some overlap risk"; cc = "text-warning"; bg = "bg-warning"; }
     else { lbl = "Low diversification — high overlap risk"; cc = "text-loss"; bg = "bg-loss"; }
 
-    // Sector concentration insight — use the same resolution rule as the sector chart
+    // Sector concentration insight — uses same resolution as the sector chart
     const sectorWeights = new Map<string, number>();
     holdings.forEach((h) => {
-      const a = analytics.get(h.ticker);
-      const resolved = a?.sector && a.sector.trim().length > 0 ? a.sector : null;
-      const isETF = (a?.assetType || "").toUpperCase() === "ETF";
-      const s = resolved ?? (isETF ? "ETF/Fund" : null);
-      if (!s) return; // skip holdings with no resolvable sector — don't surface a nameless warning
+      const s = resolveSector(h.ticker, sectorLookup);
+      if (!s || !s.trim()) return;
       sectorWeights.set(s, (sectorWeights.get(s) ?? 0) + h.weight);
     });
     const topSector = [...sectorWeights.entries()].sort((a, b) => b[1] - a[1])[0];
@@ -104,7 +104,10 @@ export function DiversificationSection({ holdings, analytics, loading }: Diversi
           ? { sector: topSector[0], pct: topSector[1] }
           : null,
     };
-  }, [holdings, analytics, loading]);
+  }, [holdings, sectorLookup, sectorLoading]);
+
+  // Use sectorLookup for heatmap cells below
+  const heatmapSector = (t: string) => resolveSector(t, sectorLookup);
 
   if (holdings.length < 2) return null;
 
@@ -162,8 +165,8 @@ export function DiversificationSection({ holdings, analytics, loading }: Diversi
                     if (ri === ci) {
                       return <td key={col} className="px-1 py-0.5"><div className="w-5 h-5 rounded-sm bg-muted mx-auto" /></td>;
                     }
-                    const sameRow = analytics.get(row)?.sector ?? "Other";
-                    const sameCol = analytics.get(col)?.sector ?? "Other";
+                    const sameRow = heatmapSector(row);
+                    const sameCol = heatmapSector(col);
                     const corr = sameRow === sameCol ? 0.7 : 0.2;
                     const bg = corr >= 0.6 ? "bg-loss/40" : "bg-gain/30";
                     return (

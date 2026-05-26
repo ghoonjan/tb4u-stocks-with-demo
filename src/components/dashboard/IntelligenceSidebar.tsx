@@ -5,6 +5,7 @@ import type { HoldingDisplay } from "@/hooks/usePortfolioData";
 import { useNewsFeed } from "@/hooks/useNewsFeed";
 import { useEventsData, fetchEarningsSurprises, type CalendarEvent, type EventType } from "@/hooks/useEventsData";
 import { useAnalyticsData } from "@/hooks/useAnalyticsData";
+import { useSectorLookup, resolveSector } from "@/hooks/useSectorLookup";
 import type { EarningsSurprise } from "@/services/marketData";
 import { TaxOpportunitiesSection } from "@/components/dashboard/TaxOpportunities";
 import { DiversificationSection, EtfXRaySection } from "@/components/dashboard/CorrelationAnalysis";
@@ -291,29 +292,20 @@ const fmtDollar = (n: number) => "$" + Math.abs(n).toLocaleString("en-US", { min
 
 function AnalyticsTab({ holdings }: { holdings: HoldingDisplay[] }) {
   const { analytics, loading } = useAnalyticsData(holdings);
-
-  // Wait up to 5 seconds for stock_lookup/analytics to populate, then render whatever's available.
-  const [sectorTimedOut, setSectorTimedOut] = useState(false);
-  useEffect(() => {
-    setSectorTimedOut(false);
-    const id = setTimeout(() => setSectorTimedOut(true), 5000);
-    return () => clearTimeout(id);
-  }, [holdings.length]);
-  const sectorReady = !loading || sectorTimedOut;
+  const tickers = useMemo(() => holdings.map((h) => h.ticker), [holdings]);
+  const { lookup: sectorLookup, loading: sectorLoading } = useSectorLookup(tickers);
+  const sectorReady = !sectorLoading;
 
   const sectorData = useMemo(() => {
     const sectorMap = new Map<string, number>();
     holdings.forEach((h) => {
-      const a = analytics.get(h.ticker);
-      const resolved = a?.sector && a.sector.trim().length > 0 ? a.sector : null;
-      const isETF = (a?.assetType || "").toUpperCase() === "ETF";
-      const sector = resolved ?? (isETF ? "ETF/Fund" : "Other");
+      const sector = resolveSector(h.ticker, sectorLookup);
       sectorMap.set(sector, (sectorMap.get(sector) ?? 0) + h.weight);
     });
     return [...sectorMap.entries()]
       .map(([name, value], i) => ({ name, value: +value.toFixed(1), fill: SECTOR_COLORS[i % SECTOR_COLORS.length] }))
       .sort((a, b) => b.value - a.value);
-  }, [holdings, analytics]);
+  }, [holdings, sectorLookup]);
 
 
   const topConc = useMemo(() => [...holdings].sort((a, b) => b.weight - a.weight).slice(0, 5), [holdings]);
