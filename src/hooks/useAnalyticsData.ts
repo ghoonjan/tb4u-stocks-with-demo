@@ -5,12 +5,14 @@ import type { HoldingDisplay } from "@/hooks/usePortfolioData";
 
 export interface HoldingAnalytics {
   ticker: string;
-  sector: string;
+  sector: string;       // resolved sector, or "" if unknown
+  assetType: string;    // e.g. "ETF" or "Stock"; "" if unknown
   divYield: number;    // annual %
   divPerShare: number; // estimated annual dividend per share
   payoutRatio: number | null;
   divGrowth5Y: number | null;
 }
+
 
 const CACHE_KEY = "dividend_analytics_cache";
 const TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
