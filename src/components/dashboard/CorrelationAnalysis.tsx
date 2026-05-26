@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { ChevronDown, ChevronUp, AlertTriangle, Shield, Search } from "lucide-react";
 import type { HoldingDisplay } from "@/hooks/usePortfolioData";
 import type { HoldingAnalytics } from "@/hooks/useAnalyticsData";
+import { useSectorLookup, resolveSector } from "@/hooks/useSectorLookup";
 
 // ============ ETF TOP HOLDINGS (hardcoded, approximate weights %) ============
 const ETF_HOLDINGS: Record<string, { ticker: string; weight: number }[]> = {
