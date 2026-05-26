@@ -381,7 +381,8 @@ function AnalyticsTab({ holdings }: { holdings: HoldingDisplay[] }) {
       {/* Sector Allocation */}
       <div className="rounded-lg border border-border bg-secondary/30 p-3">
         <h4 className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground mb-2">Sector Allocation</h4>
-        {loading ? (
+        {!sectorReady ? (
+
           <div className="flex items-center justify-center h-[140px]"><Loader2 size={16} className="animate-spin text-muted-foreground" /></div>
         ) : (
           <>
