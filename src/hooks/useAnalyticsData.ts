@@ -162,8 +162,8 @@ export function useAnalyticsData(holdings: HoldingDisplay[]) {
       if (Date.now() - cached.timestamp > STALE_MS && !inflight.current) {
         inflight.current = true;
         try {
-          const fresh = await fetchFresh();
-          writeCache(fresh);
+          const { map: fresh, resolvedAny } = await fetchFresh();
+          if (resolvedAny) writeCache(fresh);
           const freshMerged = await mergeDividends(new Map(fresh));
           setAnalytics(freshMerged);
           setLastUpdated(Date.now());
@@ -178,8 +178,8 @@ export function useAnalyticsData(holdings: HoldingDisplay[]) {
     setLoading(true);
     inflight.current = true;
     try {
-      const fresh = await fetchFresh();
-      writeCache(fresh);
+      const { map: fresh, resolvedAny } = await fetchFresh();
+      if (resolvedAny) writeCache(fresh);
       const merged = await mergeDividends(new Map(fresh));
       setAnalytics(merged);
       setLastUpdated(Date.now());
