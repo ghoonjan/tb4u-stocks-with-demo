@@ -56,7 +56,7 @@ export function DiversificationSection({ holdings, analytics, loading }: Diversi
     }
 
     const tickers = holdings.map((h) => h.ticker);
-    const sectors = tickers.map((t) => analytics.get(t)?.sector ?? "Other");
+    const sectors = tickers.map((t) => analytics.get(t)?.sector ?? "ETF/Fund");
 
     // Pairwise correlation
     let totalCorr = 0;
