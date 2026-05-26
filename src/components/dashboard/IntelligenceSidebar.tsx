@@ -292,16 +292,30 @@ const fmtDollar = (n: number) => "$" + Math.abs(n).toLocaleString("en-US", { min
 function AnalyticsTab({ holdings }: { holdings: HoldingDisplay[] }) {
   const { analytics, loading } = useAnalyticsData(holdings);
 
+  const sectorCoverage = useMemo(() => {
+    if (holdings.length === 0) return 1;
+    const resolved = holdings.filter((h) => {
+      const s = analytics.get(h.ticker)?.sector;
+      return !!s && s.trim().length > 0;
+    }).length;
+    return resolved / holdings.length;
+  }, [holdings, analytics]);
+  const sectorReady = !loading && sectorCoverage >= 0.8;
+
   const sectorData = useMemo(() => {
     const sectorMap = new Map<string, number>();
     holdings.forEach((h) => {
-      const sector = analytics.get(h.ticker)?.sector ?? "ETF/Fund";
+      const a = analytics.get(h.ticker);
+      const resolved = a?.sector && a.sector.trim().length > 0 ? a.sector : null;
+      const isETF = (a?.assetType || "").toUpperCase() === "ETF";
+      const sector = resolved ?? (isETF ? "ETF/Fund" : "Other");
       sectorMap.set(sector, (sectorMap.get(sector) ?? 0) + h.weight);
     });
     return [...sectorMap.entries()]
       .map(([name, value], i) => ({ name, value: +value.toFixed(1), fill: SECTOR_COLORS[i % SECTOR_COLORS.length] }))
       .sort((a, b) => b.value - a.value);
   }, [holdings, analytics]);
+
 
   const topConc = useMemo(() => [...holdings].sort((a, b) => b.weight - a.weight).slice(0, 5), [holdings]);
   const top3Pct = topConc.slice(0, 3).reduce((s, h) => s + h.weight, 0);
@@ -367,7 +381,8 @@ function AnalyticsTab({ holdings }: { holdings: HoldingDisplay[] }) {
       {/* Sector Allocation */}
       <div className="rounded-lg border border-border bg-secondary/30 p-3">
         <h4 className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground mb-2">Sector Allocation</h4>
-        {loading ? (
+        {!sectorReady ? (
+
           <div className="flex items-center justify-center h-[140px]"><Loader2 size={16} className="animate-spin text-muted-foreground" /></div>
         ) : (
           <>

@@ -5,12 +5,14 @@ import type { HoldingDisplay } from "@/hooks/usePortfolioData";
 
 export interface HoldingAnalytics {
   ticker: string;
-  sector: string;
+  sector: string;       // resolved sector, or "" if unknown
+  assetType: string;    // e.g. "ETF" or "Stock"; "" if unknown
   divYield: number;    // annual %
   divPerShare: number; // estimated annual dividend per share
   payoutRatio: number | null;
   divGrowth5Y: number | null;
 }
+
 
 const CACHE_KEY = "dividend_analytics_cache";
 const TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
@@ -60,16 +62,20 @@ export function useAnalyticsData(holdings: HoldingDisplay[]) {
     // that haven't been enriched yet on first render.
     const upperTickers = Array.from(new Set(holdings.map((h) => h.ticker.toUpperCase())));
     const sectorByTicker = new Map<string, string>();
+    const assetTypeByTicker = new Map<string, string>();
     for (let attempt = 0; attempt < 3; attempt++) {
       try {
         const { data: lookups } = await supabase
           .from("stock_lookup")
-          .select("ticker, sector")
+          .select("ticker, sector, asset_type")
           .in("ticker", upperTickers);
         for (const row of lookups || []) {
           const t = String(row.ticker || "").toUpperCase();
           if (!isBadSector(row.sector)) {
             sectorByTicker.set(t, String(row.sector));
+          }
+          if (row.asset_type) {
+            assetTypeByTicker.set(t, String(row.asset_type));
           }
         }
       } catch { /* ignore lookup errors, fallback below */ }
@@ -89,10 +95,11 @@ export function useAnalyticsData(holdings: HoldingDisplay[]) {
         const divYield = financials.dividendYieldIndicatedAnnual ?? 0;
         const divPerShare = divYield > 0 ? (h.currentPrice * divYield) / 100 : 0;
         const profileSector = isBadSector(profile?.finnhubIndustry) ? "" : (profile?.finnhubIndustry ?? "");
-        const sector = sectorByTicker.get(upper) || profileSector || "ETF/Fund";
+        const sector = sectorByTicker.get(upper) || profileSector || "";
         result.set(h.ticker, {
           ticker: h.ticker,
           sector,
+          assetType: assetTypeByTicker.get(upper) || "",
           divYield,
           divPerShare,
           payoutRatio: financials.payoutRatioAnnual ?? null,
@@ -103,6 +110,7 @@ export function useAnalyticsData(holdings: HoldingDisplay[]) {
     }
     return { map: result, resolvedAny: sectorByTicker.size > 0 };
   }, [tickersKey]);
+
 
   // Merge actual logged dividends from DB: overrides projected with trailing-12mo actuals
   const mergeDividends = useCallback(async (map: Map<string, HoldingAnalytics>) => {
@@ -128,12 +136,14 @@ export function useAnalyticsData(holdings: HoldingDisplay[]) {
         if (annual <= 0 || h.shares <= 0) continue;
         const prev = map.get(h.ticker) ?? {
           ticker: h.ticker,
-          sector: "ETF/Fund",
+          sector: "",
+          assetType: "",
           divYield: 0,
           divPerShare: 0,
           payoutRatio: null,
           divGrowth5Y: null,
         };
+
         const divPerShare = annual / h.shares;
         const divYield = h.currentPrice > 0 ? (divPerShare / h.currentPrice) * 100 : prev.divYield;
         map.set(h.ticker, { ...prev, divPerShare, divYield });
