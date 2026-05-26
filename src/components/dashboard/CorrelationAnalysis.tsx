@@ -81,10 +81,14 @@ export function DiversificationSection({ holdings, analytics, loading }: Diversi
     else if (rawScore >= 40) { lbl = "Moderate — some overlap risk"; cc = "text-warning"; bg = "bg-warning"; }
     else { lbl = "Low diversification — high overlap risk"; cc = "text-loss"; bg = "bg-loss"; }
 
-    // Sector concentration insight
+    // Sector concentration insight — use the same resolution rule as the sector chart
     const sectorWeights = new Map<string, number>();
     holdings.forEach((h) => {
-      const s = analytics.get(h.ticker)?.sector ?? "ETF/Fund";
+      const a = analytics.get(h.ticker);
+      const resolved = a?.sector && a.sector.trim().length > 0 ? a.sector : null;
+      const isETF = (a?.assetType || "").toUpperCase() === "ETF";
+      const s = resolved ?? (isETF ? "ETF/Fund" : null);
+      if (!s) return; // skip holdings with no resolvable sector — don't surface a nameless warning
       sectorWeights.set(s, (sectorWeights.get(s) ?? 0) + h.weight);
     });
     const topSector = [...sectorWeights.entries()].sort((a, b) => b[1] - a[1])[0];
@@ -95,7 +99,10 @@ export function DiversificationSection({ holdings, analytics, loading }: Diversi
       colorClass: cc,
       bgClass: bg,
       matrix: matrixData,
-      sectorConcentration: topSector && topSector[1] > 25 ? { sector: topSector[0], pct: topSector[1] } : null,
+      sectorConcentration:
+        topSector && topSector[0] && topSector[0].trim().length > 0 && topSector[1] > 25
+          ? { sector: topSector[0], pct: topSector[1] }
+          : null,
     };
   }, [holdings, analytics, loading]);
 
