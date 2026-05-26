@@ -136,12 +136,14 @@ export function useAnalyticsData(holdings: HoldingDisplay[]) {
         if (annual <= 0 || h.shares <= 0) continue;
         const prev = map.get(h.ticker) ?? {
           ticker: h.ticker,
-          sector: "ETF/Fund",
+          sector: "",
+          assetType: "",
           divYield: 0,
           divPerShare: 0,
           payoutRatio: null,
           divGrowth5Y: null,
         };
+
         const divPerShare = annual / h.shares;
         const divYield = h.currentPrice > 0 ? (divPerShare / h.currentPrice) * 100 : prev.divYield;
         map.set(h.ticker, { ...prev, divPerShare, divYield });
