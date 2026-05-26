@@ -143,10 +143,12 @@ export function usePortfolioData() {
     watchlistRef.current = wl;
     setWatchlist(wl);
 
-    if (rawHoldings.length === 0 && wl.length === 0) {
+    if (rawHoldings.length === 0) {
       setHoldings([]);
-      setLoading(false);
-      return;
+      if (wl.length === 0) {
+        setLoading(false);
+        return;
+      }
     }
 
     if (rawHoldings.length > 0) await fetchQuotes(rawHoldings, true);
