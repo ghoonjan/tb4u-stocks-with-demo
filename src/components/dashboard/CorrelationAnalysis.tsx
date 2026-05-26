@@ -165,8 +165,8 @@ export function DiversificationSection({ holdings, analytics, loading }: Diversi
                     if (ri === ci) {
                       return <td key={col} className="px-1 py-0.5"><div className="w-5 h-5 rounded-sm bg-muted mx-auto" /></td>;
                     }
-                    const sameRow = analytics.get(row)?.sector ?? "Other";
-                    const sameCol = analytics.get(col)?.sector ?? "Other";
+                    const sameRow = heatmapSector(row);
+                    const sameCol = heatmapSector(col);
                     const corr = sameRow === sameCol ? 0.7 : 0.2;
                     const bg = corr >= 0.6 ? "bg-loss/40" : "bg-gain/30";
                     return (
