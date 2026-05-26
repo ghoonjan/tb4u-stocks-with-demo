@@ -5,6 +5,7 @@ import type { HoldingDisplay } from "@/hooks/usePortfolioData";
 import { useNewsFeed } from "@/hooks/useNewsFeed";
 import { useEventsData, fetchEarningsSurprises, type CalendarEvent, type EventType } from "@/hooks/useEventsData";
 import { useAnalyticsData } from "@/hooks/useAnalyticsData";
+import { useSectorLookup, resolveSector } from "@/hooks/useSectorLookup";
 import type { EarningsSurprise } from "@/services/marketData";
 import { TaxOpportunitiesSection } from "@/components/dashboard/TaxOpportunities";
 import { DiversificationSection, EtfXRaySection } from "@/components/dashboard/CorrelationAnalysis";
