@@ -143,10 +143,12 @@ export function usePortfolioData() {
     watchlistRef.current = wl;
     setWatchlist(wl);
 
-    if (rawHoldings.length === 0 && wl.length === 0) {
+    if (rawHoldings.length === 0) {
       setHoldings([]);
-      setLoading(false);
-      return;
+      if (wl.length === 0) {
+        setLoading(false);
+        return;
+      }
     }
 
     if (rawHoldings.length > 0) await fetchQuotes(rawHoldings, true);
@@ -251,6 +253,10 @@ export function usePortfolioData() {
   const deleteHolding = async (id: string, ticker: string) => {
     const { error } = await supabase.from("holdings").delete().eq("id", id);
     if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
+    // Optimistic removal so the UI updates immediately and we never end up
+    // showing stale rows alongside freshly-imported ones.
+    rawHoldingsRef.current = rawHoldingsRef.current.filter((h) => h.id !== id);
+    setHoldings((prev) => prev.filter((h) => h.id !== id));
     await fetchData();
     toast({ title: "Holding removed", description: `${ticker} removed from portfolio.` });
   };

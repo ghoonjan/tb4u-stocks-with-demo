@@ -56,7 +56,7 @@ export function DiversificationSection({ holdings, analytics, loading }: Diversi
     }
 
     const tickers = holdings.map((h) => h.ticker);
-    const sectors = tickers.map((t) => analytics.get(t)?.sector ?? "Other");
+    const sectors = tickers.map((t) => analytics.get(t)?.sector ?? "ETF/Fund");
 
     // Pairwise correlation
     let totalCorr = 0;
@@ -84,7 +84,7 @@ export function DiversificationSection({ holdings, analytics, loading }: Diversi
     // Sector concentration insight
     const sectorWeights = new Map<string, number>();
     holdings.forEach((h) => {
-      const s = analytics.get(h.ticker)?.sector ?? "Other";
+      const s = analytics.get(h.ticker)?.sector ?? "ETF/Fund";
       sectorWeights.set(s, (sectorWeights.get(s) ?? 0) + h.weight);
     });
     const topSector = [...sectorWeights.entries()].sort((a, b) => b[1] - a[1])[0];

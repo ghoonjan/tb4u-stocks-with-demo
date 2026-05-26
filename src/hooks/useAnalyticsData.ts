@@ -48,25 +48,34 @@ export function useAnalyticsData(holdings: HoldingDisplay[]) {
   const tickersKey = holdings.map((h) => h.ticker).sort().join(",");
   const inflight = useRef(false);
 
-  const fetchFresh = useCallback(async (): Promise<Map<string, HoldingAnalytics>> => {
+  const fetchFresh = useCallback(async (): Promise<{ map: Map<string, HoldingAnalytics>; resolvedAny: boolean }> => {
     const result = new Map<string, HoldingAnalytics>();
-    if (holdings.length === 0) return result;
+    if (holdings.length === 0) return { map: result, resolvedAny: true };
 
-    // 1) Bulk-load sectors from stock_lookup (authoritative source)
+    const isBadSector = (s: string | null | undefined) =>
+      !s || !String(s).trim() || ["n/a", "unknown", "—", "-"].includes(String(s).trim().toLowerCase());
+
+    // 1) Bulk-load sectors from stock_lookup (authoritative). Retry up to 3
+    // times when nothing comes back — handles freshly-seeded template tickers
+    // that haven't been enriched yet on first render.
     const upperTickers = Array.from(new Set(holdings.map((h) => h.ticker.toUpperCase())));
     const sectorByTicker = new Map<string, string>();
-    try {
-      const { data: lookups } = await supabase
-        .from("stock_lookup")
-        .select("ticker, sector")
-        .in("ticker", upperTickers);
-      for (const row of lookups || []) {
-        const t = String(row.ticker || "").toUpperCase();
-        if (row.sector && String(row.sector).trim()) {
-          sectorByTicker.set(t, String(row.sector));
+    for (let attempt = 0; attempt < 3; attempt++) {
+      try {
+        const { data: lookups } = await supabase
+          .from("stock_lookup")
+          .select("ticker, sector")
+          .in("ticker", upperTickers);
+        for (const row of lookups || []) {
+          const t = String(row.ticker || "").toUpperCase();
+          if (!isBadSector(row.sector)) {
+            sectorByTicker.set(t, String(row.sector));
+          }
         }
-      }
-    } catch { /* ignore lookup errors, fallback below */ }
+      } catch { /* ignore lookup errors, fallback below */ }
+      if (sectorByTicker.size > 0) break;
+      if (attempt < 2) await new Promise((r) => setTimeout(r, 1000));
+    }
 
     // 2) Fetch dividend financials per ticker (Finnhub) — sector comes from DB, profile only as fallback
     for (let i = 0; i < holdings.length; i++) {
@@ -79,7 +88,8 @@ export function useAnalyticsData(holdings: HoldingDisplay[]) {
         ]);
         const divYield = financials.dividendYieldIndicatedAnnual ?? 0;
         const divPerShare = divYield > 0 ? (h.currentPrice * divYield) / 100 : 0;
-        const sector = sectorByTicker.get(upper) || profile?.finnhubIndustry || "ETF/Fund";
+        const profileSector = isBadSector(profile?.finnhubIndustry) ? "" : (profile?.finnhubIndustry ?? "");
+        const sector = sectorByTicker.get(upper) || profileSector || "ETF/Fund";
         result.set(h.ticker, {
           ticker: h.ticker,
           sector,
@@ -91,7 +101,7 @@ export function useAnalyticsData(holdings: HoldingDisplay[]) {
       } catch { /* skip */ }
       if (i < holdings.length - 1) await new Promise((r) => setTimeout(r, 250));
     }
-    return result;
+    return { map: result, resolvedAny: sectorByTicker.size > 0 };
   }, [tickersKey]);
 
   // Merge actual logged dividends from DB: overrides projected with trailing-12mo actuals
@@ -152,8 +162,8 @@ export function useAnalyticsData(holdings: HoldingDisplay[]) {
       if (Date.now() - cached.timestamp > STALE_MS && !inflight.current) {
         inflight.current = true;
         try {
-          const fresh = await fetchFresh();
-          writeCache(fresh);
+          const { map: fresh, resolvedAny } = await fetchFresh();
+          if (resolvedAny) writeCache(fresh);
           const freshMerged = await mergeDividends(new Map(fresh));
           setAnalytics(freshMerged);
           setLastUpdated(Date.now());
@@ -168,8 +178,8 @@ export function useAnalyticsData(holdings: HoldingDisplay[]) {
     setLoading(true);
     inflight.current = true;
     try {
-      const fresh = await fetchFresh();
-      writeCache(fresh);
+      const { map: fresh, resolvedAny } = await fetchFresh();
+      if (resolvedAny) writeCache(fresh);
       const merged = await mergeDividends(new Map(fresh));
       setAnalytics(merged);
       setLastUpdated(Date.now());
