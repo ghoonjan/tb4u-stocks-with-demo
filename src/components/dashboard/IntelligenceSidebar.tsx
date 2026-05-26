@@ -292,15 +292,14 @@ const fmtDollar = (n: number) => "$" + Math.abs(n).toLocaleString("en-US", { min
 function AnalyticsTab({ holdings }: { holdings: HoldingDisplay[] }) {
   const { analytics, loading } = useAnalyticsData(holdings);
 
-  const sectorCoverage = useMemo(() => {
-    if (holdings.length === 0) return 1;
-    const resolved = holdings.filter((h) => {
-      const s = analytics.get(h.ticker)?.sector;
-      return !!s && s.trim().length > 0;
-    }).length;
-    return resolved / holdings.length;
-  }, [holdings, analytics]);
-  const sectorReady = !loading && sectorCoverage >= 0.8;
+  // Wait up to 5 seconds for stock_lookup/analytics to populate, then render whatever's available.
+  const [sectorTimedOut, setSectorTimedOut] = useState(false);
+  useEffect(() => {
+    setSectorTimedOut(false);
+    const id = setTimeout(() => setSectorTimedOut(true), 5000);
+    return () => clearTimeout(id);
+  }, [holdings.length]);
+  const sectorReady = !loading || sectorTimedOut;
 
   const sectorData = useMemo(() => {
     const sectorMap = new Map<string, number>();
