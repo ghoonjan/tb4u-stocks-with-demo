@@ -33,7 +33,8 @@ export function PortfolioImportExport({ portfolioId, existingHoldings, onImporte
       return;
     }
     downloadCsv(buildExportFilename(), exportRowsToCsv(rows));
-    toast.success(`Exported ${rows.length} tax lots`);
+    const label = rows.length === 1 ? "tax lot" : "tax lots";
+    toast.success(`Exported ${rows.length} ${label}`);
   };
 
   return (
