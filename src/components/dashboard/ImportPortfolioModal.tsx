@@ -113,7 +113,8 @@ export function ImportPortfolioModal({ open, onClose, portfolioId, existingHoldi
       return;
     }
     const { inserted_holdings, inserted_lots, skipped_tickers } = res.progress;
-    toast.success(`Imported ${inserted_holdings} positions with ${inserted_lots} tax lots`, {
+    const lotLabel = inserted_lots === 1 ? "tax lot" : "tax lots";
+    toast.success(`Imported ${inserted_holdings} positions with ${inserted_lots} ${lotLabel}`, {
       description: skipped_tickers.length > 0 ? `Skipped: ${skipped_tickers.join(", ")}` : undefined,
     });
 
@@ -199,7 +200,7 @@ export function ImportPortfolioModal({ open, onClose, portfolioId, existingHoldi
                 )}
                 <div>
                   <p className="font-medium text-foreground">
-                    Found {summary.positions} positions with {summary.lots} tax lots. {summary.errors} errors to fix.
+                    Found {summary.positions} positions with {summary.lots} tax {summary.lots === 1 ? "lot" : "lots"}. {summary.errors} errors to fix.
                   </p>
                   <p className="text-xs text-muted-foreground mt-0.5">{fileName}</p>
                 </div>
@@ -231,7 +232,7 @@ export function ImportPortfolioModal({ open, onClose, portfolioId, existingHoldi
                         }
                         className="ml-auto rounded-md border border-border bg-background px-2 py-1 text-xs"
                       >
-                        <option value="merge">Merge → {merged} sh, {g.rows.length} new lots</option>
+                        <option value="merge">Merge → {merged} sh, {g.rows.length} new {g.rows.length === 1 ? "lot" : "lots"}</option>
                         <option value="skip">Skip this ticker</option>
                       </select>
                     </div>
