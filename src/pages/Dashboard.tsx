@@ -4,9 +4,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { PortfolioHeader } from "@/components/dashboard/PortfolioHeader";
 import { TemplateAdminPanel } from "@/components/dashboard/TemplateAdminPanel";
 import { WelcomeBanner } from "@/components/dashboard/WelcomeBanner";
-import { HoldingsTable } from "@/components/dashboard/HoldingsTable";
 import { IntelligenceSidebar } from "@/components/dashboard/IntelligenceSidebar";
-import { WatchlistPanel } from "@/components/dashboard/WatchlistPanel";
 import { HoldingModal } from "@/components/dashboard/HoldingModal";
 import { WatchlistModal } from "@/components/dashboard/WatchlistModal";
 import { ConfirmDialog } from "@/components/dashboard/ConfirmDialog";
@@ -23,15 +21,13 @@ import CopyrightFooter from "@/components/CopyrightFooter";
 import { usePerformanceMetrics } from "@/hooks/usePerformanceMetrics";
 import { useAnalyticsData } from "@/hooks/useAnalyticsData";
 import { toast } from "@/hooks/use-toast";
-import { BookOpen, Loader2, Lightbulb } from "lucide-react";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import PortfolioInsights from "@/components/dashboard/PortfolioInsights";
+import { BookOpen, Loader2 } from "lucide-react";
+import { DashboardMainTabs } from "@/components/dashboard/DashboardMainTabs";
 import type { StockQuote } from "@/services/marketData";
 import { useInitializeUser } from "@/hooks/useInitializeUser";
 import { OfflineBanner } from "@/components/dashboard/OfflineBanner";
 import { OnboardingFlow } from "@/components/dashboard/OnboardingFlow";
 import { GradientMeshBackground } from "@/components/GradientMeshBackground";
-import { DividendSummaryWidget } from "@/components/dividends/DividendSummaryWidget";
 import { useScrollReveal } from "@/hooks/useScrollReveal";
 import { PortfolioImportExport } from "@/components/dashboard/PortfolioImportExport";
 
@@ -157,57 +153,33 @@ function DashboardContent({ user, onLogout }: { user: AuthenticatedUser; onLogou
               onImported={() => portfolio.refetch()}
             />
           </div>
-          {portfolio.holdings.length >= 2 ? (
-            <Tabs defaultValue="holdings" className="w-full">
-              <TabsList>
-                <TabsTrigger value="holdings">Holdings</TabsTrigger>
-                <TabsTrigger value="insights" className="gap-1.5">
-                  <Lightbulb className="h-4 w-4" />
-                  Insights
-                </TabsTrigger>
-              </TabsList>
-              <TabsContent value="holdings" className="mt-3">
-                <HoldingsTable
-                  holdings={portfolio.holdings}
-                  loading={portfolio.loading}
-                  onAddHolding={() => { setEditingHolding(null); setHoldingModalOpen(true); }}
-                  onEditHolding={(h) => { setEditingHolding(h); setHoldingModalOpen(true); }}
-                  onDeleteHolding={(h) => setDeletingHolding(h)}
-                  onAddToWatchlist={(ticker, companyName) => {
-                    portfolio.addToWatchlist({ ticker, company_name: companyName });
-                  }}
-                  onLogTrade={openTradeModal}
-                  analyticsMap={analyticsMap}
-                />
-              </TabsContent>
-              <TabsContent value="insights" className="mt-3">
-                <PortfolioInsights
-                  holdings={portfolio.holdings}
-                  quotes={
-                    new Map<string, StockQuote>(
-                      portfolio.holdings.map((h) => [
-                        h.ticker,
-                        { c: h.currentPrice, d: 0, dp: 0, h: 0, l: 0, o: 0, pc: 0 },
-                      ]),
-                    )
-                  }
-                />
-              </TabsContent>
-            </Tabs>
-          ) : (
-            <HoldingsTable
-              holdings={portfolio.holdings}
-              loading={portfolio.loading}
-              onAddHolding={() => { setEditingHolding(null); setHoldingModalOpen(true); }}
-              onEditHolding={(h) => { setEditingHolding(h); setHoldingModalOpen(true); }}
-              onDeleteHolding={(h) => setDeletingHolding(h)}
-              onAddToWatchlist={(ticker, companyName) => {
-                portfolio.addToWatchlist({ ticker, company_name: companyName });
-              }}
-              onLogTrade={openTradeModal}
-              analyticsMap={analyticsMap}
-            />
-          )}
+          <DashboardMainTabs
+            holdings={portfolio.holdings}
+            loading={portfolio.loading}
+            analyticsMap={analyticsMap as unknown as Map<string, unknown>}
+            onAddHolding={() => { setEditingHolding(null); setHoldingModalOpen(true); }}
+            onEditHolding={(h) => { setEditingHolding(h); setHoldingModalOpen(true); }}
+            onDeleteHolding={(h) => setDeletingHolding(h)}
+            onAddToWatchlist={(ticker, companyName) => {
+              portfolio.addToWatchlist({ ticker, company_name: companyName });
+            }}
+            onLogTrade={openTradeModal}
+            watchlist={portfolio.watchlist}
+            watchlistQuotes={portfolio.watchlistQuotes}
+            watchlistFinancials={portfolio.watchlistFinancials}
+            onAddWatchlist={() => setWatchlistModalOpen(true)}
+            onDeleteWatchlist={portfolio.deleteWatchlistItem}
+            onUpdateWatchlistTarget={(id, price) => portfolio.updateWatchlistItem(id, { target_price: price })}
+            onAddWatchlistToPortfolio={(ticker, companyName) => {
+              setPrefillFromWatchlist({ ticker, companyName });
+              setEditingHolding(null);
+              setHoldingModalOpen(true);
+            }}
+            simpleReturn={simpleReturn}
+            twr={twr}
+            twrAvailable={twrAvailable}
+          />
+
         </div>
         <div className="lg:w-[38%] lg:max-w-[480px] layer-surface" data-tour="sidebar">
           <IntelligenceSidebar
@@ -229,26 +201,8 @@ function DashboardContent({ user, onLogout }: { user: AuthenticatedUser; onLogou
         </div>
       </div>
 
-      <div ref={watchlistRevealRef} className="px-2 sm:px-4 pb-4 max-w-[1600px] mx-auto w-full" data-tour="watchlist">
-        <WatchlistPanel
-          items={portfolio.watchlist}
-          quotes={portfolio.watchlistQuotes}
-          financialsMap={portfolio.watchlistFinancials}
-          loading={portfolio.loading}
-          onAdd={() => setWatchlistModalOpen(true)}
-          onDelete={portfolio.deleteWatchlistItem}
-          onUpdateTargetPrice={(id, price) => portfolio.updateWatchlistItem(id, { target_price: price })}
-          onAddToPortfolio={(ticker, companyName) => {
-            setPrefillFromWatchlist({ ticker, companyName });
-            setEditingHolding(null);
-            setHoldingModalOpen(true);
-          }}
-        />
-      </div>
+      <div ref={watchlistRevealRef} className="hidden" aria-hidden="true" />
 
-      <div className="px-2 sm:px-4 pb-4 max-w-[1600px] mx-auto w-full">
-        <DividendSummaryWidget />
-      </div>
 
       <div className="px-2 sm:px-4 pb-2 max-w-[1600px] mx-auto w-full">
         <button
