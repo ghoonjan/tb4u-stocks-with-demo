@@ -204,26 +204,8 @@ function DashboardContent({ user, onLogout }: { user: AuthenticatedUser; onLogou
         </div>
       </div>
 
-      <div ref={watchlistRevealRef} className="px-2 sm:px-4 pb-4 max-w-[1600px] mx-auto w-full" data-tour="watchlist">
-        <WatchlistPanel
-          items={portfolio.watchlist}
-          quotes={portfolio.watchlistQuotes}
-          financialsMap={portfolio.watchlistFinancials}
-          loading={portfolio.loading}
-          onAdd={() => setWatchlistModalOpen(true)}
-          onDelete={portfolio.deleteWatchlistItem}
-          onUpdateTargetPrice={(id, price) => portfolio.updateWatchlistItem(id, { target_price: price })}
-          onAddToPortfolio={(ticker, companyName) => {
-            setPrefillFromWatchlist({ ticker, companyName });
-            setEditingHolding(null);
-            setHoldingModalOpen(true);
-          }}
-        />
-      </div>
+      <div ref={watchlistRevealRef} className="hidden" aria-hidden="true" />
 
-      <div className="px-2 sm:px-4 pb-4 max-w-[1600px] mx-auto w-full">
-        <DividendSummaryWidget />
-      </div>
 
       <div className="px-2 sm:px-4 pb-2 max-w-[1600px] mx-auto w-full">
         <button
