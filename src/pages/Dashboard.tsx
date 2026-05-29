@@ -4,7 +4,6 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { PortfolioHeader } from "@/components/dashboard/PortfolioHeader";
 import { TemplateAdminPanel } from "@/components/dashboard/TemplateAdminPanel";
 import { WelcomeBanner } from "@/components/dashboard/WelcomeBanner";
-import { HoldingsTable } from "@/components/dashboard/HoldingsTable";
 import { IntelligenceSidebar } from "@/components/dashboard/IntelligenceSidebar";
 import { WatchlistPanel } from "@/components/dashboard/WatchlistPanel";
 import { HoldingModal } from "@/components/dashboard/HoldingModal";
