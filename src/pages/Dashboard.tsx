@@ -5,7 +5,6 @@ import { PortfolioHeader } from "@/components/dashboard/PortfolioHeader";
 import { TemplateAdminPanel } from "@/components/dashboard/TemplateAdminPanel";
 import { WelcomeBanner } from "@/components/dashboard/WelcomeBanner";
 import { IntelligenceSidebar } from "@/components/dashboard/IntelligenceSidebar";
-import { WatchlistPanel } from "@/components/dashboard/WatchlistPanel";
 import { HoldingModal } from "@/components/dashboard/HoldingModal";
 import { WatchlistModal } from "@/components/dashboard/WatchlistModal";
 import { ConfirmDialog } from "@/components/dashboard/ConfirmDialog";
