@@ -28,7 +28,7 @@ import { useInitializeUser } from "@/hooks/useInitializeUser";
 import { OfflineBanner } from "@/components/dashboard/OfflineBanner";
 import { OnboardingFlow } from "@/components/dashboard/OnboardingFlow";
 import { GradientMeshBackground } from "@/components/GradientMeshBackground";
-import { DividendSummaryWidget } from "@/components/dividends/DividendSummaryWidget";
+import { useScrollReveal } from "@/hooks/useScrollReveal";
 import { PortfolioImportExport } from "@/components/dashboard/PortfolioImportExport";
 
 type AuthenticatedUser = {
