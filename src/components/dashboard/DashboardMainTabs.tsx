@@ -60,9 +60,9 @@ export interface DashboardMainTabsProps {
   onAddToWatchlist: (ticker: string, companyName: string) => void;
   onLogTrade: (h?: HoldingDisplay) => void;
   // watchlist
-  watchlist: WatchlistItem[];
+  watchlist: DbWatchlistItem[];
   watchlistQuotes: Map<string, StockQuote>;
-  watchlistFinancials: Map<string, { dividendYield: number | null; peRatio: number | null }>;
+  watchlistFinancials: Map<string, BasicFinancials>;
   onAddWatchlist: () => void;
   onDeleteWatchlist: (id: string) => void;
   onUpdateWatchlistTarget: (id: string, price: number | null) => void;
