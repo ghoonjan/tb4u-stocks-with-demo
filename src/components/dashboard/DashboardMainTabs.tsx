@@ -19,6 +19,7 @@ import { TaxLotsPanel } from "@/components/dashboard/TaxLotsPanel";
 import { TaxOpportunitiesSection } from "@/components/dashboard/TaxOpportunities";
 import { DividendDashboard } from "@/components/dividends/DividendDashboard";
 import { useSectorLookup, resolveSector } from "@/hooks/useSectorLookup";
+import { SECTOR_COLORS, CHART_TOOLTIP_STYLE, CHART_TOOLTIP_ITEM_STYLE } from "@/constants";
 import type { HoldingDisplay, DbWatchlistItem } from "@/hooks/usePortfolioData";
 import type { StockQuote, BasicFinancials } from "@/services/marketData";
 
