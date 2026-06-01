@@ -20,14 +20,15 @@ export const EmailQueueHealth = () => {
   const [error, setError] = useState<string | null>(null);
 
   const load = async () => {
-    const { data, error } = await supabase.rpc("get_email_queue_health");
+    const { data, error } = await supabase.functions.invoke(
+      "admin-email-queue-health",
+    );
     if (error) {
       setError(error.message);
       return;
     }
     setError(null);
-    const row = Array.isArray(data) ? data[0] : data;
-    setHealth(row as Health);
+    setHealth((data?.health ?? null) as Health | null);
   };
 
   useEffect(() => {
