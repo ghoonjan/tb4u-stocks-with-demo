@@ -43,11 +43,6 @@ export class ErrorBoundary extends Component<Props, State> {
             The page hit an unexpected error and couldn't render. Try refreshing —
             if it keeps happening, the issue has been logged to the browser console.
           </p>
-          {this.state.error?.message && (
-            <pre className="mt-4 max-h-40 overflow-auto rounded-md bg-muted p-3 text-left text-xs text-muted-foreground">
-              {this.state.error.message}
-            </pre>
-          )}
         </div>
         <button
           type="button"
