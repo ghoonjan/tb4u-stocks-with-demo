@@ -24,6 +24,7 @@ interface PortfolioHeaderProps {
   onWhatIf?: () => void;
   onShare?: () => void;
   onDigestSettings?: () => void;
+  onMorningBrief?: () => void;
   simpleReturn?: number | null;
   twr?: number | null;
   twrAvailable?: boolean;
