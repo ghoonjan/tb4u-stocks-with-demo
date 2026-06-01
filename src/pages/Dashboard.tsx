@@ -128,7 +128,7 @@ function DashboardContent({ user, onLogout }: { user: AuthenticatedUser; onLogou
     <div className="min-h-screen bg-background flex flex-col relative pb-14">
       <GradientMeshBackground />
       <OfflineBanner />
-      <PortfolioHeader data-tour="header" email={user.email} onLogout={onLogout} totalValue={portfolio.totalValue} todayPL={portfolio.todayPL} todayPLPct={portfolio.todayPLPct} refreshing={portfolio.refreshing} lastUpdated={portfolio.lastUpdated} priceError={portfolio.priceError} macroData={macroData} macroLoading={macroLoading} onWhatIf={() => setWhatIfOpen(true)} onShare={() => setShareOpen(true)} onDigestSettings={() => setDigestOpen(true)} simpleReturn={simpleReturn} twr={twr} twrAvailable={twrAvailable} />
+      <PortfolioHeader data-tour="header" email={user.email} onLogout={onLogout} totalValue={portfolio.totalValue} todayPL={portfolio.todayPL} todayPLPct={portfolio.todayPLPct} refreshing={portfolio.refreshing} lastUpdated={portfolio.lastUpdated} priceError={portfolio.priceError} macroData={macroData} macroLoading={macroLoading} onWhatIf={() => setWhatIfOpen(true)} onShare={() => setShareOpen(true)} onDigestSettings={() => setDigestOpen(true)} onMorningBrief={briefing.available ? briefing.show : undefined} simpleReturn={simpleReturn} twr={twr} twrAvailable={twrAvailable} />
       <TemplateAdminPanel userId={user.id} />
       <WelcomeBanner
         userId={user.id}
