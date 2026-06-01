@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { TrendingUp, TrendingDown, LogOut, FlaskConical, Info, Share2, Mail, Menu, X, Sun, Moon } from "lucide-react";
+import { TrendingUp, TrendingDown, LogOut, FlaskConical, Info, Share2, Mail, Menu, X, Sun, Moon, Sunrise } from "lucide-react";
 import { useTheme } from "next-themes";
 import { getMarketStatus, getNextFomc, type MacroData } from "@/hooks/useMacroData";
 import type { StockQuote } from "@/services/marketData";
