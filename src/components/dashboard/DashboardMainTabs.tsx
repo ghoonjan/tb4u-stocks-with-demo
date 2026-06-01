@@ -187,6 +187,7 @@ export function DashboardMainTabs(props: DashboardMainTabsProps) {
               onDelete={props.onDeleteWatchlist}
               onUpdateTargetPrice={props.onUpdateWatchlistTarget}
               onAddToPortfolio={props.onAddWatchlistToPortfolio}
+              defaultOpen
             />
           )}
 
