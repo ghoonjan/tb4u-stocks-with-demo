@@ -13,7 +13,11 @@ interface ProfileRow {
   id: string;
   email: string | null;
   display_name: string | null;
+  full_name: string | null;
   created_at: string;
+  last_sign_in_at: string | null;
+  email_confirmed_at: string | null;
+  holdings_count: number;
 }
 
 interface RoleRow {
@@ -50,11 +54,15 @@ const Admin = () => {
 
   const loadUsers = async () => {
     setListLoading(true);
-    const [{ data: profilesData }, { data: rolesData }] = await Promise.all([
-      supabase.from("profiles").select("id,email,display_name,created_at").order("created_at", { ascending: false }),
+    const [{ data: usersData, error: usersErr }, { data: rolesData }] = await Promise.all([
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      supabase.rpc("admin_list_users" as any),
       supabase.from("user_roles").select("user_id,role"),
     ]);
-    setProfiles((profilesData ?? []) as ProfileRow[]);
+    if (usersErr) {
+      toast.error(usersErr.message);
+    }
+    setProfiles(((usersData ?? []) as unknown) as ProfileRow[]);
     setRoles((rolesData ?? []) as RoleRow[]);
     setListLoading(false);
   };
