@@ -27,6 +27,7 @@ interface WatchlistPanelProps {
   onDelete: (id: string) => void;
   onUpdateTargetPrice: (id: string, price: number | null) => void;
   onAddToPortfolio: (ticker: string, companyName: string) => void;
+  defaultOpen?: boolean;
 }
 
 const MAX_WATCHLIST = 30;
