@@ -64,7 +64,7 @@ function MacroItem({ label, quote, decimals = 2 }: { label: string; quote: Stock
 export function PortfolioHeader({
   email, onLogout, totalValue = 0, todayPL = 0, todayPLPct = 0,
   refreshing, lastUpdated, priceError, macroData, macroLoading, onWhatIf, onShare,
-  simpleReturn, twr, twrAvailable, onDigestSettings,
+  simpleReturn, twr, twrAvailable, onDigestSettings, onMorningBrief,
 }: PortfolioHeaderProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { theme, setTheme } = useTheme();
