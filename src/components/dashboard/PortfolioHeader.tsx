@@ -165,6 +165,11 @@ export function PortfolioHeader({
               <button onClick={() => { onWhatIf?.(); setMobileMenuOpen(false); }} className="flex items-center gap-1.5 rounded-md border border-border bg-secondary px-3 py-1.5 text-xs font-medium text-muted-foreground">
                 <FlaskConical size={13} /> What If
               </button>
+              {onMorningBrief && (
+                <button onClick={() => { onMorningBrief(); setMobileMenuOpen(false); }} className="flex items-center gap-1.5 rounded-md border border-border bg-secondary px-3 py-1.5 text-xs font-medium text-muted-foreground">
+                  <Sunrise size={13} /> Morning Brief
+                </button>
+              )}
               <button onClick={() => { onDigestSettings?.(); setMobileMenuOpen(false); }} className="flex items-center gap-1.5 rounded-md border border-border bg-secondary px-3 py-1.5 text-xs font-medium text-muted-foreground">
                 <Mail size={13} /> Digest
               </button>
