@@ -75,6 +75,7 @@ export interface DashboardMainTabsProps {
 
 export function DashboardMainTabs(props: DashboardMainTabsProps) {
   const [tab, setTab] = useState<TabKey>("holdings");
+  const [openTip, setOpenTip] = useState<TabKey | null>(null);
 
   return (
     <TooltipProvider delayDuration={200}>
@@ -89,6 +90,7 @@ export function DashboardMainTabs(props: DashboardMainTabsProps) {
           {TABS.map((t) => {
             const Icon = t.icon;
             const active = tab === t.key;
+            const tipOpen = openTip === t.key;
             return (
               <div key={t.key} className="relative shrink-0 flex items-center">
                 <button
@@ -107,18 +109,24 @@ export function DashboardMainTabs(props: DashboardMainTabsProps) {
                     <span className="absolute left-2 right-2 -bottom-px h-[2px] bg-primary rounded-full" />
                   )}
                 </button>
-                <Tooltip>
+                <Tooltip open={tipOpen} onOpenChange={(o) => setOpenTip(o ? t.key : null)}>
                   <TooltipTrigger asChild>
                     <button
                       type="button"
                       aria-label={`About ${t.label}`}
                       className="mr-1 p-1 text-muted-foreground/70 hover:text-foreground transition-colors"
-                      onClick={(e) => e.stopPropagation()}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setOpenTip((prev) => (prev === t.key ? null : t.key));
+                      }}
                     >
                       <Info size={12} />
                     </button>
                   </TooltipTrigger>
-                  <TooltipContent side="bottom" className="max-w-[240px] text-xs">
+                  <TooltipContent
+                    side="bottom"
+                    className="max-w-[280px] text-xs whitespace-normal break-words leading-snug"
+                  >
                     {t.description}
                   </TooltipContent>
                 </Tooltip>
@@ -179,6 +187,7 @@ export function DashboardMainTabs(props: DashboardMainTabsProps) {
               onDelete={props.onDeleteWatchlist}
               onUpdateTargetPrice={props.onUpdateWatchlistTarget}
               onAddToPortfolio={props.onAddWatchlistToPortfolio}
+              defaultOpen
             />
           )}
 

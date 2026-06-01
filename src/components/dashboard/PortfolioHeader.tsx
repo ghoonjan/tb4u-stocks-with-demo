@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { TrendingUp, TrendingDown, LogOut, FlaskConical, Info, Share2, Mail, Menu, X, Sun, Moon } from "lucide-react";
+import { TrendingUp, TrendingDown, LogOut, FlaskConical, Info, Share2, Mail, Menu, X, Sun, Moon, Sunrise } from "lucide-react";
 import { useTheme } from "next-themes";
 import { getMarketStatus, getNextFomc, type MacroData } from "@/hooks/useMacroData";
 import type { StockQuote } from "@/services/marketData";
@@ -24,6 +24,7 @@ interface PortfolioHeaderProps {
   onWhatIf?: () => void;
   onShare?: () => void;
   onDigestSettings?: () => void;
+  onMorningBrief?: () => void;
   simpleReturn?: number | null;
   twr?: number | null;
   twrAvailable?: boolean;
@@ -63,7 +64,7 @@ function MacroItem({ label, quote, decimals = 2 }: { label: string; quote: Stock
 export function PortfolioHeader({
   email, onLogout, totalValue = 0, todayPL = 0, todayPLPct = 0,
   refreshing, lastUpdated, priceError, macroData, macroLoading, onWhatIf, onShare,
-  simpleReturn, twr, twrAvailable, onDigestSettings,
+  simpleReturn, twr, twrAvailable, onDigestSettings, onMorningBrief,
 }: PortfolioHeaderProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { theme, setTheme } = useTheme();
@@ -164,6 +165,11 @@ export function PortfolioHeader({
               <button onClick={() => { onWhatIf?.(); setMobileMenuOpen(false); }} className="flex items-center gap-1.5 rounded-md border border-border bg-secondary px-3 py-1.5 text-xs font-medium text-muted-foreground">
                 <FlaskConical size={13} /> What If
               </button>
+              {onMorningBrief && (
+                <button onClick={() => { onMorningBrief(); setMobileMenuOpen(false); }} className="flex items-center gap-1.5 rounded-md border border-border bg-secondary px-3 py-1.5 text-xs font-medium text-muted-foreground">
+                  <Sunrise size={13} /> Morning Brief
+                </button>
+              )}
               <button onClick={() => { onDigestSettings?.(); setMobileMenuOpen(false); }} className="flex items-center gap-1.5 rounded-md border border-border bg-secondary px-3 py-1.5 text-xs font-medium text-muted-foreground">
                 <Mail size={13} /> Digest
               </button>
@@ -271,6 +277,22 @@ export function PortfolioHeader({
             <button onClick={onWhatIf} className="flex items-center gap-1.5 rounded-md border border-border bg-secondary px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-secondary/80 hover:text-foreground">
               <FlaskConical size={13} /> What If
             </button>
+            {onMorningBrief && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    onClick={onMorningBrief}
+                    aria-label="Show Morning Brief"
+                    className="flex items-center gap-1.5 rounded-md border border-border bg-secondary px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-secondary/80 hover:text-foreground"
+                  >
+                    <Sunrise size={13} /> Brief
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent side="bottom" className="text-[11px] bg-card border-border max-w-[220px]">
+                  Show your AI Morning Brief for today.
+                </TooltipContent>
+              </Tooltip>
+            )}
             <button onClick={onDigestSettings} className="flex items-center gap-1.5 rounded-md border border-border bg-secondary px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-secondary/80 hover:text-foreground">
               <Mail size={13} /> Digest
             </button>

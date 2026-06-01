@@ -632,6 +632,19 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      admin_list_users: {
+        Args: never
+        Returns: {
+          created_at: string
+          display_name: string
+          email: string
+          email_confirmed_at: string
+          full_name: string
+          holdings_count: number
+          id: string
+          last_sign_in_at: string
+        }[]
+      }
       admin_seed_user_template: {
         Args: { target_user_id: string }
         Returns: boolean

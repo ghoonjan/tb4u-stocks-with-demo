@@ -54,12 +54,18 @@ function buildPortfolioContext(props: UseDailyBriefingProps) {
   };
 }
 
+const STORAGE_KEY = "morning_brief_visible";
+
 export function useDailyBriefing(props: UseDailyBriefingProps) {
   const [briefing, setBriefing] = useState<Briefing | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [available, setAvailable] = useState(true); // false if AI not configured
-  const [dismissed, setDismissed] = useState(false);
+  // Visible only if user has explicitly opened it before (persisted) — no auto-load.
+  const [visible, setVisible] = useState<boolean>(() => {
+    if (typeof window === "undefined") return false;
+    return localStorage.getItem(STORAGE_KEY) === "1";
+  });
 
   const fetchBriefing = useCallback(async (regenerate = false) => {
     if (props.holdings.length === 0) return;
@@ -110,25 +116,28 @@ export function useDailyBriefing(props: UseDailyBriefingProps) {
     setLoading(false);
   }, [props.holdings.length, props.totalValue, props.todayPL]);
 
-  // Auto-fetch on mount (once holdings loaded)
-  useEffect(() => {
-    if (props.holdings.length > 0 && !briefing && !loading) {
-      // Check if dismissed today
-      const dismissedDate = localStorage.getItem("briefing_dismissed");
-      const today = new Date().toISOString().slice(0, 10);
-      if (dismissedDate === today) {
-        setDismissed(true);
-      }
-      fetchBriefing(false);
-    }
-  }, [props.holdings.length]);
-
   const regenerate = useCallback(() => fetchBriefing(true), [fetchBriefing]);
 
+  const show = useCallback(() => {
+    setVisible(true);
+    try { localStorage.setItem(STORAGE_KEY, "1"); } catch { /* ignore */ }
+    if (!briefing && !loading && props.holdings.length > 0) {
+      void fetchBriefing(false);
+    }
+  }, [briefing, loading, fetchBriefing, props.holdings.length]);
+
   const dismiss = useCallback(() => {
-    setDismissed(true);
-    localStorage.setItem("briefing_dismissed", new Date().toISOString().slice(0, 10));
+    setVisible(false);
+    try { localStorage.setItem(STORAGE_KEY, "0"); } catch { /* ignore */ }
   }, []);
 
-  return { briefing, loading, error, available, dismissed, regenerate, dismiss };
+  // If the user previously had it open (persisted), fetch once when holdings load.
+  useEffect(() => {
+    if (visible && !briefing && !loading && props.holdings.length > 0) {
+      void fetchBriefing(false);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [visible, props.holdings.length]);
+
+  return { briefing, loading, error, available, dismissed: !visible, visible, regenerate, dismiss, show };
 }

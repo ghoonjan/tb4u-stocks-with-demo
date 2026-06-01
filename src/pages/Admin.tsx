@@ -13,7 +13,11 @@ interface ProfileRow {
   id: string;
   email: string | null;
   display_name: string | null;
+  full_name: string | null;
   created_at: string;
+  last_sign_in_at: string | null;
+  email_confirmed_at: string | null;
+  holdings_count: number;
 }
 
 interface RoleRow {
@@ -50,11 +54,15 @@ const Admin = () => {
 
   const loadUsers = async () => {
     setListLoading(true);
-    const [{ data: profilesData }, { data: rolesData }] = await Promise.all([
-      supabase.from("profiles").select("id,email,display_name,created_at").order("created_at", { ascending: false }),
+    const [{ data: usersData, error: usersErr }, { data: rolesData }] = await Promise.all([
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      supabase.rpc("admin_list_users" as any),
       supabase.from("user_roles").select("user_id,role"),
     ]);
-    setProfiles((profilesData ?? []) as ProfileRow[]);
+    if (usersErr) {
+      toast.error(usersErr.message);
+    }
+    setProfiles(((usersData ?? []) as unknown) as ProfileRow[]);
     setRoles((rolesData ?? []) as RoleRow[]);
     setListLoading(false);
   };
@@ -242,8 +250,11 @@ const Admin = () => {
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b border-border text-left text-xs uppercase tracking-wide text-muted-foreground">
-                      <th className="py-2 pr-4">Email</th>
+                      <th className="py-2 pr-4">User</th>
                       <th className="py-2 pr-4">Joined</th>
+                      <th className="py-2 pr-4">Last sign-in</th>
+                      <th className="py-2 pr-4 text-right">Holdings</th>
+                      <th className="py-2 pr-4">Status</th>
                       <th className="py-2 pr-4">Roles</th>
                       <th className="py-2 pr-4 text-right">Actions</th>
                     </tr>
@@ -252,16 +263,55 @@ const Admin = () => {
                     {profiles.map((p) => {
                       const userRoles = rolesByUser[p.id] ?? [];
                       const isSA = userRoles.includes("super_admin");
+                      const name = p.full_name || p.display_name;
+                      const verified = !!p.email_confirmed_at;
+                      const fmtDate = (s: string | null) =>
+                        s ? new Date(s).toLocaleDateString() : "—";
+                      const fmtDateTime = (s: string | null) =>
+                        s
+                          ? new Date(s).toLocaleDateString(undefined, {
+                              month: "short",
+                              day: "numeric",
+                              year: "numeric",
+                            }) +
+                            " " +
+                            new Date(s).toLocaleTimeString(undefined, {
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            })
+                          : "Never";
                       return (
                         <tr key={p.id} className="border-b border-border/50">
                           <td className="py-3 pr-4 text-foreground">
-                            {p.email ?? "—"}
-                            {p.id === userId && (
-                              <span className="ml-2 rounded bg-primary/10 px-1.5 py-0.5 text-[10px] text-primary">you</span>
-                            )}
+                            <div className="flex flex-col">
+                              <span className="flex items-center gap-2">
+                                {name || <span className="text-muted-foreground italic">No name</span>}
+                                {p.id === userId && (
+                                  <span className="rounded bg-primary/10 px-1.5 py-0.5 text-[10px] text-primary">you</span>
+                                )}
+                              </span>
+                              <span className="text-[11px] text-muted-foreground">{p.email ?? "—"}</span>
+                            </div>
                           </td>
                           <td className="py-3 pr-4 text-muted-foreground text-xs">
-                            {new Date(p.created_at).toLocaleDateString()}
+                            {fmtDate(p.created_at)}
+                          </td>
+                          <td className="py-3 pr-4 text-muted-foreground text-xs">
+                            {fmtDateTime(p.last_sign_in_at)}
+                          </td>
+                          <td className="py-3 pr-4 text-right font-mono text-xs text-foreground">
+                            {p.holdings_count ?? 0}
+                          </td>
+                          <td className="py-3 pr-4">
+                            <span
+                              className={
+                                verified
+                                  ? "rounded bg-gain/15 px-2 py-0.5 text-[11px] font-medium text-gain"
+                                  : "rounded bg-warning/15 px-2 py-0.5 text-[11px] font-medium text-warning"
+                              }
+                            >
+                              {verified ? "Verified" : "Unverified"}
+                            </span>
                           </td>
                           <td className="py-3 pr-4">
                             {userRoles.length === 0 ? (

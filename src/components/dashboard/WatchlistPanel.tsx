@@ -27,6 +27,7 @@ interface WatchlistPanelProps {
   onDelete: (id: string) => void;
   onUpdateTargetPrice: (id: string, price: number | null) => void;
   onAddToPortfolio: (ticker: string, companyName: string) => void;
+  defaultOpen?: boolean;
 }
 
 const MAX_WATCHLIST = 30;
@@ -198,8 +199,8 @@ function InlineTargetEdit({ value, onSave, onCancel }: { value: number | null; o
   );
 }
 
-export function WatchlistPanel({ items, quotes, financialsMap, loading, onAdd, onDelete, onUpdateTargetPrice, onAddToPortfolio }: WatchlistPanelProps) {
-  const [open, setOpen] = useState(false);
+export function WatchlistPanel({ items, quotes, financialsMap, loading, onAdd, onDelete, onUpdateTargetPrice, onAddToPortfolio, defaultOpen = false }: WatchlistPanelProps) {
+  const [open, setOpen] = useState(defaultOpen);
   const [sortKey, setSortKey] = useState<SortKey>("ticker");
   const [sortDir, setSortDir] = useState<SortDir>("asc");
   const [expandedId, setExpandedId] = useState<string | null>(null);
