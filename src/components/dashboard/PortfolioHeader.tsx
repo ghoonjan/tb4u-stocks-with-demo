@@ -277,6 +277,22 @@ export function PortfolioHeader({
             <button onClick={onWhatIf} className="flex items-center gap-1.5 rounded-md border border-border bg-secondary px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-secondary/80 hover:text-foreground">
               <FlaskConical size={13} /> What If
             </button>
+            {onMorningBrief && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    onClick={onMorningBrief}
+                    aria-label="Show Morning Brief"
+                    className="flex items-center gap-1.5 rounded-md border border-border bg-secondary px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-secondary/80 hover:text-foreground"
+                  >
+                    <Sunrise size={13} /> Brief
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent side="bottom" className="text-[11px] bg-card border-border max-w-[220px]">
+                  Show your AI Morning Brief for today.
+                </TooltipContent>
+              </Tooltip>
+            )}
             <button onClick={onDigestSettings} className="flex items-center gap-1.5 rounded-md border border-border bg-secondary px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-secondary/80 hover:text-foreground">
               <Mail size={13} /> Digest
             </button>
