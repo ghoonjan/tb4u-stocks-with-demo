@@ -43,8 +43,11 @@ Deno.serve(async (req) => {
     if (rolesErr) return json({ error: "Internal error" }, 500);
     if (!callerRoles) return json({ error: "Forbidden" }, 403);
 
-    const { data, error } = await admin.rpc("get_email_queue_health");
-    if (error) return json({ error: "Internal error" }, 500);
+    const { data, error } = await userClient.rpc("get_email_queue_health");
+    if (error) {
+      console.error("get_email_queue_health rpc error:", error);
+      return json({ error: "Internal error" }, 500);
+    }
 
     const row = Array.isArray(data) ? data[0] : data;
     return json({ health: row ?? null });
