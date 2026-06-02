@@ -184,7 +184,7 @@ export function PortfolioHeader({
         )}
 
         {/* Desktop header (unchanged) */}
-        <div className="hidden md:flex h-[72px] items-center justify-between px-6 relative z-[1]">
+        <div className="hidden md:flex min-h-[72px] py-3 items-center justify-between gap-4 px-6 relative z-[1]">
           {/* Left — Logo lockup */}
           <div className="flex items-center gap-3">
             <LogoMark size={28} />
