@@ -85,8 +85,13 @@ function DashboardContent({ user, onLogout }: { user: AuthenticatedUser; onLogou
         .eq("id", user.id)
         .single();
 
-      if (active && profile && !profile.onboarding_completed) {
-        setShowOnboarding(true);
+      if (active) {
+        if (profile?.full_name) {
+          setUserName(profile.full_name);
+        }
+        if (profile && !profile.onboarding_completed) {
+          setShowOnboarding(true);
+        }
       }
     };
 
