@@ -39,6 +39,7 @@ type AuthenticatedUser = {
 
 function DashboardContent({ user, onLogout }: { user: AuthenticatedUser; onLogout: () => Promise<void> }) {
   const [searchParams, setSearchParams] = useSearchParams();
+  const [userName, setUserName] = useState<string | null>(null);
   const [digestOpen, setDigestOpen] = useState(false);
   const portfolio = usePortfolioData();
   const { macroData, loading: macroLoading } = useMacroData();
