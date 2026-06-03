@@ -12,6 +12,7 @@ import { plArrow } from "@/constants";
 
 interface PortfolioHeaderProps {
   email: string | null;
+  userName?: string | null;
   onLogout: () => void;
   totalValue?: number;
   todayPL?: number;
@@ -62,7 +63,7 @@ function MacroItem({ label, quote, decimals = 2 }: { label: string; quote: Stock
 }
 
 export function PortfolioHeader({
-  email, onLogout, totalValue = 0, todayPL = 0, todayPLPct = 0,
+  email, userName, onLogout, totalValue = 0, todayPL = 0, todayPLPct = 0,
   refreshing, lastUpdated, priceError, macroData, macroLoading, onWhatIf, onShare,
   simpleReturn, twr, twrAvailable, onDigestSettings, onMorningBrief,
 }: PortfolioHeaderProps) {
@@ -198,7 +199,9 @@ export function PortfolioHeader({
               TB4U+
             </span>
             <span className="h-4 w-px bg-border" aria-hidden="true" />
-            <span className="text-xs text-muted-foreground">My Portfolio</span>
+            <span className="text-xs text-muted-foreground">
+              {userName ? `${userName.split(" ")[0]}'s Portfolio` : "My Portfolio"}
+            </span>
           </div>
 
           {/* Center */}
