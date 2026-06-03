@@ -34,6 +34,7 @@ import { PortfolioImportExport } from "@/components/dashboard/PortfolioImportExp
 type AuthenticatedUser = {
   id: string;
   email: string | null;
+  fullName?: string | null;
 };
 
 function DashboardContent({ user, onLogout }: { user: AuthenticatedUser; onLogout: () => Promise<void> }) {
