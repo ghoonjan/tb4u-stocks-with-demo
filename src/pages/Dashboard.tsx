@@ -80,7 +80,7 @@ function DashboardContent({ user, onLogout }: { user: AuthenticatedUser; onLogou
 
       const { data: profile } = await supabase
         .from("profiles")
-        .select("onboarding_completed")
+        .select("onboarding_completed, full_name")
         .eq("id", user.id)
         .single();
 
