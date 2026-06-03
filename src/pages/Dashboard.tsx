@@ -34,10 +34,12 @@ import { PortfolioImportExport } from "@/components/dashboard/PortfolioImportExp
 type AuthenticatedUser = {
   id: string;
   email: string | null;
+  fullName?: string | null;
 };
 
 function DashboardContent({ user, onLogout }: { user: AuthenticatedUser; onLogout: () => Promise<void> }) {
   const [searchParams, setSearchParams] = useSearchParams();
+  const [userName, setUserName] = useState<string | null>(null);
   const [digestOpen, setDigestOpen] = useState(false);
   const portfolio = usePortfolioData();
   const { macroData, loading: macroLoading } = useMacroData();
@@ -79,12 +81,17 @@ function DashboardContent({ user, onLogout }: { user: AuthenticatedUser; onLogou
 
       const { data: profile } = await supabase
         .from("profiles")
-        .select("onboarding_completed")
+        .select("onboarding_completed, full_name")
         .eq("id", user.id)
         .single();
 
-      if (active && profile && !profile.onboarding_completed) {
-        setShowOnboarding(true);
+      if (active) {
+        if (profile?.full_name) {
+          setUserName(profile.full_name);
+        }
+        if (profile && !profile.onboarding_completed) {
+          setShowOnboarding(true);
+        }
       }
     };
 
@@ -128,7 +135,7 @@ function DashboardContent({ user, onLogout }: { user: AuthenticatedUser; onLogou
     <div className="min-h-screen bg-background flex flex-col relative pb-14">
       <GradientMeshBackground />
       <OfflineBanner />
-      <PortfolioHeader data-tour="header" email={user.email} onLogout={onLogout} totalValue={portfolio.totalValue} todayPL={portfolio.todayPL} todayPLPct={portfolio.todayPLPct} refreshing={portfolio.refreshing} lastUpdated={portfolio.lastUpdated} priceError={portfolio.priceError} macroData={macroData} macroLoading={macroLoading} onWhatIf={() => setWhatIfOpen(true)} onShare={() => setShareOpen(true)} onDigestSettings={() => setDigestOpen(true)} onMorningBrief={briefing.available ? briefing.show : undefined} simpleReturn={simpleReturn} twr={twr} twrAvailable={twrAvailable} />
+      <PortfolioHeader data-tour="header" email={user.email} userName={userName} onLogout={onLogout} totalValue={portfolio.totalValue} todayPL={portfolio.todayPL} todayPLPct={portfolio.todayPLPct} refreshing={portfolio.refreshing} lastUpdated={portfolio.lastUpdated} priceError={portfolio.priceError} macroData={macroData} macroLoading={macroLoading} onWhatIf={() => setWhatIfOpen(true)} onShare={() => setShareOpen(true)} onDigestSettings={() => setDigestOpen(true)} onMorningBrief={briefing.available ? briefing.show : undefined} simpleReturn={simpleReturn} twr={twr} twrAvailable={twrAvailable} />
       <TemplateAdminPanel userId={user.id} />
       <WelcomeBanner
         userId={user.id}
