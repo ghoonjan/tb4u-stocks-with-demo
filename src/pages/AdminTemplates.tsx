@@ -272,6 +272,7 @@ const AdminTemplates = () => {
   if (roleLoading || !isSuperAdmin) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background text-sm text-muted-foreground">
+        <NoIndex />
         Loading…
       </div>
     );
@@ -280,8 +281,6 @@ const AdminTemplates = () => {
   const others = portfolios.filter((p) => p.id !== template?.id);
 
   return (
-    <>
-      <NoIndex />
       <div className="flex min-h-screen flex-col bg-background relative">
       <GradientMeshBackground />
       <div className="flex-1 px-4 py-8 relative z-10">
@@ -348,7 +347,6 @@ const AdminTemplates = () => {
                 </button>
               </div>
             ) : (
-              <>
                 <div className="mb-3 flex flex-wrap items-center gap-2 text-sm">
                   <span className="font-medium text-foreground">{template.name}</span>
                   <span className="text-xs text-muted-foreground">
@@ -409,7 +407,6 @@ const AdminTemplates = () => {
                     </table>
                   </div>
                 )}
-              </>
             )}
 
             {others.length > 0 && (
@@ -687,7 +684,6 @@ function WatchlistTemplateModal({ open, onClose, onSubmit, initial }: WlModalPro
         </form>
       </div>
     </div>
-    </>
   );
 }
 

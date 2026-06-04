@@ -149,14 +149,13 @@ const Admin = () => {
   if (roleLoading || !isSuperAdmin) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background text-sm text-muted-foreground">
+        <NoIndex />
         Loading admin…
       </div>
     );
   }
 
   return (
-    <>
-      <NoIndex />
       <div className="flex min-h-screen flex-col bg-background relative">
       <GradientMeshBackground />
       <div className="flex-1 px-4 py-8 relative z-10">
@@ -385,7 +384,6 @@ const Admin = () => {
         onCancel={() => (deleting ? null : setDeleteTarget(null))}
       />
     </div>
-    </>
   );
 };
 

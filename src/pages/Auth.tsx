@@ -108,9 +108,8 @@ const Auth = () => {
     mode === "login" ? "Sign in" : mode === "signup" ? "Sign up" : "Send reset link";
 
   return (
-    <>
-      <NoIndex />
       <div className="flex min-h-screen flex-col bg-background relative">
+      <NoIndex />
       <GradientMeshBackground />
       <div className="flex flex-1 items-center justify-center px-4">
       <div className="w-full max-w-sm relative z-10">
@@ -188,7 +187,6 @@ const Auth = () => {
           </form>
 
           {mode !== "reset" && (
-            <>
               <div className="relative my-4">
                 <div className="absolute inset-0 flex items-center">
                   <div className="w-full border-t border-border" />
@@ -238,7 +236,6 @@ const Auth = () => {
                 </svg>
                 Continue with Apple
               </button>
-            </>
           )}
 
           <div className="mt-4 text-center">
@@ -272,7 +269,6 @@ const Auth = () => {
       </div>
       <CopyrightFooter />
     </div>
-    </>
   );
 };
 
