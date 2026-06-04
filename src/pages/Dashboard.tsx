@@ -316,6 +316,7 @@ function DashboardContent({ user, onLogout }: { user: AuthenticatedUser; onLogou
       <DigestSettings open={digestOpen} onClose={() => setDigestOpen(false)} />
       <CopyrightFooter />
     </div>
+    </>
   );
 }
 

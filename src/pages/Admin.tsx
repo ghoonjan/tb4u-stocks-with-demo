@@ -385,6 +385,7 @@ const Admin = () => {
         onCancel={() => (deleting ? null : setDeleteTarget(null))}
       />
     </div>
+    </>
   );
 };
 
