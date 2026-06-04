@@ -1,3 +1,4 @@
+import { NoIndex } from "@/components/NoIndex";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable/index";
@@ -107,7 +108,9 @@ const Auth = () => {
     mode === "login" ? "Sign in" : mode === "signup" ? "Sign up" : "Send reset link";
 
   return (
-    <div className="flex min-h-screen flex-col bg-background relative">
+    <>
+      <NoIndex />
+      <div className="flex min-h-screen flex-col bg-background relative">
       <GradientMeshBackground />
       <div className="flex flex-1 items-center justify-center px-4">
       <div className="w-full max-w-sm relative z-10">
@@ -269,6 +272,7 @@ const Auth = () => {
       </div>
       <CopyrightFooter />
     </div>
+    </>
   );
 };
 

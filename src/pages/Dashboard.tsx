@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { NoIndex } from "@/components/NoIndex";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { PortfolioHeader } from "@/components/dashboard/PortfolioHeader";
@@ -132,7 +133,9 @@ function DashboardContent({ user, onLogout }: { user: AuthenticatedUser; onLogou
   } satisfies HoldingDisplay : null);
 
   return (
-    <div className="min-h-screen bg-background flex flex-col relative pb-14">
+    <>
+      <NoIndex />
+      <div className="min-h-screen bg-background flex flex-col relative pb-14">
       <GradientMeshBackground />
       <OfflineBanner />
       <PortfolioHeader data-tour="header" email={user.email} userName={userName} onLogout={onLogout} totalValue={portfolio.totalValue} todayPL={portfolio.todayPL} todayPLPct={portfolio.todayPLPct} refreshing={portfolio.refreshing} lastUpdated={portfolio.lastUpdated} priceError={portfolio.priceError} macroData={macroData} macroLoading={macroLoading} onWhatIf={() => setWhatIfOpen(true)} onShare={() => setShareOpen(true)} onDigestSettings={() => setDigestOpen(true)} onMorningBrief={briefing.available ? briefing.show : undefined} simpleReturn={simpleReturn} twr={twr} twrAvailable={twrAvailable} />
@@ -313,6 +316,7 @@ function DashboardContent({ user, onLogout }: { user: AuthenticatedUser; onLogou
       <DigestSettings open={digestOpen} onClose={() => setDigestOpen(false)} />
       <CopyrightFooter />
     </div>
+    </>
   );
 }
 

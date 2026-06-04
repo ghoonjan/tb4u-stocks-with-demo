@@ -1,3 +1,4 @@
+import { NoIndex } from "@/components/NoIndex";
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -69,7 +70,9 @@ const ResetPassword = () => {
   };
 
   return (
-    <div className="flex min-h-screen flex-col bg-background relative">
+    <>
+      <NoIndex />
+      <div className="flex min-h-screen flex-col bg-background relative">
       <GradientMeshBackground />
       <div className="flex flex-1 items-center justify-center px-4">
         <div className="w-full max-w-sm relative z-10">
@@ -155,6 +158,7 @@ const ResetPassword = () => {
       </div>
       <CopyrightFooter />
     </div>
+    </>
   );
 };
 

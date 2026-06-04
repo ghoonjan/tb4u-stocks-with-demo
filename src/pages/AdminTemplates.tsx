@@ -1,3 +1,4 @@
+import { NoIndex } from "@/components/NoIndex";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
@@ -280,6 +281,7 @@ const AdminTemplates = () => {
 
   return (
     <div className="flex min-h-screen flex-col bg-background relative">
+      <NoIndex />
       <GradientMeshBackground />
       <div className="flex-1 px-4 py-8 relative z-10">
         <div className="mx-auto w-full max-w-5xl">
