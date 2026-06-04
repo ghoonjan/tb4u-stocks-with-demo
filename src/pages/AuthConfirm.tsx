@@ -32,10 +32,11 @@ const AuthConfirm = () => {
   }, [params, navigate]);
 
   return (
-      <div className="min-h-screen flex items-center justify-center bg-background text-foreground p-6">
+    <div className="min-h-screen flex items-center justify-center bg-background text-foreground p-6">
       <NoIndex />
       <div className="text-center space-y-4 max-w-md">
         {error ? (
+          <>
             <h1 className="text-2xl font-semibold">Confirmation failed</h1>
             <p className="text-muted-foreground">{error}</p>
             <button
@@ -44,9 +45,12 @@ const AuthConfirm = () => {
             >
               Back to sign in
             </button>
+          </>
         ) : (
+          <>
             <Loader2 className="h-8 w-8 animate-spin mx-auto text-primary" />
             <h1 className="text-xl font-semibold">Confirming your email…</h1>
+          </>
         )}
       </div>
     </div>
