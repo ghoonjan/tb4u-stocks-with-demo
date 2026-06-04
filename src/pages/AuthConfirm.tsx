@@ -32,7 +32,9 @@ const AuthConfirm = () => {
   }, [params, navigate]);
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background text-foreground p-6">
+    <>
+      <NoIndex />
+      <div className="min-h-screen flex items-center justify-center bg-background text-foreground p-6">
       <div className="text-center space-y-4 max-w-md">
         {error ? (
           <>
