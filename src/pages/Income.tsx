@@ -34,5 +34,6 @@ export default function Income() {
       </div>
       <CopyrightFooter />
     </div>
+    </>
   );
 }

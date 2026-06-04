@@ -55,6 +55,7 @@ const AuthConfirm = () => {
         )}
       </div>
     </div>
+    </>
   );
 };
 

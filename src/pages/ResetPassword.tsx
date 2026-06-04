@@ -158,6 +158,7 @@ const ResetPassword = () => {
       </div>
       <CopyrightFooter />
     </div>
+    </>
   );
 };
 

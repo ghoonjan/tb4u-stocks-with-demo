@@ -272,6 +272,7 @@ const Auth = () => {
       </div>
       <CopyrightFooter />
     </div>
+    </>
   );
 };
 
