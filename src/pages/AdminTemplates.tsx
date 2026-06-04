@@ -280,7 +280,9 @@ const AdminTemplates = () => {
   const others = portfolios.filter((p) => p.id !== template?.id);
 
   return (
-    <div className="flex min-h-screen flex-col bg-background relative">
+    <>
+      <NoIndex />
+      <div className="flex min-h-screen flex-col bg-background relative">
       <GradientMeshBackground />
       <div className="flex-1 px-4 py-8 relative z-10">
         <div className="mx-auto w-full max-w-5xl">
@@ -685,6 +687,7 @@ function WatchlistTemplateModal({ open, onClose, onSubmit, initial }: WlModalPro
         </form>
       </div>
     </div>
+    </>
   );
 }
 
