@@ -70,8 +70,9 @@ const ResetPassword = () => {
   };
 
   return (
-      <div className="flex min-h-screen flex-col bg-background relative">
+    <>
       <NoIndex />
+      <div className="flex min-h-screen flex-col bg-background relative">
       <GradientMeshBackground />
       <div className="flex flex-1 items-center justify-center px-4">
         <div className="w-full max-w-sm relative z-10">
@@ -106,6 +107,7 @@ const ResetPassword = () => {
                 </button>
               </div>
             ) : (
+              <>
                 <h2 className="mb-6 text-base font-semibold text-foreground">Choose a new password</h2>
                 <form onSubmit={handleSubmit} className="space-y-4">
                   <div>
@@ -149,12 +151,14 @@ const ResetPassword = () => {
                     {loading ? "Updating..." : "Update password"}
                   </button>
                 </form>
+              </>
             )}
           </div>
         </div>
       </div>
       <CopyrightFooter />
     </div>
+    </>
   );
 };
 

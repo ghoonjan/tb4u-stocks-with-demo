@@ -8,8 +8,9 @@ import { Button } from '@/components/ui/button';
 export default function Income() {
   const navigate = useNavigate();
   return (
-      <div className="min-h-screen bg-background pb-20">
+    <>
       <NoIndex />
+      <div className="min-h-screen bg-background pb-20">
       <div className="max-w-[1600px] mx-auto w-full px-4 sm:px-6 py-8 space-y-6">
         <div className="flex items-start gap-3">
           <Button
@@ -33,5 +34,6 @@ export default function Income() {
       </div>
       <CopyrightFooter />
     </div>
+    </>
   );
 }
