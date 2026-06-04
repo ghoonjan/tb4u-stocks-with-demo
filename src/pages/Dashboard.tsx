@@ -133,9 +133,7 @@ function DashboardContent({ user, onLogout }: { user: AuthenticatedUser; onLogou
   } satisfies HoldingDisplay : null);
 
   return (
-    <>
-      <NoIndex />
-      <div className="min-h-screen bg-background flex flex-col relative pb-14">
+    <div className="min-h-screen bg-background flex flex-col relative pb-14">
       <GradientMeshBackground />
       <OfflineBanner />
       <PortfolioHeader data-tour="header" email={user.email} userName={userName} onLogout={onLogout} totalValue={portfolio.totalValue} todayPL={portfolio.todayPL} todayPLPct={portfolio.todayPLPct} refreshing={portfolio.refreshing} lastUpdated={portfolio.lastUpdated} priceError={portfolio.priceError} macroData={macroData} macroLoading={macroLoading} onWhatIf={() => setWhatIfOpen(true)} onShare={() => setShareOpen(true)} onDigestSettings={() => setDigestOpen(true)} onMorningBrief={briefing.available ? briefing.show : undefined} simpleReturn={simpleReturn} twr={twr} twrAvailable={twrAvailable} />
