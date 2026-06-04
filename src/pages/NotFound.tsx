@@ -1,3 +1,4 @@
+import { NoIndex } from "@/components/NoIndex";
 import { useLocation } from "react-router-dom";
 import { useEffect } from "react";
 

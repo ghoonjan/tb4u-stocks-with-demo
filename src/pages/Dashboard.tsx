@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { NoIndex } from "@/components/NoIndex";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { PortfolioHeader } from "@/components/dashboard/PortfolioHeader";

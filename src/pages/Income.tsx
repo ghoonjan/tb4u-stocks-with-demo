@@ -1,3 +1,4 @@
+import { NoIndex } from "@/components/NoIndex";
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
 import { DividendDashboard } from '@/components/dividends/DividendDashboard';

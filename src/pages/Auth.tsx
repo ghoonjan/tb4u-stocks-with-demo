@@ -1,3 +1,4 @@
+import { NoIndex } from "@/components/NoIndex";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable/index";

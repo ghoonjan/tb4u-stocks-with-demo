@@ -1,3 +1,4 @@
+import { NoIndex } from "@/components/NoIndex";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
