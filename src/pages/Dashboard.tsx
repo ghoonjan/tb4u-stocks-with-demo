@@ -37,6 +37,7 @@ type AuthenticatedUser = {
   id: string;
   email: string | null;
   fullName?: string | null;
+  userMetadata?: Record<string, unknown>;
 };
 
 function DashboardContent({ user, onLogout }: { user: AuthenticatedUser; onLogout: () => Promise<void> }) {
