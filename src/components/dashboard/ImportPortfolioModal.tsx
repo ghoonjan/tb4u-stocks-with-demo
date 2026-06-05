@@ -134,7 +134,7 @@ export function ImportPortfolioModal({ open, onClose, portfolioId, existingHoldi
         // Invalidate the localStorage analytics cache so the next render refetches
         try { localStorage.removeItem("dividend_analytics_cache"); } catch { /* ignore */ }
         // Seed dividend history rows for all current holdings (idempotent)
-        await syncDividendsForUser(user.id);
+        await syncDividendsForUserWithToast(user.id);
       }
     } catch (err) {
       console.warn("[ImportPortfolioModal] post-import enrichment failed", err);
