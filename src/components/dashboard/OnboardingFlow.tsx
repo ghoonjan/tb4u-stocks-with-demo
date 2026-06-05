@@ -581,6 +581,7 @@ export function OnboardingFlow({ open, portfolioId, holdingsCount = 0, onComplet
     const { data: { session } } = await supabase.auth.getSession();
     if (session) {
       await supabase.from("profiles").update({ onboarding_completed: true } as any).eq("id", session.user.id);
+      await supabase.auth.updateUser({ data: { has_seen_welcome: true } });
     }
     onComplete();
   }, [onComplete]);
