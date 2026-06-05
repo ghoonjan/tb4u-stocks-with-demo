@@ -116,3 +116,18 @@ export async function syncDividendsForUser(userId: string): Promise<void> {
     }
   }
 }
+
+/**
+ * Wrapper that shows a subtle background toast while syncing dividends.
+ * Use after manual holding adds and CSV imports.
+ */
+export async function syncDividendsForUserWithToast(userId: string): Promise<void> {
+  const toastId = toast.loading("Syncing dividend data…");
+  try {
+    await syncDividendsForUser(userId);
+    toast.dismiss(toastId);
+  } catch (err) {
+    toast.dismiss(toastId);
+    console.warn("[dividendSync] background sync failed", err);
+  }
+}
