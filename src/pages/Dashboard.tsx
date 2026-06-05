@@ -37,6 +37,7 @@ type AuthenticatedUser = {
   id: string;
   email: string | null;
   fullName?: string | null;
+  userMetadata?: Record<string, unknown>;
 };
 
 function DashboardContent({ user, onLogout }: { user: AuthenticatedUser; onLogout: () => Promise<void> }) {
@@ -91,7 +92,8 @@ function DashboardContent({ user, onLogout }: { user: AuthenticatedUser; onLogou
         if (profile?.full_name) {
           setUserName(profile.full_name);
         }
-        if (profile && !profile.onboarding_completed) {
+        const hasSeenWelcome = user.userMetadata?.has_seen_welcome === true;
+        if (profile && !profile.onboarding_completed && !hasSeenWelcome) {
           setShowOnboarding(true);
         }
       }
@@ -345,6 +347,7 @@ const Dashboard = () => {
       setUser({
         id: session.user.id,
         email: session.user.email ?? null,
+        userMetadata: session.user.user_metadata,
       });
     };
 
