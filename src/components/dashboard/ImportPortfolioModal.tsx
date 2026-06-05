@@ -15,7 +15,7 @@ import {
   type ParsedRow,
   type DuplicateResolution,
 } from "@/lib/portfolioCsv";
-import { syncDividendsForUser } from "@/lib/dividendSync";
+import { syncDividendsForUserWithToast } from "@/lib/dividendSync";
 import { supabase } from "@/integrations/supabase/client";
 import { getCompanyProfile, getBasicFinancials } from "@/services/marketData";
 
@@ -134,7 +134,7 @@ export function ImportPortfolioModal({ open, onClose, portfolioId, existingHoldi
         // Invalidate the localStorage analytics cache so the next render refetches
         try { localStorage.removeItem("dividend_analytics_cache"); } catch { /* ignore */ }
         // Seed dividend history rows for all current holdings (idempotent)
-        await syncDividendsForUser(user.id);
+        await syncDividendsForUserWithToast(user.id);
       }
     } catch (err) {
       console.warn("[ImportPortfolioModal] post-import enrichment failed", err);

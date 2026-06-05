@@ -28,6 +28,7 @@ import type { StockQuote } from "@/services/marketData";
 import { useInitializeUser } from "@/hooks/useInitializeUser";
 import { OfflineBanner } from "@/components/dashboard/OfflineBanner";
 import { OnboardingFlow } from "@/components/dashboard/OnboardingFlow";
+import { syncDividendsForUserWithToast } from "@/lib/dividendSync";
 import { GradientMeshBackground } from "@/components/GradientMeshBackground";
 import { useScrollReveal } from "@/hooks/useScrollReveal";
 import { PortfolioImportExport } from "@/components/dashboard/PortfolioImportExport";
@@ -238,6 +239,11 @@ function DashboardContent({ user, onLogout }: { user: AuthenticatedUser; onLogou
             await portfolio.moveWatchlistToPortfolio(data.ticker.toUpperCase(), data.company_name);
             portfolio.refetch();
             setPrefillFromWatchlist(null);
+          }
+          if (ok) {
+            supabase.auth.getUser().then(({ data: { user } }) => {
+              if (user) void syncDividendsForUserWithToast(user.id);
+            });
           }
           return ok;
         }}
