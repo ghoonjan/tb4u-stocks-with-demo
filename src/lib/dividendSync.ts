@@ -71,14 +71,23 @@ export async function syncDividendsForUser(userId: string): Promise<void> {
 
   const { data: existing } = await supabase
     .from("dividends")
-    .select("holding_id, ex_date")
+    .select("holding_id, ticker, ex_date, created_at")
     .eq("user_id", userId);
   const existingKeys = new Set(
     (existing || []).map((d) => `${d.holding_id}|${d.ex_date}`)
   );
+  // Per-ticker freshness: skip Finnhub fetch if any row for this ticker was
+  // inserted within the last 24 hours.
+  const dayAgo = Date.now() - 24 * 60 * 60 * 1000;
+  const freshTickers = new Set(
+    (existing || [])
+      .filter((d) => d.created_at && new Date(d.created_at as string).getTime() >= dayAgo)
+      .map((d) => (d.ticker || "").toUpperCase()),
+  );
 
   for (const h of holdings) {
     try {
+      if (freshTickers.has(h.ticker.toUpperCase())) continue;
       const rows = await fetchDividendsForTicker(h.ticker);
       if (!rows.length) continue;
       const frequency = inferFrequency(rows);
