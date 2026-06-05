@@ -240,6 +240,11 @@ function DashboardContent({ user, onLogout }: { user: AuthenticatedUser; onLogou
             portfolio.refetch();
             setPrefillFromWatchlist(null);
           }
+          if (ok) {
+            supabase.auth.getUser().then(({ data: { user } }) => {
+              if (user) void syncDividendsForUserWithToast(user.id);
+            });
+          }
           return ok;
         }}
         initial={holdingModalInitial}
