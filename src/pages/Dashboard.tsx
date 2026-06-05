@@ -346,6 +346,7 @@ const Dashboard = () => {
       setUser({
         id: session.user.id,
         email: session.user.email ?? null,
+        userMetadata: session.user.user_metadata,
       });
     };
 
