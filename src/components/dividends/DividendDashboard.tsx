@@ -3,6 +3,9 @@ import { useDividends } from '@/hooks/useDividends';
 import { usePortfolioData } from '@/hooks/usePortfolioData';
 import { useAnalyticsData } from '@/hooks/useAnalyticsData';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { supabase } from '@/integrations/supabase/client';
+import { syncDividendsForUserWithToast } from '@/lib/dividendSync';
 import {
   DollarSign,
   TrendingUp,
@@ -13,6 +16,7 @@ import {
   CheckCircle2,
   ArrowUp,
   ArrowDown,
+  RefreshCw,
 } from 'lucide-react';
 
 type SortKey =
