@@ -519,10 +519,10 @@ function AnalyticsTab({ holdings }: { holdings: HoldingDisplay[] }) {
               if (divHoldings.length === 0) return null;
               const safeties = divHoldings.map((h) => {
                 const a = analytics.get(h.ticker)!;
-                return { ticker: h.ticker, safety: calcDivSafety(a.divYield, a.payoutRatio, a.divGrowth5Y) };
+                return { ticker: h.ticker, safety: calcDivSafety(a.divYield, a.payoutRatio, a.divGrowth5Y), payoutRatio: a.payoutRatio };
               }).filter((s) => s.safety != null);
               const strong = safeties.filter((s) => s.safety!.rating === "Strong").length;
-              const weak = safeties.filter((s) => s.safety!.rating === "Weak");
+              const weak = safeties.filter((s) => (s.payoutRatio ?? 0) >= 60);
               return (
                 <div className="mt-2 space-y-1">
                   <p className="text-[10px] text-muted-foreground">
