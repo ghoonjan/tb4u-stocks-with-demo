@@ -3,6 +3,9 @@ import { useDividends } from '@/hooks/useDividends';
 import { usePortfolioData } from '@/hooks/usePortfolioData';
 import { useAnalyticsData } from '@/hooks/useAnalyticsData';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { supabase } from '@/integrations/supabase/client';
+import { syncDividendsForUserWithToast } from '@/lib/dividendSync';
 import {
   DollarSign,
   TrendingUp,
@@ -13,6 +16,7 @@ import {
   CheckCircle2,
   ArrowUp,
   ArrowDown,
+  RefreshCw,
 } from 'lucide-react';
 
 type SortKey =
@@ -61,11 +65,25 @@ interface Row {
 }
 
 export function DividendDashboard() {
-  const { dividends, loading: divLoading, getSummary } = useDividends();
+  const { dividends, loading: divLoading, getSummary, fetchDividends } = useDividends();
   const { holdings, loading: portfolioLoading } = usePortfolioData();
   const { analytics, loading: analyticsLoading, lastUpdated } = useAnalyticsData(holdings);
   const [sortKey, setSortKey] = useState<SortKey>('payoutHealth');
   const [sortDir, setSortDir] = useState<SortDir>('asc'); // asc = healthy first
+  const [syncing, setSyncing] = useState(false);
+
+  const handleRefreshDividends = async () => {
+    setSyncing(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        await syncDividendsForUserWithToast(user.id);
+        await fetchDividends();
+      }
+    } finally {
+      setSyncing(false);
+    }
+  };
 
   const summary = useMemo(() => getSummary(), [getSummary]);
 
@@ -231,6 +249,17 @@ export function DividendDashboard() {
 
   return (
     <div className="space-y-6">
+      <div className="flex justify-end">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={handleRefreshDividends}
+          disabled={syncing}
+        >
+          <RefreshCw className={`h-4 w-4 ${syncing ? 'animate-spin' : ''}`} />
+          {syncing ? 'Syncing…' : 'Refresh Dividends'}
+        </Button>
+      </div>
       {/* KPI Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
         <KPICard
