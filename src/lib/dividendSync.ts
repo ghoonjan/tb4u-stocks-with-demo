@@ -225,7 +225,7 @@ export async function syncDividendsForUser(userId: string): Promise<SyncResult> 
         } else {
           result.inserted += toInsert.length;
           for (const d of toInsert) {
-            existingKeys.add(`${d.holding_id as string}|${d.ex_date as string}`);
+            existingKeys.add(`${d.holding_id}|${d.ex_date}`);
           }
         }
       } else {
