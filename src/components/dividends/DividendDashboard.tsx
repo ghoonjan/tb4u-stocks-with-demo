@@ -61,11 +61,25 @@ interface Row {
 }
 
 export function DividendDashboard() {
-  const { dividends, loading: divLoading, getSummary } = useDividends();
+  const { dividends, loading: divLoading, getSummary, fetchDividends } = useDividends();
   const { holdings, loading: portfolioLoading } = usePortfolioData();
   const { analytics, loading: analyticsLoading, lastUpdated } = useAnalyticsData(holdings);
   const [sortKey, setSortKey] = useState<SortKey>('payoutHealth');
   const [sortDir, setSortDir] = useState<SortDir>('asc'); // asc = healthy first
+  const [syncing, setSyncing] = useState(false);
+
+  const handleRefreshDividends = async () => {
+    setSyncing(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        await syncDividendsForUserWithToast(user.id);
+        await fetchDividends();
+      }
+    } finally {
+      setSyncing(false);
+    }
+  };
 
   const summary = useMemo(() => getSummary(), [getSummary]);
 
