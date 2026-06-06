@@ -153,7 +153,19 @@ export async function syncDividendsForUser(userId: string): Promise<SyncResult> 
 
       // 1) Try real historical dividend data.
       const historical = await fetchHistoricalDividends(h.ticker);
-      let toInsert: Array<Record<string, unknown>> = [];
+      type DividendInsert = {
+        user_id: string;
+        holding_id: string;
+        ticker: string;
+        amount_per_share: number;
+        shares_at_time: number;
+        ex_date: string;
+        pay_date: string | null;
+        frequency: string;
+        is_reinvested: boolean;
+        notes?: string;
+      };
+      let toInsert: DividendInsert[] = [];
 
       if (historical.length > 0) {
         const freqRow = historical.find((r) => typeof r.freq === "number");
