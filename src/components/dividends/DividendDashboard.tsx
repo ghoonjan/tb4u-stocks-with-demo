@@ -214,7 +214,7 @@ export function DividendDashboard() {
   ).length;
   const totalWithRatio = rows.filter((r) => r.payoutRatio !== null).length;
   const concerning = rows.filter(
-    (r) => r.payoutRatio !== null && r.payoutRatio > 100,
+    (r) => r.payoutRatio !== null && r.payoutRatio >= 60,
   );
   const concerningCount = concerning.length;
 
