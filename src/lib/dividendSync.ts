@@ -238,6 +238,9 @@ export async function syncDividendsForUser(userId: string): Promise<SyncResult> 
     }
   }
 
+  if (result.inserted > 0) {
+    invalidateDividendCache(userId);
+  }
   console.info("[dividendSync] complete", result);
   return result;
 }
