@@ -687,7 +687,7 @@ export function OnboardingFlow({ open, portfolioId, holdingsCount = 0, onComplet
           <ProfileStep onNext={() => setStep("welcome")} />
         )}
         {step === "welcome" && (
-          <WelcomeStep onNext={() => setStep("holdings")} onSkip={finish} />
+          <WelcomeStep onNext={async () => { await markWelcomeSeen(); setStep("holdings"); }} onSkip={finish} />
         )}
         {step === "holdings" && (
           <HoldingsStep
