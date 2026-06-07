@@ -577,14 +577,22 @@ export function OnboardingFlow({ open, portfolioId, holdingsCount = 0, onComplet
   const [tourIndex, setTourIndex] = useState(0);
   const tourSteps = buildTourSteps(holdingsCount);
 
+  const markWelcomeSeen = useCallback(async () => {
+    try {
+      await supabase.auth.updateUser({ data: { has_seen_welcome: true } });
+    } catch {
+      // ignore auth errors
+    }
+  }, []);
+
   const finish = useCallback(async () => {
     const { data: { session } } = await supabase.auth.getSession();
     if (session) {
       await supabase.from("profiles").update({ onboarding_completed: true } as any).eq("id", session.user.id);
-      await supabase.auth.updateUser({ data: { has_seen_welcome: true } });
+      await markWelcomeSeen();
     }
     onComplete();
-  }, [onComplete]);
+  }, [onComplete, markWelcomeSeen]);
 
   const handleAddTicker = (ticker: string, name: string) => {
     if (holdings.find((h) => h.ticker === ticker)) return;
@@ -679,7 +687,7 @@ export function OnboardingFlow({ open, portfolioId, holdingsCount = 0, onComplet
           <ProfileStep onNext={() => setStep("welcome")} />
         )}
         {step === "welcome" && (
-          <WelcomeStep onNext={() => setStep("holdings")} onSkip={finish} />
+          <WelcomeStep onNext={async () => { await markWelcomeSeen(); setStep("holdings"); }} onSkip={finish} />
         )}
         {step === "holdings" && (
           <HoldingsStep
