@@ -39,6 +39,13 @@ export interface DividendSummary {
   averageMonthly: number;
 }
 
+const CACHE_TTL_MS = 24 * 60 * 60 * 1000;
+const cacheKey = (userId: string) => `dividend_cache_${userId}`;
+
+export function invalidateDividendCache(userId: string) {
+  try { localStorage.removeItem(cacheKey(userId)); } catch { /* ignore */ }
+}
+
 export function useDividends(holdingId?: string) {
   const [dividends, setDividends] = useState<Dividend[]>([]);
   const [loading, setLoading] = useState(true);
@@ -50,6 +57,21 @@ export function useDividends(holdingId?: string) {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
+
+      // Cache only the full per-user dataset (not the per-holding subset).
+      if (!holdingId) {
+        try {
+          const raw = localStorage.getItem(cacheKey(user.id));
+          if (raw) {
+            const parsed = JSON.parse(raw) as { data: Dividend[]; timestamp: number };
+            if (parsed?.timestamp && Date.now() - parsed.timestamp < CACHE_TTL_MS && Array.isArray(parsed.data)) {
+              setDividends(parsed.data);
+              setLoading(false);
+              return;
+            }
+          }
+        } catch { /* ignore cache errors */ }
+      }
 
       let query = supabase
         .from('dividends')
@@ -63,7 +85,16 @@ export function useDividends(holdingId?: string) {
 
       const { data, error: fetchError } = await query;
       if (fetchError) throw fetchError;
-      setDividends((data || []) as Dividend[]);
+      const rows = (data || []) as Dividend[];
+      setDividends(rows);
+      if (!holdingId) {
+        try {
+          localStorage.setItem(
+            cacheKey(user.id),
+            JSON.stringify({ data: rows, timestamp: Date.now() }),
+          );
+        } catch { /* ignore quota */ }
+      }
     } catch (err: any) {
       setError(err.message);
     } finally {
