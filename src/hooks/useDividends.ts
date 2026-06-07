@@ -168,6 +168,10 @@ export function useDividends(holdingId?: string) {
         .eq('id', id);
 
       if (deleteError) throw deleteError;
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) invalidateDividendCache(user.id);
+      } catch { /* ignore */ }
       setDividends(prev => prev.filter(d => d.id !== id));
       return true;
     } catch (err: any) {
