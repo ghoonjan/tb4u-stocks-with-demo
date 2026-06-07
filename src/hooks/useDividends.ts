@@ -129,6 +129,7 @@ export function useDividends(holdingId?: string) {
         .single();
 
       if (insertError) throw insertError;
+      invalidateDividendCache(user.id);
       setDividends(prev => [data as Dividend, ...prev]);
       return data as Dividend;
     } catch (err: any) {
