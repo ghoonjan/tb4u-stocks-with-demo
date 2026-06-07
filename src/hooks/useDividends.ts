@@ -146,6 +146,10 @@ export function useDividends(holdingId?: string) {
         .eq('id', id);
 
       if (updateError) throw updateError;
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) invalidateDividendCache(user.id);
+      } catch { /* ignore */ }
       setDividends(prev =>
         prev.map(d => (d.id === id ? { ...d, ...updates } as Dividend : d))
       );
