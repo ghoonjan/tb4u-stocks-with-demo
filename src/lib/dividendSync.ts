@@ -1,5 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { invalidateDividendCache } from "@/hooks/useDividends";
 
 interface FinnhubMetricResponse {
   metric?: {
@@ -237,6 +238,9 @@ export async function syncDividendsForUser(userId: string): Promise<SyncResult> 
     }
   }
 
+  if (result.inserted > 0) {
+    invalidateDividendCache(userId);
+  }
   console.info("[dividendSync] complete", result);
   return result;
 }
