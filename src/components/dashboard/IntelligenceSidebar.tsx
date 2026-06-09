@@ -529,7 +529,7 @@ function AnalyticsTab({ holdings }: { holdings: HoldingDisplay[] }) {
                     {healthy} of {safeties.length} dividend positions rated <span className="text-gain font-semibold">Healthy</span>
                     {atRisk.length > 0 && <>, {atRisk.length} rated <span className="text-loss font-semibold">At Risk</span></>}
                   </p>
-                  {weak.map((w) => (
+                  {atRisk.map((w) => (
                     <div key={w.ticker} className="flex items-start gap-1.5 text-[10px]">
                       <AlertTriangle size={10} className="text-loss shrink-0 mt-0.5" />
                       <span className="text-muted-foreground">
