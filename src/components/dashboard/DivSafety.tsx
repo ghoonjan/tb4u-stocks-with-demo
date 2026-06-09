@@ -2,7 +2,7 @@ import { Shield, AlertTriangle } from "lucide-react";
 
 export interface DivSafetyResult {
   score: number;       // 1-10
-  rating: "Strong" | "Moderate" | "Weak";
+  rating: "Healthy" | "Moderate" | "At Risk";
   payoutScore: number;
   yieldScore: number;
   growthScore: number;
@@ -26,8 +26,8 @@ export function calcDivSafety(
   if (pr < 30) { payoutScore = 10; payoutLabel = "Very safe"; }
   else if (pr <= 50) { payoutScore = 8; payoutLabel = "Healthy"; }
   else if (pr <= 70) { payoutScore = 6; payoutLabel = "Moderate"; }
-  else if (pr <= 90) { payoutScore = 4; payoutLabel = "Stretched"; }
-  else if (pr <= 100) { payoutScore = 2; payoutLabel = "Dangerous"; }
+  else if (pr <= 90) { payoutScore = 4; payoutLabel = "At Risk"; }
+  else if (pr <= 100) { payoutScore = 2; payoutLabel = "At Risk"; }
   else { payoutScore = 0; payoutLabel = "Unsustainable"; }
 
   // Yield reasonableness (30%)
@@ -48,10 +48,10 @@ export function calcDivSafety(
   else { growthScore = 2; growthLabel = "Declining"; }
 
   const score = payoutScore * 0.4 + yieldScore * 0.3 + growthScore * 0.3;
-  const rating: DivSafetyResult["rating"] = score >= 8 ? "Strong" : score >= 5 ? "Moderate" : "Weak";
+  const rating: DivSafetyResult["rating"] = score >= 8 ? "Healthy" : score >= 5 ? "Moderate" : "At Risk";
 
   let summary: string;
-  if (rating === "Strong") {
+  if (rating === "Healthy") {
     summary = "This dividend appears well-covered by earnings with room for continued growth.";
   } else if (rating === "Moderate") {
     summary = "This dividend is adequate but may face pressure if earnings decline.";
@@ -62,13 +62,13 @@ export function calcDivSafety(
   return { score, rating, payoutScore, yieldScore, growthScore, payoutLabel, yieldLabel, growthLabel, summary };
 }
 
-export function DivSafetyBadge({ rating }: { rating: "Strong" | "Moderate" | "Weak" | null }) {
+export function DivSafetyBadge({ rating }: { rating: "Healthy" | "Moderate" | "At Risk" | null }) {
   if (!rating) return <span className="text-[10px] text-muted-foreground/40">—</span>;
 
   const config = {
-    Strong: { icon: Shield, bg: "bg-gain/15", text: "text-gain", border: "border-gain/30" },
+    Healthy: { icon: Shield, bg: "bg-gain/15", text: "text-gain", border: "border-gain/30" },
     Moderate: { icon: AlertTriangle, bg: "bg-warning/15", text: "text-warning", border: "border-warning/30" },
-    Weak: { icon: AlertTriangle, bg: "bg-loss/15", text: "text-loss", border: "border-loss/30" },
+    "At Risk": { icon: AlertTriangle, bg: "bg-loss/15", text: "text-loss", border: "border-loss/30" },
   }[rating];
 
   const Icon = config.icon;
