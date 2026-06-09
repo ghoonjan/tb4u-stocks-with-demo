@@ -528,20 +528,13 @@ function PayoutBadge({ ratio }: { ratio: number | null }) {
   if (ratio < 80) {
     return (
       <Badge className="bg-yellow-500/15 text-yellow-500 border-transparent hover:bg-yellow-500/20">
-        Stretched {ratio.toFixed(0)}%
-      </Badge>
-    );
-  }
-  if (ratio <= 100) {
-    return (
-      <Badge className="bg-orange-500/15 text-orange-500 border-transparent hover:bg-orange-500/20">
-        High {ratio.toFixed(0)}%
+        Moderate {ratio.toFixed(0)}%
       </Badge>
     );
   }
   return (
     <Badge className="bg-red-500/15 text-red-500 border-transparent hover:bg-red-500/20">
-      Dangerous {ratio.toFixed(0)}%
+      At Risk {ratio.toFixed(0)}%
     </Badge>
   );
 }
