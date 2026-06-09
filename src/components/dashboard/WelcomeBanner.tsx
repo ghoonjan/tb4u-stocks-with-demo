@@ -202,12 +202,6 @@ export function WelcomeBanner({
                     Explore Holdings
                   </button>
                   <button
-                    onClick={async () => { await persistBannerDismissal(); onViewWatchlist(); dismiss(); }}
-                    className="rounded-md border border-border bg-secondary px-3 py-1.5 text-xs font-medium text-foreground hover:bg-secondary/80"
-                  >
-                    View Watchlist
-                  </button>
-                  <button
                     onClick={async () => { await persistBannerDismissal(); dismiss(); setConfirmOpen(true); }}
                     className="rounded-md border border-border bg-transparent px-3 py-1.5 text-xs font-medium text-muted-foreground hover:bg-secondary hover:text-foreground"
                   >
