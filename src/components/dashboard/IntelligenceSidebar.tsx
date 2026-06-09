@@ -521,13 +521,13 @@ function AnalyticsTab({ holdings }: { holdings: HoldingDisplay[] }) {
                 const a = analytics.get(h.ticker)!;
                 return { ticker: h.ticker, safety: calcDivSafety(a.divYield, a.payoutRatio, a.divGrowth5Y), payoutRatio: a.payoutRatio };
               }).filter((s) => s.safety != null);
-              const strong = safeties.filter((s) => s.safety!.rating === "Strong").length;
-              const weak = safeties.filter((s) => (s.payoutRatio ?? 0) >= 60);
+              const healthy = safeties.filter((s) => s.safety!.rating === "Healthy").length;
+              const atRisk = safeties.filter((s) => (s.payoutRatio ?? 0) >= 60);
               return (
                 <div className="mt-2 space-y-1">
                   <p className="text-[10px] text-muted-foreground">
-                    {strong} of {safeties.length} dividend positions rated <span className="text-gain font-semibold">Strong</span>
-                    {weak.length > 0 && <>, {weak.length} rated <span className="text-loss font-semibold">Weak</span></>}
+                    {healthy} of {safeties.length} dividend positions rated <span className="text-gain font-semibold">Healthy</span>
+                    {atRisk.length > 0 && <>, {atRisk.length} rated <span className="text-loss font-semibold">At Risk</span></>}
                   </p>
                   {weak.map((w) => (
                     <div key={w.ticker} className="flex items-start gap-1.5 text-[10px]">
