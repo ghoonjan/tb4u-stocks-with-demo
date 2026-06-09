@@ -34,15 +34,48 @@ export function WelcomeBanner({
       return false;
     }
   });
+  const [metadataChecked, setMetadataChecked] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [clearing, setClearing] = useState(false);
 
   useEffect(() => {
-    try {
-      setDismissed(localStorage.getItem(storageKey(userId)) === "true");
-    } catch {
-      // ignore
-    }
+    let cancelled = false;
+
+    const loadDismissalState = async () => {
+      try {
+        setDismissed(localStorage.getItem(storageKey(userId)) === "true");
+      } catch {
+        // ignore
+      }
+
+      const { data, error } = await supabase.auth.getUser();
+
+      if (cancelled) return;
+
+      if (error) {
+        console.error("[WelcomeBanner] getUser failed", error);
+        setMetadataChecked(true);
+        return;
+      }
+
+      if (data.user?.user_metadata?.welcome_banner_dismissed === true) {
+        try {
+          localStorage.setItem(storageKey(userId), "true");
+        } catch {
+          // ignore
+        }
+        setDismissed(true);
+      }
+
+      setMetadataChecked(true);
+    };
+
+    setMetadataChecked(false);
+    void loadDismissalState();
+
+    return () => {
+      cancelled = true;
+    };
   }, [userId]);
 
   const dismiss = () => {
@@ -54,9 +87,15 @@ export function WelcomeBanner({
     setDismissed(true);
   };
 
-  if (roleLoading || isSuperAdmin || !isInitialized || dismissed || !hasHoldings) {
-    return null;
-  }
+  const persistBannerDismissal = async () => {
+    const { error } = await supabase.auth.updateUser({
+      data: { welcome_banner_dismissed: true },
+    });
+
+    if (error) {
+      console.error("[WelcomeBanner] updateUser failed", error);
+    }
+  };
 
   const handleStartFresh = async () => {
     if (!portfolioId) return;
@@ -121,55 +160,65 @@ export function WelcomeBanner({
     });
   };
 
+  const shouldHideBanner =
+    roleLoading ||
+    isSuperAdmin ||
+    !isInitialized ||
+    dismissed ||
+    !hasHoldings ||
+    !metadataChecked;
+
 
   return (
     <>
-      <div className="mx-auto w-full max-w-[1600px] px-2 sm:px-4 pt-3">
-        <div className="relative overflow-hidden rounded-xl border border-primary/30 bg-gradient-to-br from-primary/15 via-primary/5 to-transparent p-4 sm:p-5 backdrop-blur-sm">
-          <button
-            onClick={dismiss}
-            aria-label="Dismiss welcome banner"
-            className="absolute right-2 top-2 rounded-md p-1 text-muted-foreground hover:bg-secondary hover:text-foreground"
-          >
-            <X size={16} />
-          </button>
+      {!shouldHideBanner && (
+        <div className="mx-auto w-full max-w-[1600px] px-2 sm:px-4 pt-3">
+          <div className="relative overflow-hidden rounded-xl border border-primary/30 bg-gradient-to-br from-primary/15 via-primary/5 to-transparent p-4 sm:p-5 backdrop-blur-sm">
+            <button
+              onClick={dismiss}
+              aria-label="Dismiss welcome banner"
+              className="absolute right-2 top-2 rounded-md p-1 text-muted-foreground hover:bg-secondary hover:text-foreground"
+            >
+              <X size={16} />
+            </button>
 
-          <div className="flex items-start gap-3 pr-8">
-            <div className="hidden sm:flex h-9 w-9 items-center justify-center rounded-full bg-primary/20 text-primary">
-              <Sparkles size={18} />
-            </div>
-            <div className="flex-1 min-w-0">
-              <h3 className="text-base font-semibold text-foreground">
-                👋 Welcome to your portfolio!
-              </h3>
-              <p className="mt-1 text-sm text-muted-foreground">
-                We've loaded sample holdings to help you get started. These are yours now — edit, add, or remove them freely.
-              </p>
+            <div className="flex items-start gap-3 pr-8">
+              <div className="hidden sm:flex h-9 w-9 items-center justify-center rounded-full bg-primary/20 text-primary">
+                <Sparkles size={18} />
+              </div>
+              <div className="flex-1 min-w-0">
+                <h3 className="text-base font-semibold text-foreground">
+                  👋 Welcome to your portfolio!
+                </h3>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  We've loaded sample holdings to help you get started. These are yours now — edit, add, or remove them freely.
+                </p>
 
-              <div className="mt-3 flex flex-wrap gap-2">
-                <button
-                  onClick={() => { onExploreHoldings(); dismiss(); }}
-                  className="rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90"
-                >
-                  Explore Holdings
-                </button>
-                <button
-                  onClick={() => { onViewWatchlist(); dismiss(); }}
-                  className="rounded-md border border-border bg-secondary px-3 py-1.5 text-xs font-medium text-foreground hover:bg-secondary/80"
-                >
-                  View Watchlist
-                </button>
-                <button
-                  onClick={() => setConfirmOpen(true)}
-                  className="rounded-md border border-border bg-transparent px-3 py-1.5 text-xs font-medium text-muted-foreground hover:bg-secondary hover:text-foreground"
-                >
-                  Start Fresh
-                </button>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <button
+                    onClick={async () => { await persistBannerDismissal(); onExploreHoldings(); dismiss(); }}
+                    className="rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90"
+                  >
+                    Explore Holdings
+                  </button>
+                  <button
+                    onClick={async () => { await persistBannerDismissal(); onViewWatchlist(); dismiss(); }}
+                    className="rounded-md border border-border bg-secondary px-3 py-1.5 text-xs font-medium text-foreground hover:bg-secondary/80"
+                  >
+                    View Watchlist
+                  </button>
+                  <button
+                    onClick={async () => { await persistBannerDismissal(); dismiss(); setConfirmOpen(true); }}
+                    className="rounded-md border border-border bg-transparent px-3 py-1.5 text-xs font-medium text-muted-foreground hover:bg-secondary hover:text-foreground"
+                  >
+                    Start Fresh
+                  </button>
+                </div>
               </div>
             </div>
           </div>
         </div>
-      </div>
+      )}
 
       <ConfirmDialog
         open={confirmOpen}
