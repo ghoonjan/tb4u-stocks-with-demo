@@ -13,6 +13,7 @@ import Admin from "./pages/Admin";
 import AdminTemplates from "./pages/AdminTemplates";
 import ProtectedAdminRoute from "./components/ProtectedAdminRoute";
 import NotFound from "./pages/NotFound";
+import Roadmap from "./pages/Roadmap";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 
 const queryClient = new QueryClient();
@@ -33,6 +34,7 @@ const App = () => (
               <Route path="/auth/confirm" element={<AuthConfirm />} />
               <Route path="/admin" element={<ProtectedAdminRoute><Admin /></ProtectedAdminRoute>} />
               <Route path="/admin/templates" element={<ProtectedAdminRoute><AdminTemplates /></ProtectedAdminRoute>} />
+              <Route path="/roadmap" element={<Roadmap />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>

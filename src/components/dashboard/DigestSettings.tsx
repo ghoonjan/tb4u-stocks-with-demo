@@ -77,6 +77,9 @@ export function DigestSettings({ open, onClose }: DigestSettingsProps) {
           <DialogTitle className="flex items-center gap-2 text-foreground">
             <Mail size={18} className="text-primary" />
             Email Digest Settings
+            <span className="ml-1 inline-flex items-center rounded-full bg-amber-500/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-amber-400 ring-1 ring-amber-500/30">
+              Coming Soon
+            </span>
           </DialogTitle>
         </DialogHeader>
 
@@ -85,7 +88,11 @@ export function DigestSettings({ open, onClose }: DigestSettingsProps) {
             <Loader2 size={20} className="animate-spin text-muted-foreground" />
           </div>
         ) : (
-          <div className="space-y-6 py-2">
+          <div className="space-y-6 py-2 opacity-60 pointer-events-none select-none" aria-disabled="true">
+            <p className="text-[11px] text-amber-400/90 pointer-events-auto opacity-100">
+              Email notifications are coming soon. Your preferences will be saved.
+            </p>
+
             {/* Toggle */}
             <div className="flex items-center justify-between">
               <div>
@@ -96,58 +103,44 @@ export function DigestSettings({ open, onClose }: DigestSettingsProps) {
               </div>
               <Switch
                 checked={prefs.email_digest_enabled}
-                onCheckedChange={(checked) => save({ email_digest_enabled: checked })}
+                disabled
                 aria-label="Toggle email digest"
               />
             </div>
 
-            {prefs.email_digest_enabled && (
-              <>
-                {/* Frequency */}
-                <div className="space-y-2">
-                  <label className="flex items-center gap-1.5 text-sm font-medium text-foreground">
-                    <CalendarDays size={14} className="text-muted-foreground" />
-                    Frequency
-                  </label>
-                  <Select
-                    value={prefs.digest_frequency}
-                    onValueChange={(v) => save({ digest_frequency: v })}
-                  >
-                    <SelectTrigger className="bg-secondary border-border">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent className="bg-card border-border">
-                      <SelectItem value="daily">Daily</SelectItem>
-                      <SelectItem value="weekly">Weekly (Monday)</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+            {/* Frequency */}
+            <div className="space-y-2">
+              <label className="flex items-center gap-1.5 text-sm font-medium text-foreground">
+                <CalendarDays size={14} className="text-muted-foreground" />
+                Frequency
+              </label>
+              <Select value={prefs.digest_frequency} disabled>
+                <SelectTrigger className="bg-secondary border-border">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="bg-card border-border">
+                  <SelectItem value="daily">Daily</SelectItem>
+                  <SelectItem value="weekly">Weekly (Monday)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
 
-                {/* Preferred Time */}
-                <div className="space-y-2">
-                  <label className="flex items-center gap-1.5 text-sm font-medium text-foreground">
-                    <Clock size={14} className="text-muted-foreground" />
-                    Preferred Time
-                  </label>
-                  <Select
-                    value={prefs.digest_preferred_time}
-                    onValueChange={(v) => save({ digest_preferred_time: v })}
-                  >
-                    <SelectTrigger className="bg-secondary border-border">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent className="bg-card border-border">
-                      <SelectItem value="morning">Morning (7 AM ET)</SelectItem>
-                      <SelectItem value="evening">Evening (6 PM ET)</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <p className="text-[11px] text-muted-foreground">
-                  Digests are sent to your account email. You can unsubscribe anytime from the email footer.
-                </p>
-              </>
-            )}
+            {/* Preferred Time */}
+            <div className="space-y-2">
+              <label className="flex items-center gap-1.5 text-sm font-medium text-foreground">
+                <Clock size={14} className="text-muted-foreground" />
+                Preferred Time
+              </label>
+              <Select value={prefs.digest_preferred_time} disabled>
+                <SelectTrigger className="bg-secondary border-border">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="bg-card border-border">
+                  <SelectItem value="morning">Morning (7 AM ET)</SelectItem>
+                  <SelectItem value="evening">Evening (6 PM ET)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
 
             {saving && (
               <p className="text-[11px] text-muted-foreground flex items-center gap-1">
