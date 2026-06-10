@@ -19,6 +19,7 @@ import { DigestSettings } from "@/components/dashboard/DigestSettings";
 import { usePortfolioData, type HoldingDisplay } from "@/hooks/usePortfolioData";
 import { useMacroData } from "@/hooks/useMacroData";
 import CopyrightFooter from "@/components/CopyrightFooter";
+import LegalFooter from "@/components/LegalFooter";
 import { usePerformanceMetrics } from "@/hooks/usePerformanceMetrics";
 import { useAnalyticsData } from "@/hooks/useAnalyticsData";
 import { toast } from "@/hooks/use-toast";
@@ -324,6 +325,7 @@ function DashboardContent({ user, onLogout }: { user: AuthenticatedUser; onLogou
       />
 
       <DigestSettings open={digestOpen} onClose={() => setDigestOpen(false)} />
+      <LegalFooter />
       <CopyrightFooter />
     </div>
     </>

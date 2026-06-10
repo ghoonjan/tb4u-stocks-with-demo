@@ -192,6 +192,9 @@ const HoldingRow = memo(function HoldingRow({
           <span className={`font-mono text-[11px] ml-1 ${plColor(h.totalPLPct)}`}>{fmtPct(h.totalPLPct)}</span>
         </td>
         <td className="py-3 px-3 text-right font-mono text-sm text-foreground">{fmtDollar(h.positionValue)}</td>
+        <td className="hidden md:table-cell py-3 px-3 text-right font-mono text-sm text-foreground">
+          {analytics && analytics.divYield > 0 ? `${analytics.divYield.toFixed(1)}%` : <span className="text-muted-foreground/40">—</span>}
+        </td>
         <td className="py-3 px-3 text-right font-mono text-sm text-foreground">{fmt(h.weight, 1)}%</td>
         <td className="py-3 px-3">
           <div className="flex flex-col items-start gap-0.5">
@@ -217,7 +220,7 @@ const HoldingRow = memo(function HoldingRow({
         </td>
       </tr>
       <tr>
-        <td colSpan={12} className="p-0">
+        <td colSpan={13} className="p-0">
           <div className={`overflow-hidden transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] ${isExpanded ? "max-h-[2000px] opacity-100" : "max-h-0 opacity-0"}`}>
             {isExpanded && (
               <Suspense fallback={<div className="flex items-center justify-center py-8"><Loader2 size={18} className="animate-spin text-muted-foreground" /><span className="ml-2 text-xs text-muted-foreground">Loading chart data…</span></div>}>
@@ -311,6 +314,7 @@ export function HoldingsTable({ holdings, loading, onAddHolding, onEditHolding, 
               <col style={{ width: 140 }} />
               <col style={{ width: 150 }} />
               <col style={{ width: 120 }} />
+              <col className="hidden md:table-column" style={{ width: 75 }} />
               <col style={{ width: 65 }} />
               <col style={{ width: 130 }} />
               <col style={{ width: 85 }} />
@@ -326,6 +330,7 @@ export function HoldingsTable({ holdings, loading, onAddHolding, onEditHolding, 
                 <th className="py-3 px-3 text-right sticky top-0 z-10 bg-card"><SortHeader label="Day Chg" sortKey="dayChangeDollar" currentSort={sortKey} currentDir={sortDir} onSort={handleSort} className="justify-end" /></th>
                 <th className="py-3 px-3 text-right sticky top-0 z-10 bg-card"><SortHeader label="Total P&L" sortKey="totalPLDollar" currentSort={sortKey} currentDir={sortDir} onSort={handleSort} className="justify-end" /></th>
                 <th className="py-3 px-3 text-right sticky top-0 z-10 bg-card"><SortHeader label="Value" sortKey="positionValue" currentSort={sortKey} currentDir={sortDir} onSort={handleSort} className="justify-end" /></th>
+                <th className="hidden md:table-cell py-3 px-3 text-right sticky top-0 z-10 bg-card"><span className="text-[11px] font-semibold uppercase tracking-[0.05em] text-muted-foreground">Div %</span></th>
                 <th className="py-3 px-3 text-right sticky top-0 z-10 bg-card"><SortHeader label="Wt%" sortKey="weight" currentSort={sortKey} currentDir={sortDir} onSort={handleSort} className="justify-end" /></th>
                 <th className="py-3 px-3 text-left sticky top-0 z-10 bg-card"><SortHeader label="Held" sortKey="holdingPeriodDays" currentSort={sortKey} currentDir={sortDir} onSort={handleSort} /></th>
                 <th className="py-3 px-3 text-center sticky top-0 z-10 bg-card"><span className="text-[11px] font-semibold uppercase tracking-[0.05em] text-muted-foreground">Conv.</span></th>
