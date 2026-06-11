@@ -119,7 +119,7 @@ function WatchlistDetailCard({ item, quote }: { item: DbWatchlistItem; quote: St
           {chartLoading ? (
             <div className="flex items-center justify-center h-full"><Loader2 size={18} className="animate-spin text-muted-foreground" /></div>
           ) : chartData.length === 0 ? (
-            <div className="flex items-center justify-center h-full text-xs text-muted-foreground">No chart data</div>
+            <div className="flex items-center justify-center h-full rounded-md border border-dashed border-border/60 bg-muted/20 text-xs text-muted-foreground">📊 Chart Coming Soon</div>
           ) : (
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={chartData} margin={{ top: 4, right: 4, bottom: 0, left: 0 }}>

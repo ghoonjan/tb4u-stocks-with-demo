@@ -195,6 +195,11 @@ const HoldingRow = memo(function HoldingRow({
         <td className="hidden md:table-cell py-3 px-3 text-right font-mono text-sm text-foreground">
           {analytics && analytics.divYield > 0 ? `${analytics.divYield.toFixed(1)}%` : <span className="text-muted-foreground/40">—</span>}
         </td>
+        <td className="hidden md:table-cell py-3 px-3">
+          {h.convictionRating && h.convictionRating > 0
+            ? <div className="flex justify-center"><ConvictionStars rating={h.convictionRating} /></div>
+            : <div className="flex justify-center text-muted-foreground/40">—</div>}
+        </td>
         <td className="py-3 px-3 text-right font-mono text-sm text-foreground">{fmt(h.weight, 1)}%</td>
         <td className="py-3 px-3">
           <div className="flex flex-col items-start gap-0.5">
@@ -205,7 +210,6 @@ const HoldingRow = memo(function HoldingRow({
             </div>
           </div>
         </td>
-        <td className="py-3 px-3"><div className="flex justify-center"><ConvictionStars rating={h.convictionRating} /></div></td>
         <td className="py-3 px-3">
           <div className="flex justify-center">
             {(() => {
@@ -215,6 +219,7 @@ const HoldingRow = memo(function HoldingRow({
             })()}
           </div>
         </td>
+
         <td className="py-3 px-3">
           <RowMenu onEdit={onEdit} onDelete={onDelete} onLogTrade={onLogTrade} onAddToWatchlist={onAddToWatchlist} />
         </td>
@@ -261,16 +266,23 @@ export function HoldingsTable({ holdings, loading, onAddHolding, onEditHolding, 
       if (sortKey === ("divYield" as SortKey)) {
         const ay = analyticsMap?.get(a.ticker)?.divYield ?? 0;
         const by = analyticsMap?.get(b.ticker)?.divYield ?? 0;
-        // Push 0/missing to the bottom regardless of direction
         if (ay === 0 && by !== 0) return 1;
         if (by === 0 && ay !== 0) return -1;
         return sortDir === "asc" ? ay - by : by - ay;
+      }
+      if (sortKey === "convictionRating") {
+        const ac = a.convictionRating ?? 0;
+        const bc = b.convictionRating ?? 0;
+        if (ac === 0 && bc !== 0) return 1;
+        if (bc === 0 && ac !== 0) return -1;
+        return sortDir === "asc" ? ac - bc : bc - ac;
       }
       const av = a[sortKey]; const bv = b[sortKey];
       if (typeof av === "number" && typeof bv === "number") return sortDir === "asc" ? av - bv : bv - av;
       return sortDir === "asc" ? String(av ?? "").localeCompare(String(bv ?? "")) : String(bv ?? "").localeCompare(String(av ?? ""));
     });
   }, [holdings, sortKey, sortDir, analyticsMap]);
+
 
   return (
     <div className="rounded-2xl border border-border/50 bg-card overflow-hidden" style={{ boxShadow: "inset 0 1px 0 0 rgba(255,255,255,0.04)" }}>
@@ -323,9 +335,9 @@ export function HoldingsTable({ holdings, loading, onAddHolding, onEditHolding, 
               <col style={{ width: 150 }} />
               <col style={{ width: 120 }} />
               <col className="hidden md:table-column" style={{ width: 75 }} />
+              <col className="hidden md:table-column" style={{ width: 80 }} />
               <col style={{ width: 65 }} />
               <col style={{ width: 130 }} />
-              <col style={{ width: 85 }} />
               <col style={{ width: 80 }} />
               <col style={{ width: 80 }} />
             </colgroup>
@@ -339,13 +351,14 @@ export function HoldingsTable({ holdings, loading, onAddHolding, onEditHolding, 
                 <th className="py-3 px-3 text-right sticky top-0 z-10 bg-card"><SortHeader label="Total P&L" sortKey="totalPLDollar" currentSort={sortKey} currentDir={sortDir} onSort={handleSort} className="justify-end" /></th>
                 <th className="py-3 px-3 text-right sticky top-0 z-10 bg-card"><SortHeader label="Value" sortKey="positionValue" currentSort={sortKey} currentDir={sortDir} onSort={handleSort} className="justify-end" /></th>
                 <th className="hidden md:table-cell py-3 px-3 text-right sticky top-0 z-10 bg-card"><SortHeader label="Div %" sortKey={"divYield" as SortKey} currentSort={sortKey} currentDir={sortDir} onSort={handleSort} className="justify-end" /></th>
+                <th className="hidden md:table-cell py-3 px-3 text-center sticky top-0 z-10 bg-card"><SortHeader label="Conv." sortKey="convictionRating" currentSort={sortKey} currentDir={sortDir} onSort={handleSort} className="justify-center" /></th>
                 <th className="py-3 px-3 text-right sticky top-0 z-10 bg-card"><SortHeader label="Wt%" sortKey="weight" currentSort={sortKey} currentDir={sortDir} onSort={handleSort} className="justify-end" /></th>
                 <th className="py-3 px-3 text-left sticky top-0 z-10 bg-card"><SortHeader label="Held" sortKey="holdingPeriodDays" currentSort={sortKey} currentDir={sortDir} onSort={handleSort} /></th>
-                <th className="py-3 px-3 text-center sticky top-0 z-10 bg-card"><span className="text-[11px] font-semibold uppercase tracking-[0.05em] text-muted-foreground">Conv.</span></th>
                 <th className="py-3 px-3 text-center sticky top-0 z-10 bg-card"><span className="text-[11px] font-semibold uppercase tracking-[0.05em] text-muted-foreground">Div</span></th>
                 <th className="py-3 px-3 sticky top-0 z-10 bg-card" />
               </tr>
             </thead>
+
             <tbody>
               {sorted.map((h) => (
                 <HoldingRow
