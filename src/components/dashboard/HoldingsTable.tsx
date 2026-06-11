@@ -258,11 +258,19 @@ export function HoldingsTable({ holdings, loading, onAddHolding, onEditHolding, 
 
   const sorted = useMemo(() => {
     return [...holdings].sort((a, b) => {
+      if (sortKey === ("divYield" as SortKey)) {
+        const ay = analyticsMap?.get(a.ticker)?.divYield ?? 0;
+        const by = analyticsMap?.get(b.ticker)?.divYield ?? 0;
+        // Push 0/missing to the bottom regardless of direction
+        if (ay === 0 && by !== 0) return 1;
+        if (by === 0 && ay !== 0) return -1;
+        return sortDir === "asc" ? ay - by : by - ay;
+      }
       const av = a[sortKey]; const bv = b[sortKey];
       if (typeof av === "number" && typeof bv === "number") return sortDir === "asc" ? av - bv : bv - av;
       return sortDir === "asc" ? String(av ?? "").localeCompare(String(bv ?? "")) : String(bv ?? "").localeCompare(String(av ?? ""));
     });
-  }, [holdings, sortKey, sortDir]);
+  }, [holdings, sortKey, sortDir, analyticsMap]);
 
   return (
     <div className="rounded-2xl border border-border/50 bg-card overflow-hidden" style={{ boxShadow: "inset 0 1px 0 0 rgba(255,255,255,0.04)" }}>
