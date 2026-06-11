@@ -41,6 +41,7 @@ export function ImportPortfolioModal({ open, onClose, portfolioId, existingHoldi
     setFileName("");
     setResolutions({});
     setImporting(false);
+    setCompletion(null);
   }, []);
 
   const handleClose = useCallback(() => {
