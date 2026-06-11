@@ -258,11 +258,19 @@ export function HoldingsTable({ holdings, loading, onAddHolding, onEditHolding, 
 
   const sorted = useMemo(() => {
     return [...holdings].sort((a, b) => {
+      if (sortKey === ("divYield" as SortKey)) {
+        const ay = analyticsMap?.get(a.ticker)?.divYield ?? 0;
+        const by = analyticsMap?.get(b.ticker)?.divYield ?? 0;
+        // Push 0/missing to the bottom regardless of direction
+        if (ay === 0 && by !== 0) return 1;
+        if (by === 0 && ay !== 0) return -1;
+        return sortDir === "asc" ? ay - by : by - ay;
+      }
       const av = a[sortKey]; const bv = b[sortKey];
       if (typeof av === "number" && typeof bv === "number") return sortDir === "asc" ? av - bv : bv - av;
       return sortDir === "asc" ? String(av ?? "").localeCompare(String(bv ?? "")) : String(bv ?? "").localeCompare(String(av ?? ""));
     });
-  }, [holdings, sortKey, sortDir]);
+  }, [holdings, sortKey, sortDir, analyticsMap]);
 
   return (
     <div className="rounded-2xl border border-border/50 bg-card overflow-hidden" style={{ boxShadow: "inset 0 1px 0 0 rgba(255,255,255,0.04)" }}>
@@ -330,7 +338,7 @@ export function HoldingsTable({ holdings, loading, onAddHolding, onEditHolding, 
                 <th className="py-3 px-3 text-right sticky top-0 z-10 bg-card"><SortHeader label="Day Chg" sortKey="dayChangeDollar" currentSort={sortKey} currentDir={sortDir} onSort={handleSort} className="justify-end" /></th>
                 <th className="py-3 px-3 text-right sticky top-0 z-10 bg-card"><SortHeader label="Total P&L" sortKey="totalPLDollar" currentSort={sortKey} currentDir={sortDir} onSort={handleSort} className="justify-end" /></th>
                 <th className="py-3 px-3 text-right sticky top-0 z-10 bg-card"><SortHeader label="Value" sortKey="positionValue" currentSort={sortKey} currentDir={sortDir} onSort={handleSort} className="justify-end" /></th>
-                <th className="hidden md:table-cell py-3 px-3 text-right sticky top-0 z-10 bg-card"><span className="text-[11px] font-semibold uppercase tracking-[0.05em] text-muted-foreground">Div %</span></th>
+                <th className="hidden md:table-cell py-3 px-3 text-right sticky top-0 z-10 bg-card"><SortHeader label="Div %" sortKey={"divYield" as SortKey} currentSort={sortKey} currentDir={sortDir} onSort={handleSort} className="justify-end" /></th>
                 <th className="py-3 px-3 text-right sticky top-0 z-10 bg-card"><SortHeader label="Wt%" sortKey="weight" currentSort={sortKey} currentDir={sortDir} onSort={handleSort} className="justify-end" /></th>
                 <th className="py-3 px-3 text-left sticky top-0 z-10 bg-card"><SortHeader label="Held" sortKey="holdingPeriodDays" currentSort={sortKey} currentDir={sortDir} onSort={handleSort} /></th>
                 <th className="py-3 px-3 text-center sticky top-0 z-10 bg-card"><span className="text-[11px] font-semibold uppercase tracking-[0.05em] text-muted-foreground">Conv.</span></th>
