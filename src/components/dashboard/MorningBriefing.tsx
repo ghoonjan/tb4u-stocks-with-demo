@@ -61,7 +61,9 @@ export function MorningBriefing({
             </div>
           ) : content ? (
             <>
+              <p className="text-[10px] uppercase tracking-wide text-muted-foreground/70 mb-1">As of {dateStr}</p>
               <p className="text-[12px] text-foreground/90 leading-relaxed">{content}</p>
+
 
               {/* Footer */}
               <div className="flex items-center justify-between mt-3 pt-2 border-t border-border/50">
