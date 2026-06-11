@@ -157,7 +157,33 @@ export function ImportPortfolioModal({ open, onClose, portfolioId, existingHoldi
           </DialogDescription>
         </DialogHeader>
 
-        {!parsedRows && (
+        {completion && (
+          <div className="flex flex-col items-center text-center gap-4 py-6">
+            <CheckCircle2 size={48} className="text-gain" />
+            <div>
+              <p className="text-lg font-semibold text-foreground">✅ Import Complete</p>
+              <p className="text-sm text-muted-foreground mt-1">
+                {completion.holdings} {completion.holdings === 1 ? "holding" : "holdings"} imported,{" "}
+                {completion.lots} tax {completion.lots === 1 ? "lot" : "lots"} created
+              </p>
+              {completion.skipped.length > 0 && (
+                <p className="text-xs text-muted-foreground mt-2">
+                  Skipped: {completion.skipped.join(", ")}
+                </p>
+              )}
+            </div>
+            <div className="flex items-center gap-2 pt-2">
+              <Button variant="outline" size="sm" onClick={reset}>
+                Import Another File
+              </Button>
+              <Button size="sm" onClick={handleClose}>
+                Close
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {!completion && !parsedRows && (
           <div className="space-y-4">
             <button
               type="button"
