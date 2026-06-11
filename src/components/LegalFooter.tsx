@@ -3,7 +3,7 @@
 // ============================================================
 const FOOTER_CONFIG = {
   disclaimer: "For educational and informational purposes only. Not financial advice.",
-  dataAttribution: "Market data provided by Finnhub. Prices delayed up to 15 minutes.",
+  dataAttribution: "Market data provided by Finnhub. Prices can be delayed up to 15 minutes.",
   showDisclaimer: true,
   showAttribution: true,
 };
