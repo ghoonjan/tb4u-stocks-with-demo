@@ -33,6 +33,7 @@ export function ImportPortfolioModal({ open, onClose, portfolioId, existingHoldi
   const [dragActive, setDragActive] = useState(false);
   const [importing, setImporting] = useState(false);
   const [resolutions, setResolutions] = useState<Record<string, DuplicateResolution>>({});
+  const [completion, setCompletion] = useState<{ holdings: number; lots: number; skipped: string[] } | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const reset = useCallback(() => {
