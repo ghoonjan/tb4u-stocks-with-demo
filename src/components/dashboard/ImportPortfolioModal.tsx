@@ -216,7 +216,7 @@ export function ImportPortfolioModal({ open, onClose, portfolioId, existingHoldi
           </div>
         )}
 
-        {parsedRows && summary && (
+        {!completion && parsedRows && summary && (
           <div className="flex-1 overflow-hidden flex flex-col gap-3 min-h-0">
             <div className="flex items-start justify-between gap-3 rounded-lg border border-border bg-muted/30 p-3">
               <div className="flex items-start gap-2 text-sm">
