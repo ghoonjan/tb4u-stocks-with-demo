@@ -8,7 +8,7 @@ import CopyrightFooter from "@/components/CopyrightFooter";
 const ROADMAP_CONFIG = {
   title: "🚀 Coming Soon",
   subtitle: "Features we're building next",
-  lastUpdated: "June 2025",
+  lastUpdated: "June 2026",
   contact: {
     show: false,
     text: "Have a suggestion?",
