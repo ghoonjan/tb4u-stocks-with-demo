@@ -33,6 +33,7 @@ export function ImportPortfolioModal({ open, onClose, portfolioId, existingHoldi
   const [dragActive, setDragActive] = useState(false);
   const [importing, setImporting] = useState(false);
   const [resolutions, setResolutions] = useState<Record<string, DuplicateResolution>>({});
+  const [completion, setCompletion] = useState<{ holdings: number; lots: number; skipped: string[] } | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const reset = useCallback(() => {
@@ -40,6 +41,7 @@ export function ImportPortfolioModal({ open, onClose, portfolioId, existingHoldi
     setFileName("");
     setResolutions({});
     setImporting(false);
+    setCompletion(null);
   }, []);
 
   const handleClose = useCallback(() => {
@@ -141,8 +143,7 @@ export function ImportPortfolioModal({ open, onClose, portfolioId, existingHoldi
     }
 
     onImported();
-    reset();
-    onClose();
+    setCompletion({ holdings: inserted_holdings, lots: inserted_lots, skipped: skipped_tickers });
   };
 
   return (
@@ -156,7 +157,33 @@ export function ImportPortfolioModal({ open, onClose, portfolioId, existingHoldi
           </DialogDescription>
         </DialogHeader>
 
-        {!parsedRows && (
+        {completion && (
+          <div className="flex flex-col items-center text-center gap-4 py-6">
+            <CheckCircle2 size={48} className="text-gain" />
+            <div>
+              <p className="text-lg font-semibold text-foreground">✅ Import Complete</p>
+              <p className="text-sm text-muted-foreground mt-1">
+                {completion.holdings} {completion.holdings === 1 ? "holding" : "holdings"} imported,{" "}
+                {completion.lots} tax {completion.lots === 1 ? "lot" : "lots"} created
+              </p>
+              {completion.skipped.length > 0 && (
+                <p className="text-xs text-muted-foreground mt-2">
+                  Skipped: {completion.skipped.join(", ")}
+                </p>
+              )}
+            </div>
+            <div className="flex items-center gap-2 pt-2">
+              <Button variant="outline" size="sm" onClick={reset}>
+                Import Another File
+              </Button>
+              <Button size="sm" onClick={handleClose}>
+                Close
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {!completion && !parsedRows && (
           <div className="space-y-4">
             <button
               type="button"
@@ -189,7 +216,7 @@ export function ImportPortfolioModal({ open, onClose, portfolioId, existingHoldi
           </div>
         )}
 
-        {parsedRows && summary && (
+        {!completion && parsedRows && summary && (
           <div className="flex-1 overflow-hidden flex flex-col gap-3 min-h-0">
             <div className="flex items-start justify-between gap-3 rounded-lg border border-border bg-muted/30 p-3">
               <div className="flex items-start gap-2 text-sm">
