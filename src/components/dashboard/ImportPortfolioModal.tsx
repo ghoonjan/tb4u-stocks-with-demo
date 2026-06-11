@@ -143,8 +143,7 @@ export function ImportPortfolioModal({ open, onClose, portfolioId, existingHoldi
     }
 
     onImported();
-    reset();
-    onClose();
+    setCompletion({ holdings: inserted_holdings, lots: inserted_lots, skipped: skipped_tickers });
   };
 
   return (
