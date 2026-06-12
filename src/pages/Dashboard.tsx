@@ -154,8 +154,20 @@ function DashboardContent({ user, onLogout }: { user: AuthenticatedUser; onLogou
         onViewWatchlist={() => watchlistRevealRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })}
         onCleared={portfolio.refetch}
       />
-      <div className="flex-1 flex flex-col lg:flex-row gap-3 sm:gap-4 p-2 sm:p-4 max-w-[1600px] mx-auto w-full">
-        <div ref={holdingsSectionRef} className="flex-1 lg:w-[62%] min-w-0 layer-surface" data-tour="holdings">
+      <div className="flex-1 flex flex-col gap-3 sm:gap-4 p-2 sm:p-4 max-w-[1600px] mx-auto w-full">
+        <div ref={holdingsSectionRef} className="w-full min-w-0 layer-surface" data-tour="holdings">
+          {briefing.available && (
+            <MorningBriefing
+              content={briefing.briefing?.content ?? null}
+              loading={briefing.loading}
+              error={briefing.error}
+              generatedAt={briefing.briefing?.created_at ?? null}
+              generationCount={briefing.briefing?.generation_count ?? 0}
+              onRegenerate={briefing.regenerate}
+              onDismiss={briefing.dismiss}
+              dismissed={briefing.dismissed}
+            />
+          )}
           <div className="flex items-center justify-end mb-2">
             <PortfolioImportExport
               portfolioId={portfolio.portfolioId}
@@ -193,25 +205,6 @@ function DashboardContent({ user, onLogout }: { user: AuthenticatedUser; onLogou
             simpleReturn={simpleReturn}
             twr={twr}
             twrAvailable={twrAvailable}
-          />
-
-        </div>
-        <div className="lg:w-[38%] lg:max-w-[480px] layer-surface" data-tour="sidebar">
-          <IntelligenceSidebar
-            holdings={portfolio.holdings}
-            watchlistTickers={portfolio.watchlist.map((w) => w.ticker)}
-            briefingCard={briefing.available ? (
-              <MorningBriefing
-                content={briefing.briefing?.content ?? null}
-                loading={briefing.loading}
-                error={briefing.error}
-                generatedAt={briefing.briefing?.created_at ?? null}
-                generationCount={briefing.briefing?.generation_count ?? 0}
-                onRegenerate={briefing.regenerate}
-                onDismiss={briefing.dismiss}
-                dismissed={briefing.dismissed}
-              />
-            ) : undefined}
           />
         </div>
       </div>
