@@ -164,13 +164,13 @@ export function DividendDashboard() {
         }
         case 'payoutHealth':
         default: {
-          const at = healthTier(a.payoutRatio);
-          const bt = healthTier(b.payoutRatio);
-          // N/A always last regardless of dir
-          if (at === 4 && bt === 4) primary = 0;
-          else if (at === 4) primary = 1;
-          else if (bt === 4) primary = -1;
-          else primary = (at - bt) * dirMul;
+          // Sort by numeric payout ratio; nulls always last
+          const ar = a.payoutRatio;
+          const br = b.payoutRatio;
+          if (ar === null && br === null) primary = 0;
+          else if (ar === null) primary = 1;
+          else if (br === null) primary = -1;
+          else primary = (ar - br) * dirMul;
           break;
         }
       }
