@@ -521,8 +521,15 @@ function AnalyticsTab({ holdings }: { holdings: HoldingDisplay[] }) {
                 const a = analytics.get(h.ticker)!;
                 return { ticker: h.ticker, safety: calcDivSafety(a.divYield, a.payoutRatio, a.divGrowth5Y), payoutRatio: a.payoutRatio };
               }).filter((s) => s.safety != null);
-              const healthy = safeties.filter((s) => s.safety!.rating === "Healthy").length;
-              const atRisk = safeties.filter((s) => (s.payoutRatio ?? 0) >= 60);
+              // Standardized thresholds: Healthy <60%, Moderate 60-80%, At Risk >80%
+              const tierLabel = (pr: number | null): "Healthy" | "Moderate" | "At Risk" => {
+                const r = pr ?? 0;
+                if (r > 80) return "At Risk";
+                if (r >= 60) return "Moderate";
+                return "Healthy";
+              };
+              const healthy = safeties.filter((s) => tierLabel(s.payoutRatio) === "Healthy").length;
+              const atRisk = safeties.filter((s) => tierLabel(s.payoutRatio) === "At Risk");
               return (
                 <div className="mt-2 space-y-1">
                   <p className="text-[10px] text-muted-foreground">
@@ -533,7 +540,7 @@ function AnalyticsTab({ holdings }: { holdings: HoldingDisplay[] }) {
                     <div key={w.ticker} className="flex items-start gap-1.5 text-[10px]">
                       <AlertTriangle size={10} className="text-loss shrink-0 mt-0.5" />
                       <span className="text-muted-foreground">
-                        <span className="text-foreground font-semibold">{w.ticker}</span> dividend may be at risk — payout ratio {w.safety!.payoutLabel.toLowerCase()}
+                        <span className="text-foreground font-semibold">{w.ticker}</span> dividend rated <span className="text-loss font-semibold">At Risk</span> — payout ratio {(w.payoutRatio ?? 0).toFixed(0)}%
                       </span>
                     </div>
                   ))}

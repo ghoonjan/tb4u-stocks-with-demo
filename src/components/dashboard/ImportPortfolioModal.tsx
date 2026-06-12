@@ -42,6 +42,9 @@ export function ImportPortfolioModal({ open, onClose, portfolioId, existingHoldi
     setResolutions({});
     setImporting(false);
     setCompletion(null);
+    setDragActive(false);
+    // Clear file input so re-selecting the same file (or a new one) reliably fires onChange
+    if (inputRef.current) inputRef.current.value = "";
   }, []);
 
   const handleClose = useCallback(() => {
