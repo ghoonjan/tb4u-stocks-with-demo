@@ -83,6 +83,34 @@ export function DividendDashboard() {
   const [allRows, setAllRows] = useState<Row[]>([]);
   const [rowsLoading, setRowsLoading] = useState(true);
   const finnhubLoading = portfolioLoading || analyticsLoading || divLoading;
+  const analyticsReady = holdings.length === 0 || lastUpdated !== null || analytics.size > 0;
+  const analyticsKey = useMemo(
+    () => holdings
+      .map((holding) => {
+        const dividendAnalytics = analytics.get(holding.ticker);
+        return [
+          holding.ticker,
+          dividendAnalytics?.divPerShare ?? 'na',
+          dividendAnalytics?.divYield ?? 'na',
+          dividendAnalytics?.payoutRatio ?? 'na',
+          dividendAnalytics?.divGrowth5Y ?? 'na',
+        ].join(':');
+      })
+      .join('|'),
+    [analytics, holdings],
+  );
+  const holdingsKey = useMemo(
+    () => holdings
+      .map((holding) => [holding.id, holding.ticker, holding.shares, holding.currentPrice].join(':'))
+      .join('|'),
+    [holdings],
+  );
+  const dividendsKey = useMemo(
+    () => dividends
+      .map((dividend) => [dividend.holding_id, dividend.ex_date, dividend.total_amount].join(':'))
+      .join('|'),
+    [dividends],
+  );
 
   const handleRefreshDividends = async () => {
     setSyncing(true);
@@ -112,7 +140,7 @@ export function DividendDashboard() {
   }, []);
 
   useEffect(() => {
-    if (finnhubLoading) {
+    if (finnhubLoading || !analyticsReady) {
       setRowsLoading(true);
       return;
     }
@@ -158,7 +186,8 @@ export function DividendDashboard() {
         });
       }
 
-      const finnhubTickers = Array.from(new Set(finnhubRows.map((row) => row.ticker.toUpperCase())));
+      const finnhubTickerSet = new Set(finnhubRows.map((row) => row.ticker.toUpperCase()));
+      const finnhubTickers = Array.from(finnhubTickerSet);
       const {
         data: { user: userForLog },
       } = await supabase.auth.getUser();
@@ -170,10 +199,11 @@ export function DividendDashboard() {
       });
 
       const missingHoldings = holdings.filter(
-        (holding) => !finnhubTickers.includes(holding.ticker.toUpperCase()),
+        (holding) => !finnhubTickerSet.has(holding.ticker.toUpperCase()),
       );
+      const missingHoldingIds = missingHoldings.map((holding) => holding.id);
 
-      if (missingHoldings.length === 0) {
+      if (missingHoldingIds.length === 0) {
         if (!cancelled) {
           setAllRows(finnhubRows);
           setRowsLoading(false);
@@ -195,30 +225,29 @@ export function DividendDashboard() {
         }
 
         const holdingById = new Map(missingHoldings.map((holding) => [holding.id, holding]));
-        const fallbackHoldingIds = missingHoldings.map((holding) => holding.id);
         const { data, error } = await supabase
           .from('dividends')
           .select('ticker, amount_per_share, frequency, total_amount, ex_date, holding_id')
           .eq('user_id', user.id)
-          .in('holding_id', fallbackHoldingIds)
+          .in('holding_id', missingHoldingIds)
           .order('ex_date', { ascending: false });
 
         console.log('[dividendDashboard] fallback Run 2 query params:', {
           excludedTickers: finnhubTickers,
-          holdingIdsQueried: fallbackHoldingIds,
+          holdingIdsQueried: missingHoldingIds,
           rawSupabaseResponse: data,
           error,
         });
 
         console.log('[dividendDashboard] fallback query:', {
-          holdingIds: fallbackHoldingIds,
+          holdingIds: missingHoldingIds,
           queryFilter: 'holding_id in (...)',
           resultCount: data?.length,
           error,
         });
 
         console.log('[dividendDashboard] fallback query result:', {
-          fallbackHoldingIds,
+          fallbackHoldingIds: missingHoldingIds,
           fallbackDividendsCount: data?.length,
           fallbackError: error,
           fallbackTickers: data?.map((d) => d.ticker),
@@ -278,7 +307,7 @@ export function DividendDashboard() {
     return () => {
       cancelled = true;
     };
-  }, [finnhubLoading, holdings, analytics, dividends]);
+  }, [finnhubLoading, analyticsReady, analyticsKey, holdingsKey, dividendsKey, holdings, dividends]);
 
   const unsortedRows = useMemo(() => allRows, [allRows]);
 
