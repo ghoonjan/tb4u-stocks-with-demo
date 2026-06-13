@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useDividends } from '@/hooks/useDividends';
 import { usePortfolioData } from '@/hooks/usePortfolioData';
 import { useAnalyticsData } from '@/hooks/useAnalyticsData';
@@ -80,10 +80,8 @@ export function DividendDashboard() {
   const [sortKey, setSortKey] = useState<SortKey>('payoutHealth');
   const [sortDir, setSortDir] = useState<SortDir>('asc'); // asc = healthy first
   const [syncing, setSyncing] = useState(false);
-  const [fallbackRows, setFallbackRows] = useState<Row[]>([]);
-  const [fallbackLoading, setFallbackLoading] = useState(false);
-  const fallbackHasRun = useRef(false);
-  const fallbackStartedRef = useRef(false);
+  const [allRows, setAllRows] = useState<Row[]>([]);
+  const [rowsLoading, setRowsLoading] = useState(true);
   const finnhubLoading = portfolioLoading || analyticsLoading || divLoading;
 
   const handleRefreshDividends = async () => {
@@ -100,56 +98,6 @@ export function DividendDashboard() {
   };
 
   const summary = useMemo(() => getSummary(), [getSummary]);
-
-  const { rows: finnhubRows, finnhubTickers } = useMemo<{
-    rows: Row[];
-    finnhubTickers: string[] | null;
-  }>(() => {
-    if (finnhubLoading) {
-      return { rows: [], finnhubTickers: null };
-    }
-
-    // Actual received in last 12 months by holding
-    const now = new Date();
-    const cutoff = new Date();
-    cutoff.setMonth(cutoff.getMonth() - 12);
-    const actualByHoldingId = new Map<string, number>();
-    for (const d of dividends) {
-      const dateStr = d.pay_date || d.ex_date;
-      const [y, m, day] = dateStr.split('-').map((v) => parseInt(v, 10));
-      const dt = new Date(y, m - 1, day);
-      if (dt >= cutoff && dt <= now) {
-        actualByHoldingId.set(
-          d.holding_id,
-          (actualByHoldingId.get(d.holding_id) || 0) + Number(d.total_amount),
-        );
-      }
-    }
-
-    const built: Row[] = [];
-    const sourcedTickers = new Set<string>();
-    for (const h of holdings) {
-      const a = analytics.get(h.ticker);
-      const divPerShare = a?.divPerShare ?? 0;
-      const yieldPct = a?.divYield ?? 0;
-      const payoutRatio: number | null = a?.payoutRatio ?? null;
-      const growth5Y: number | null = a?.divGrowth5Y ?? null;
-      const projAnnual = divPerShare * h.shares;
-      if (divPerShare <= 0 && yieldPct <= 0) continue;
-      sourcedTickers.add(h.ticker.toUpperCase());
-      built.push({
-        ticker: h.ticker,
-        shares: h.shares,
-        divPerShare,
-        yieldPct,
-        projectedAnnual: projAnnual,
-        actualReceived: actualByHoldingId.get(h.id) || 0,
-        payoutRatio,
-        growth5Y,
-      });
-    }
-    return { rows: built, finnhubTickers: Array.from(sourcedTickers) };
-  }, [finnhubLoading, holdings, analytics, dividends]);
 
   // Bust dividend cache on mount so fallback always sees fresh data
   useEffect(() => {
