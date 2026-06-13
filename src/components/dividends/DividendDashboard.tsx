@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useDividends } from '@/hooks/useDividends';
 import { usePortfolioData } from '@/hooks/usePortfolioData';
 import { useAnalyticsData } from '@/hooks/useAnalyticsData';
@@ -53,6 +53,15 @@ function formatRelativeTime(ts: number): string {
 const fmtUSD = (n: number) =>
   `${n < 0 ? '-' : ''}$${Math.abs(n).toFixed(2)}`;
 
+const FALLBACK_FREQ_MULTIPLIER: Record<string, number> = {
+  monthly: 12,
+  quarterly: 4,
+  'semi-annual': 2,
+  annual: 1,
+  special: 1,
+  other: 4,
+};
+
 interface Row {
   ticker: string;
   shares: number;
@@ -71,6 +80,8 @@ export function DividendDashboard() {
   const [sortKey, setSortKey] = useState<SortKey>('payoutHealth');
   const [sortDir, setSortDir] = useState<SortDir>('asc'); // asc = healthy first
   const [syncing, setSyncing] = useState(false);
+  const [fallbackRows, setFallbackRows] = useState<Row[]>([]);
+  const [fallbackLoading, setFallbackLoading] = useState(false);
 
   const handleRefreshDividends = async () => {
     setSyncing(true);
@@ -87,84 +98,182 @@ export function DividendDashboard() {
 
   const summary = useMemo(() => getSummary(), [getSummary]);
 
-  // Build per-holding rows combining Finnhub projection + actual logged divs
-  const { rows: unsortedRows, totalProjectedAnnual } = useMemo(() => {
-    // Actual received in last 12 months by ticker
+  const { rows: finnhubRows, finnhubTickers } = useMemo(() => {
+    // Actual received in last 12 months by holding
     const now = new Date();
     const cutoff = new Date();
     cutoff.setMonth(cutoff.getMonth() - 12);
-    const actualByTicker = new Map<string, number>();
-    // Most recent dividend per ticker (for fallback Div/Share calculation)
-    const latestDivByTicker = new Map<
-      string,
-      { ex_date: string; amount_per_share: number; frequency: string }
-    >();
+    const actualByHoldingId = new Map<string, number>();
     for (const d of dividends) {
       const dateStr = d.pay_date || d.ex_date;
       const [y, m, day] = dateStr.split('-').map((v) => parseInt(v, 10));
       const dt = new Date(y, m - 1, day);
       if (dt >= cutoff && dt <= now) {
-        actualByTicker.set(
-          d.ticker,
-          (actualByTicker.get(d.ticker) || 0) + Number(d.total_amount),
+        actualByHoldingId.set(
+          d.holding_id,
+          (actualByHoldingId.get(d.holding_id) || 0) + Number(d.total_amount),
         );
-      }
-      const prev = latestDivByTicker.get(d.ticker);
-      if (!prev || d.ex_date > prev.ex_date) {
-        latestDivByTicker.set(d.ticker, {
-          ex_date: d.ex_date,
-          amount_per_share: Number(d.amount_per_share),
-          frequency: d.frequency || 'quarterly',
-        });
       }
     }
 
-    const freqMul: Record<string, number> = {
-      monthly: 12,
-      quarterly: 4,
-      'semi-annual': 2,
-      annual: 1,
-      special: 1,
-      other: 4,
-    };
-
-    let totalProj = 0;
     const built: Row[] = [];
+    const sourcedTickers = new Set<string>();
     for (const h of holdings) {
       const a = analytics.get(h.ticker);
-      let divPerShare = a?.divPerShare ?? 0;
-      let yieldPct = a?.divYield ?? 0;
-      let payoutRatio: number | null = a?.payoutRatio ?? null;
-      let growth5Y: number | null = a?.divGrowth5Y ?? null;
-      const hasLogged = actualByTicker.has(h.ticker);
-      const latest = latestDivByTicker.get(h.ticker);
-
-      // Fallback: Finnhub had no dividend data, but we have logged dividends
-      if (divPerShare <= 0 && yieldPct <= 0 && latest) {
-        const mul = freqMul[latest.frequency] ?? 4;
-        divPerShare = latest.amount_per_share * mul;
-        yieldPct =
-          h.currentPrice > 0 ? (divPerShare / h.currentPrice) * 100 : 0;
-        payoutRatio = null; // shows "N/A"
-        growth5Y = null; // shows "—"
-      }
-
+      const divPerShare = a?.divPerShare ?? 0;
+      const yieldPct = a?.divYield ?? 0;
+      const payoutRatio: number | null = a?.payoutRatio ?? null;
+      const growth5Y: number | null = a?.divGrowth5Y ?? null;
       const projAnnual = divPerShare * h.shares;
-      if (divPerShare <= 0 && yieldPct <= 0 && !hasLogged) continue;
-      totalProj += projAnnual;
+      if (divPerShare <= 0 && yieldPct <= 0) continue;
+      sourcedTickers.add(h.ticker.toUpperCase());
       built.push({
         ticker: h.ticker,
         shares: h.shares,
         divPerShare,
         yieldPct,
         projectedAnnual: projAnnual,
-        actualReceived: actualByTicker.get(h.ticker) || 0,
+        actualReceived: actualByHoldingId.get(h.id) || 0,
         payoutRatio,
         growth5Y,
       });
     }
-    return { rows: built, totalProjectedAnnual: totalProj };
+    return { rows: built, finnhubTickers: Array.from(sourcedTickers) };
   }, [holdings, analytics, dividends]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const fetchFallbackRows = async () => {
+      if (portfolioLoading || analyticsLoading) return;
+
+      if (holdings.length === 0) {
+        setFallbackRows([]);
+        setFallbackLoading(false);
+        return;
+      }
+
+      const missingHoldings = holdings.filter(
+        (holding) => !finnhubTickers.includes(holding.ticker.toUpperCase()),
+      );
+
+      if (missingHoldings.length === 0) {
+        setFallbackRows([]);
+        setFallbackLoading(false);
+        return;
+      }
+
+      setFallbackLoading(true);
+
+      try {
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
+
+        if (!user) {
+          if (!cancelled) setFallbackRows([]);
+          return;
+        }
+
+        const holdingById = new Map(missingHoldings.map((holding) => [holding.id, holding]));
+        const { data, error } = await supabase
+          .from('dividends')
+          .select('ticker, amount_per_share, frequency, total_amount, ex_date, holding_id')
+          .eq('user_id', user.id)
+          .in('holding_id', missingHoldings.map((holding) => holding.id))
+          .order('holding_id', { ascending: true })
+          .order('ex_date', { ascending: false });
+
+        if (error) throw error;
+
+        const now = new Date();
+        const cutoff = new Date();
+        cutoff.setMonth(cutoff.getMonth() - 12);
+        const latestByHoldingId = new Map<
+          string,
+          { ticker: string; amount_per_share: number; frequency: string; ex_date: string }
+        >();
+        const actualByHoldingId = new Map<string, number>();
+
+        for (const dividend of data || []) {
+          if (!dividend.holding_id || !holdingById.has(dividend.holding_id)) continue;
+
+          const latest = latestByHoldingId.get(dividend.holding_id);
+          if (!latest || dividend.ex_date > latest.ex_date) {
+            latestByHoldingId.set(dividend.holding_id, {
+              ticker: dividend.ticker,
+              amount_per_share: Number(dividend.amount_per_share),
+              frequency: dividend.frequency || 'quarterly',
+              ex_date: dividend.ex_date,
+            });
+          }
+
+          const [year, month, day] = dividend.ex_date
+            .split('-')
+            .map((value) => parseInt(value, 10));
+          const exDate = new Date(year, month - 1, day);
+          if (exDate >= cutoff && exDate <= now) {
+            actualByHoldingId.set(
+              dividend.holding_id,
+              (actualByHoldingId.get(dividend.holding_id) || 0) + Number(dividend.total_amount),
+            );
+          }
+        }
+
+        const builtFallbackRows = missingHoldings.flatMap((holding) => {
+          const latest = latestByHoldingId.get(holding.id);
+          if (!latest) return [];
+
+          const frequencyMultiplier = FALLBACK_FREQ_MULTIPLIER[latest.frequency] ?? 4;
+          const annualDivPerShare = latest.amount_per_share * frequencyMultiplier;
+
+          return [
+            {
+              ticker: latest.ticker || holding.ticker,
+              shares: holding.shares,
+              divPerShare: latest.amount_per_share,
+              yieldPct:
+                holding.currentPrice > 0
+                  ? (annualDivPerShare / holding.currentPrice) * 100
+                  : 0,
+              projectedAnnual: annualDivPerShare * holding.shares,
+              actualReceived: actualByHoldingId.get(holding.id) || 0,
+              payoutRatio: null,
+              growth5Y: null,
+            },
+          ];
+        });
+
+        if (!cancelled) {
+          setFallbackRows(builtFallbackRows);
+        }
+      } catch {
+        if (!cancelled) {
+          setFallbackRows([]);
+        }
+      } finally {
+        if (!cancelled) {
+          setFallbackLoading(false);
+        }
+      }
+    };
+
+    fetchFallbackRows();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [holdings, portfolioLoading, analyticsLoading, finnhubTickers]);
+
+  const unsortedRows = useMemo(
+    () => [...finnhubRows, ...fallbackRows],
+    [finnhubRows, fallbackRows],
+  );
+
+  const totalProjectedAnnual = useMemo(
+    () => unsortedRows.reduce((sum, row) => sum + row.projectedAnnual, 0),
+    [unsortedRows],
+  );
 
   const rows = useMemo(() => {
     const arr = [...unsortedRows];
@@ -229,7 +338,7 @@ export function DividendDashboard() {
   };
 
 
-  const loading = divLoading || portfolioLoading || analyticsLoading;
+  const loading = divLoading || portfolioLoading || analyticsLoading || fallbackLoading;
 
   if (loading) {
     return (
