@@ -350,7 +350,7 @@ export function DividendDashboard() {
   };
 
 
-  const loading = finnhubLoading || fallbackLoading;
+  const loading = finnhubLoading || rowsLoading;
 
   if (loading) {
     return (
