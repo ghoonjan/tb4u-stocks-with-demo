@@ -83,6 +83,7 @@ export function DividendDashboard() {
   const [fallbackRows, setFallbackRows] = useState<Row[]>([]);
   const [fallbackLoading, setFallbackLoading] = useState(false);
   const fallbackHasRun = useRef(false);
+  const fallbackStartedRef = useRef(false);
   const finnhubLoading = portfolioLoading || analyticsLoading || divLoading;
 
   const handleRefreshDividends = async () => {
@@ -169,11 +170,12 @@ export function DividendDashboard() {
       return;
     }
 
-    if (finnhubTickers === null || fallbackHasRun.current) {
+    if (finnhubTickers === null || fallbackStartedRef.current || fallbackHasRun.current) {
       return;
     }
 
     let cancelled = false;
+    fallbackStartedRef.current = true;
 
     const fetchFallbackRows = async () => {
       if (holdings.length === 0) {
