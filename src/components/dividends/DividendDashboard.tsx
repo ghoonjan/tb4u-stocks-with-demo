@@ -141,6 +141,18 @@ export function DividendDashboard() {
     return { rows: built, finnhubTickers: Array.from(sourcedTickers) };
   }, [holdings, analytics, dividends]);
 
+  // Bust dividend cache on mount so fallback always sees fresh data
+  useEffect(() => {
+    try {
+      const keys = Object.keys(localStorage);
+      for (const k of keys) {
+        if (k.toLowerCase().includes('dividend')) {
+          localStorage.removeItem(k);
+        }
+      }
+    } catch { /* ignore */ }
+  }, []);
+
   useEffect(() => {
     let cancelled = false;
 
@@ -156,6 +168,16 @@ export function DividendDashboard() {
       const missingHoldings = holdings.filter(
         (holding) => !finnhubTickers.includes(holding.ticker.toUpperCase()),
       );
+
+      const {
+        data: { user: _userForLog },
+      } = await supabase.auth.getUser();
+      console.log('[dividendDashboard] fallback check:', {
+        finnhubTickers,
+        finnhubRowsLength: finnhubRows.length,
+        holdingsLength: holdings?.length,
+        userId: _userForLog?.id,
+      });
 
       if (missingHoldings.length === 0) {
         setFallbackRows([]);
@@ -176,15 +198,24 @@ export function DividendDashboard() {
         }
 
         const holdingById = new Map(missingHoldings.map((holding) => [holding.id, holding]));
+        const fallbackHoldingIds = missingHoldings.map((holding) => holding.id);
         const { data, error } = await supabase
           .from('dividends')
           .select('ticker, amount_per_share, frequency, total_amount, ex_date, holding_id')
           .eq('user_id', user.id)
-          .in('holding_id', missingHoldings.map((holding) => holding.id))
+          .in('holding_id', fallbackHoldingIds)
           .order('holding_id', { ascending: true })
           .order('ex_date', { ascending: false });
 
+        console.log('[dividendDashboard] fallback query result:', {
+          fallbackHoldingIds,
+          fallbackDividendsCount: data?.length,
+          fallbackError: error,
+          fallbackTickers: data?.map((d) => d.ticker),
+        });
+
         if (error) throw error;
+
 
         const now = new Date();
         const cutoff = new Date();
@@ -245,8 +276,13 @@ export function DividendDashboard() {
         });
 
         if (!cancelled) {
+          console.log('[dividendDashboard] fallback rows built:', {
+            fallbackRowCount: builtFallbackRows.length,
+            tickers: builtFallbackRows.map((r) => r.ticker),
+          });
           setFallbackRows(builtFallbackRows);
         }
+
       } catch {
         if (!cancelled) {
           setFallbackRows([]);
