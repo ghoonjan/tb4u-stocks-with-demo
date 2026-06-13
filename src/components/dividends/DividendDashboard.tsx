@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useDividends } from '@/hooks/useDividends';
 import { usePortfolioData } from '@/hooks/usePortfolioData';
 import { useAnalyticsData } from '@/hooks/useAnalyticsData';
@@ -82,6 +82,8 @@ export function DividendDashboard() {
   const [syncing, setSyncing] = useState(false);
   const [fallbackRows, setFallbackRows] = useState<Row[]>([]);
   const [fallbackLoading, setFallbackLoading] = useState(false);
+  const hasFetchedFallbackRef = useRef(false);
+  const finnhubLoading = portfolioLoading || analyticsLoading || divLoading;
 
   const handleRefreshDividends = async () => {
     setSyncing(true);
@@ -98,7 +100,14 @@ export function DividendDashboard() {
 
   const summary = useMemo(() => getSummary(), [getSummary]);
 
-  const { rows: finnhubRows, finnhubTickers } = useMemo(() => {
+  const { rows: finnhubRows, finnhubTickers } = useMemo<{
+    rows: Row[];
+    finnhubTickers: string[] | null;
+  }>(() => {
+    if (finnhubLoading) {
+      return { rows: [], finnhubTickers: null };
+    }
+
     // Actual received in last 12 months by holding
     const now = new Date();
     const cutoff = new Date();
@@ -139,7 +148,7 @@ export function DividendDashboard() {
       });
     }
     return { rows: built, finnhubTickers: Array.from(sourcedTickers) };
-  }, [holdings, analytics, dividends]);
+  }, [finnhubLoading, holdings, analytics, dividends]);
 
   // Bust dividend cache on mount so fallback always sees fresh data
   useEffect(() => {
@@ -154,11 +163,14 @@ export function DividendDashboard() {
   }, []);
 
   useEffect(() => {
+    if (finnhubLoading || finnhubTickers === null || hasFetchedFallbackRef.current) {
+      return;
+    }
+
     let cancelled = false;
+    hasFetchedFallbackRef.current = true;
 
     const fetchFallbackRows = async () => {
-      if (portfolioLoading || analyticsLoading) return;
-
       if (holdings.length === 0) {
         setFallbackRows([]);
         setFallbackLoading(false);
@@ -206,6 +218,13 @@ export function DividendDashboard() {
           .in('holding_id', fallbackHoldingIds)
           .order('holding_id', { ascending: true })
           .order('ex_date', { ascending: false });
+
+        console.log('[dividendDashboard] fallback Run 2 query params:', {
+          excludedTickers: finnhubTickers,
+          holdingIdsQueried: fallbackHoldingIds,
+          rawSupabaseResponse: data,
+          error,
+        });
 
         console.log('[dividendDashboard] fallback query result:', {
           fallbackHoldingIds,
@@ -299,7 +318,7 @@ export function DividendDashboard() {
     return () => {
       cancelled = true;
     };
-  }, [holdings, portfolioLoading, analyticsLoading, finnhubTickers]);
+  }, [finnhubLoading, finnhubRows.length, finnhubTickers, holdings]);
 
   const unsortedRows = useMemo(
     () => [...finnhubRows, ...fallbackRows],
@@ -374,7 +393,7 @@ export function DividendDashboard() {
   };
 
 
-  const loading = divLoading || portfolioLoading || analyticsLoading || fallbackLoading;
+  const loading = finnhubLoading || fallbackLoading;
 
   if (loading) {
     return (
