@@ -195,6 +195,12 @@ export async function syncDividendsForUser(userId: string): Promise<SyncResult> 
         });
         const dps = Number(metric?.metric?.dividendPerShareAnnual ?? 0);
         if (!dps || dps <= 0) {
+          const existingTickerData = (existing || []).some(
+            (dividend) => (dividend.ticker || "").toUpperCase() === tickerUpper,
+          );
+          if (existingTickerData) {
+            console.log('[dividendSync] preserving existing data for', h.ticker, '(Finnhub unavailable)');
+          }
           console.info(`[dividendSync] no dividend data for ${h.ticker} (non-payer or unavailable)`);
           result.skipped++;
           continue;
