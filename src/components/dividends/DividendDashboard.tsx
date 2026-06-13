@@ -84,21 +84,6 @@ export function DividendDashboard() {
   const [rowsLoading, setRowsLoading] = useState(true);
   const finnhubLoading = portfolioLoading || analyticsLoading || divLoading;
   const analyticsReady = holdings.length === 0 || lastUpdated !== null || analytics.size > 0;
-  const analyticsKey = useMemo(
-    () => holdings
-      .map((holding) => {
-        const dividendAnalytics = analytics.get(holding.ticker);
-        return [
-          holding.ticker,
-          dividendAnalytics?.divPerShare ?? 'na',
-          dividendAnalytics?.divYield ?? 'na',
-          dividendAnalytics?.payoutRatio ?? 'na',
-          dividendAnalytics?.divGrowth5Y ?? 'na',
-        ].join(':');
-      })
-      .join('|'),
-    [analytics, holdings],
-  );
   const holdingsKey = useMemo(
     () => holdings
       .map((holding) => [holding.id, holding.ticker, holding.shares, holding.currentPrice].join(':'))
@@ -307,7 +292,7 @@ export function DividendDashboard() {
     return () => {
       cancelled = true;
     };
-  }, [finnhubLoading, analyticsReady, analyticsKey, holdingsKey, dividendsKey, holdings, dividends]);
+  }, [finnhubLoading, analyticsReady, holdingsKey, dividendsKey]);
 
   const unsortedRows = useMemo(() => allRows, [allRows]);
 
