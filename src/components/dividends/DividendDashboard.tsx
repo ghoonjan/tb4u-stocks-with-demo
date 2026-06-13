@@ -94,6 +94,11 @@ export function DividendDashboard() {
     const cutoff = new Date();
     cutoff.setMonth(cutoff.getMonth() - 12);
     const actualByTicker = new Map<string, number>();
+    // Most recent dividend per ticker (for fallback Div/Share calculation)
+    const latestDivByTicker = new Map<
+      string,
+      { ex_date: string; amount_per_share: number; frequency: string }
+    >();
     for (const d of dividends) {
       const dateStr = d.pay_date || d.ex_date;
       const [y, m, day] = dateStr.split('-').map((v) => parseInt(v, 10));
@@ -104,16 +109,48 @@ export function DividendDashboard() {
           (actualByTicker.get(d.ticker) || 0) + Number(d.total_amount),
         );
       }
+      const prev = latestDivByTicker.get(d.ticker);
+      if (!prev || d.ex_date > prev.ex_date) {
+        latestDivByTicker.set(d.ticker, {
+          ex_date: d.ex_date,
+          amount_per_share: Number(d.amount_per_share),
+          frequency: d.frequency || 'quarterly',
+        });
+      }
     }
+
+    const freqMul: Record<string, number> = {
+      monthly: 12,
+      quarterly: 4,
+      'semi-annual': 2,
+      annual: 1,
+      special: 1,
+      other: 4,
+    };
 
     let totalProj = 0;
     const built: Row[] = [];
     for (const h of holdings) {
       const a = analytics.get(h.ticker);
-      const divPerShare = a?.divPerShare ?? 0;
-      const yieldPct = a?.divYield ?? 0;
+      let divPerShare = a?.divPerShare ?? 0;
+      let yieldPct = a?.divYield ?? 0;
+      let payoutRatio: number | null = a?.payoutRatio ?? null;
+      let growth5Y: number | null = a?.divGrowth5Y ?? null;
+      const hasLogged = actualByTicker.has(h.ticker);
+      const latest = latestDivByTicker.get(h.ticker);
+
+      // Fallback: Finnhub had no dividend data, but we have logged dividends
+      if (divPerShare <= 0 && yieldPct <= 0 && latest) {
+        const mul = freqMul[latest.frequency] ?? 4;
+        divPerShare = latest.amount_per_share * mul;
+        yieldPct =
+          h.currentPrice > 0 ? (divPerShare / h.currentPrice) * 100 : 0;
+        payoutRatio = null; // shows "N/A"
+        growth5Y = null; // shows "—"
+      }
+
       const projAnnual = divPerShare * h.shares;
-      if (divPerShare <= 0 && yieldPct <= 0 && !actualByTicker.has(h.ticker)) continue;
+      if (divPerShare <= 0 && yieldPct <= 0 && !hasLogged) continue;
       totalProj += projAnnual;
       built.push({
         ticker: h.ticker,
@@ -122,8 +159,8 @@ export function DividendDashboard() {
         yieldPct,
         projectedAnnual: projAnnual,
         actualReceived: actualByTicker.get(h.ticker) || 0,
-        payoutRatio: a?.payoutRatio ?? null,
-        growth5Y: a?.divGrowth5Y ?? null,
+        payoutRatio,
+        growth5Y,
       });
     }
     return { rows: built, totalProjectedAnnual: totalProj };
