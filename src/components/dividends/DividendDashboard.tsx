@@ -82,7 +82,8 @@ export function DividendDashboard() {
   const [syncing, setSyncing] = useState(false);
   const [fallbackRows, setFallbackRows] = useState<Row[]>([]);
   const [fallbackLoading, setFallbackLoading] = useState(false);
-  const hasFetchedFallbackRef = useRef(false);
+  const fallbackHasRun = useRef(false);
+  const fallbackStartedRef = useRef(false);
   const finnhubLoading = portfolioLoading || analyticsLoading || divLoading;
 
   const handleRefreshDividends = async () => {
@@ -163,16 +164,23 @@ export function DividendDashboard() {
   }, []);
 
   useEffect(() => {
-    if (finnhubLoading || finnhubTickers === null || hasFetchedFallbackRef.current) {
+    if (!finnhubLoading && finnhubRows.length === 0 && holdings.length > 0) {
+      // Finnhub returned nothing — skip waiting and run fallback for all
+    } else if (finnhubLoading) {
+      return;
+    }
+
+    if (finnhubTickers === null || fallbackStartedRef.current || fallbackHasRun.current) {
       return;
     }
 
     let cancelled = false;
-    hasFetchedFallbackRef.current = true;
+    fallbackStartedRef.current = true;
 
     const fetchFallbackRows = async () => {
       if (holdings.length === 0) {
         setFallbackRows([]);
+        fallbackHasRun.current = true;
         setFallbackLoading(false);
         return;
       }
@@ -193,6 +201,7 @@ export function DividendDashboard() {
 
       if (missingHoldings.length === 0) {
         setFallbackRows([]);
+        fallbackHasRun.current = true;
         setFallbackLoading(false);
         return;
       }
@@ -205,7 +214,10 @@ export function DividendDashboard() {
         } = await supabase.auth.getUser();
 
         if (!user) {
-          if (!cancelled) setFallbackRows([]);
+          if (!cancelled) {
+            setFallbackRows([]);
+            fallbackHasRun.current = true;
+          }
           return;
         }
 
@@ -223,6 +235,13 @@ export function DividendDashboard() {
           excludedTickers: finnhubTickers,
           holdingIdsQueried: fallbackHoldingIds,
           rawSupabaseResponse: data,
+          error,
+        });
+
+        console.log('[dividendDashboard] fallback query:', {
+          holdingIds: fallbackHoldingIds,
+          queryFilter: 'holding_id in (...)',
+          resultCount: data?.length,
           error,
         });
 
@@ -300,11 +319,13 @@ export function DividendDashboard() {
             tickers: builtFallbackRows.map((r) => r.ticker),
           });
           setFallbackRows(builtFallbackRows);
+          fallbackHasRun.current = true;
         }
 
       } catch {
         if (!cancelled) {
           setFallbackRows([]);
+          fallbackHasRun.current = true;
         }
       } finally {
         if (!cancelled) {
