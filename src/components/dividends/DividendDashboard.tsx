@@ -276,8 +276,13 @@ export function DividendDashboard() {
         });
 
         if (!cancelled) {
+          console.log('[dividendDashboard] fallback rows built:', {
+            fallbackRowCount: builtFallbackRows.length,
+            tickers: builtFallbackRows.map((r) => r.ticker),
+          });
           setFallbackRows(builtFallbackRows);
         }
+
       } catch {
         if (!cancelled) {
           setFallbackRows([]);
